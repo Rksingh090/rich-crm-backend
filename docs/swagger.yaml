@@ -1,0 +1,508 @@
+basePath: /
+definitions:
+  handlers.AuthResponse:
+    properties:
+      token:
+        type: string
+    type: object
+  handlers.LoginRequest:
+    properties:
+      password:
+        type: string
+      username:
+        type: string
+    type: object
+  handlers.RegisterRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+      username:
+        type: string
+    type: object
+  models.FieldType:
+    enum:
+    - text
+    - number
+    - date
+    - boolean
+    - lookup
+    - email
+    - phone
+    - file
+    - url
+    - textarea
+    - select
+    - multiselect
+    - currency
+    type: string
+    x-enum-varnames:
+    - FieldTypeText
+    - FieldTypeNumber
+    - FieldTypeDate
+    - FieldTypeBoolean
+    - FieldTypeLookup
+    - FieldTypeEmail
+    - FieldTypePhone
+    - FieldTypeFile
+    - FieldTypeURL
+    - FieldTypeTextArea
+    - FieldTypeSelect
+    - FieldTypeMultiSelect
+    - FieldTypeCurrency
+  models.File:
+    properties:
+      created_at:
+        type: string
+      group:
+        type: string
+      id:
+        type: string
+      mime_type:
+        type: string
+      original_filename:
+        type: string
+      path:
+        description: Server file path
+        type: string
+      size:
+        type: integer
+      unique_filename:
+        type: string
+      url:
+        description: Public Web URL
+        type: string
+    type: object
+  models.LookupDef:
+    properties:
+      display_field:
+        description: Target Field to display in UI
+        type: string
+      module:
+        description: Target Module Name
+        type: string
+      value_field:
+        description: Target Field to store (usually _id)
+        type: string
+    type: object
+  models.Module:
+    properties:
+      created_at:
+        type: string
+      fields:
+        items:
+          $ref: '#/definitions/models.ModuleField'
+        type: array
+      id:
+        type: string
+      label:
+        type: string
+      name:
+        description: Unique Identifier (e.g., "leads", "deals")
+        type: string
+      updated_at:
+        type: string
+    type: object
+  models.ModuleField:
+    properties:
+      label:
+        type: string
+      lookup:
+        $ref: '#/definitions/models.LookupDef'
+      name:
+        type: string
+      options:
+        description: For Select/MultiSelect
+        items:
+          type: string
+        type: array
+      required:
+        type: boolean
+      type:
+        $ref: '#/definitions/models.FieldType'
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: This is a sample CRM server.
+  title: Go CRM API
+  version: "1.0"
+paths:
+  /health:
+    get:
+      description: Check if the server is up
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+      summary: Health Check
+      tags:
+      - health
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: Login with username and password
+      parameters:
+      - description: Login Input
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.AuthResponse'
+        "400":
+          description: Invalid request body
+          schema:
+            type: string
+        "401":
+          description: Invalid credentials
+          schema:
+            type: string
+      summary: Login
+      tags:
+      - auth
+  /modules:
+    get:
+      description: Get a list of all defined modules
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Module'
+            type: array
+      summary: List all modules
+      tags:
+      - modules
+    post:
+      consumes:
+      - application/json
+      description: Create a dynamic module with fields
+      parameters:
+      - description: Module Definition
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/models.Module'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Module created
+          schema:
+            type: string
+        "400":
+          description: Invalid request
+          schema:
+            type: string
+      summary: Create a new module definition
+      tags:
+      - modules
+  /modules/{name}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a module and its definition
+      parameters:
+      - description: Module Name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid input
+          schema:
+            type: string
+      summary: Delete a module
+      tags:
+      - modules
+    get:
+      description: Get specific module definition including fields
+      parameters:
+      - description: Module Name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Module'
+        "404":
+          description: Module not found
+          schema:
+            type: string
+      summary: Get a module by name
+      tags:
+      - modules
+    put:
+      consumes:
+      - application/json
+      description: Update schema for a module
+      parameters:
+      - description: Module Name
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: Module Definition
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/models.Module'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid input
+          schema:
+            type: string
+      summary: Update a module definition
+      tags:
+      - modules
+  /modules/{name}/records:
+    get:
+      consumes:
+      - application/json
+      description: Get records with pagination and filters
+      parameters:
+      - description: Module Name
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: Page number (default 1)
+        in: query
+        name: page
+        type: integer
+      - description: Records per page (default 10)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+        "400":
+          description: Invalid input
+          schema:
+            type: string
+      summary: List records from a module
+      tags:
+      - records
+    post:
+      consumes:
+      - application/json
+      description: Insert data into a dynamic module with validation
+      parameters:
+      - description: Module Name
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: Record Data
+        in: body
+        name: input
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            type: string
+        "404":
+          description: Module not found
+          schema:
+            type: string
+      summary: Create a record in a module
+      tags:
+      - records
+  /modules/{name}/records/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a record from a module
+      parameters:
+      - description: Module Name
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: Record ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid input
+          schema:
+            type: string
+      summary: Delete a record
+      tags:
+      - records
+    put:
+      consumes:
+      - application/json
+      description: Update a record in a module
+      parameters:
+      - description: Module Name
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: Record ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Record Data
+        in: body
+        name: input
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid input
+          schema:
+            type: string
+      summary: Update a record
+      tags:
+      - records
+  /register:
+    post:
+      consumes:
+      - application/json
+      description: Register a new user with username, password, and email
+      parameters:
+      - description: Register Input
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid request body
+          schema:
+            type: string
+        "500":
+          description: Failed to create user
+          schema:
+            type: string
+      summary: Register a new user
+      tags:
+      - auth
+  /upload:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Upload a file and get a URL (Metadata stored in DB)
+      parameters:
+      - description: File to upload
+        in: formData
+        name: file
+        required: true
+        type: file
+      - description: Group (optional)
+        in: formData
+        name: group
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.File'
+        "400":
+          description: Invalid input
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Upload a file
+      tags:
+      - files
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
