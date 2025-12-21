@@ -23,6 +23,8 @@ type ModuleRepository interface {
 	List(ctx context.Context) ([]models.Module, error)
 	Update(ctx context.Context, module *models.Module) error
 	Delete(ctx context.Context, name string) error
+	DropCollection(ctx context.Context, name string) error
+	FindUsingLookup(ctx context.Context, targetModule string) ([]models.Module, error)
 }
 
 type RecordRepository interface {

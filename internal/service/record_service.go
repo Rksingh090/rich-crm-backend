@@ -18,16 +18,18 @@ import (
 )
 
 type RecordServiceImpl struct {
-	ModuleRepo repository.ModuleRepository
-	RecordRepo repository.RecordRepository
-	FileRepo   repository.FileRepository
+	ModuleRepo   repository.ModuleRepository
+	RecordRepo   repository.RecordRepository
+	FileRepo     repository.FileRepository
+	AuditService AuditService
 }
 
-func NewRecordServiceImpl(moduleRepo repository.ModuleRepository, recordRepo repository.RecordRepository, fileRepo repository.FileRepository) *RecordServiceImpl {
+func NewRecordServiceImpl(moduleRepo repository.ModuleRepository, recordRepo repository.RecordRepository, fileRepo repository.FileRepository, auditService AuditService) *RecordServiceImpl {
 	return &RecordServiceImpl{
-		ModuleRepo: moduleRepo,
-		RecordRepo: recordRepo,
-		FileRepo:   fileRepo,
+		ModuleRepo:   moduleRepo,
+		RecordRepo:   recordRepo,
+		FileRepo:     fileRepo,
+		AuditService: auditService,
 	}
 }
 
@@ -65,7 +67,21 @@ func (s *RecordServiceImpl) CreateRecord(ctx context.Context, moduleName string,
 	}
 
 	// 3. Insert
-	return s.RecordRepo.Create(ctx, moduleName, validatedData)
+	res, err := s.RecordRepo.Create(ctx, moduleName, validatedData)
+	if err != nil {
+		return nil, err
+	}
+
+	// 4. Audit Log
+	if oid, ok := validatedData["_id"].(primitive.ObjectID); ok {
+		changes := make(map[string]models.Change)
+		for k, v := range validatedData {
+			changes[k] = models.Change{New: v}
+		}
+		_ = s.AuditService.LogChange(ctx, models.AuditActionCreate, moduleName, oid.Hex(), changes)
+	}
+
+	return res, nil
 }
 
 func (s *RecordServiceImpl) GetRecord(ctx context.Context, moduleName, id string) (map[string]any, error) {
@@ -211,11 +227,42 @@ func (s *RecordServiceImpl) UpdateRecord(ctx context.Context, moduleName, id str
 	}
 
 	// 3. Update
-	return s.RecordRepo.Update(ctx, moduleName, id, validatedData)
+	// For audit log, we need old values.
+	// We could fetch the record first. Since we are doing partial update, valid?
+	// To be accurate, we should fetch. GetRecord handles files/lookups, we might just want raw data?
+	// Using repository Get to get raw.
+	oldRecord, err := s.RecordRepo.Get(ctx, moduleName, id)
+	if err != nil {
+		return err
+	}
+
+	err = s.RecordRepo.Update(ctx, moduleName, id, validatedData)
+	if err != nil {
+		return err
+	}
+
+	// 4. Audit Log
+	changes := make(map[string]models.Change)
+	for k, newVal := range validatedData {
+		oldVal, exists := oldRecord[k]
+		// Determine if changed. Simple equality check.
+		// Be careful with types (e.g. int vs float).
+		if !exists || oldVal != newVal {
+			changes[k] = models.Change{Old: oldVal, New: newVal}
+		}
+	}
+	if len(changes) > 0 {
+		_ = s.AuditService.LogChange(ctx, models.AuditActionUpdate, moduleName, id, changes)
+	}
+	return nil
 }
 
 func (s *RecordServiceImpl) DeleteRecord(ctx context.Context, moduleName, id string) error {
-	return s.RecordRepo.Delete(ctx, moduleName, id)
+	err := s.RecordRepo.Delete(ctx, moduleName, id)
+	if err == nil {
+		_ = s.AuditService.LogChange(ctx, models.AuditActionDelete, moduleName, id, nil)
+	}
+	return err
 }
 
 func (s *RecordServiceImpl) populateFiles(ctx context.Context, fields []models.ModuleField, record map[string]any) error {

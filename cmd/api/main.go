@@ -37,22 +37,25 @@ func main() {
 	moduleRepo := repository.NewMongoModuleRepository(database.DB)
 	recordRepo := repository.NewMongoRecordRepository(database.DB)
 	fileRepo := repository.NewMongoFileRepository(database.DB)
+	auditRepo := repository.NewAuditRepository(database.DB)
 
 	// Services
-	authService := service.NewAuthService(userRepo, roleRepo)
-	roleService := service.NewRoleServiceImpl(roleRepo)
-	moduleService := service.NewModuleServiceImpl(moduleRepo)
-	recordService := service.NewRecordServiceImpl(moduleRepo, recordRepo, fileRepo)
+	// Services
+	auditService := service.NewAuditServiceImpl(auditRepo)
+	authService := service.NewAuthService(userRepo, roleRepo, auditService)
+	roleService := service.NewRoleServiceImpl(roleRepo, auditService)
+	moduleService := service.NewModuleServiceImpl(moduleRepo, auditService)
+	recordService := service.NewRecordServiceImpl(moduleRepo, recordRepo, fileRepo, auditService)
 
 	// Handlers
 	authHandler := handlers.NewAuthHandler(authService)
 	moduleHandler := handlers.NewModuleHandler(moduleService)
 	recordHandler := handlers.NewRecordHandler(recordService)
-	// 7. File Components
 	fileHandler := handlers.NewFileHandler("./uploads", fileRepo)
+	auditHandler := handlers.NewAuditHandler(auditService)
 
 	// Routes
-	r := routes.SetupRoutes(cfg, authHandler, roleService, moduleHandler, recordHandler, fileHandler)
+	r := routes.SetupRoutes(cfg, authHandler, roleService, moduleHandler, recordHandler, fileHandler, auditHandler)
 
 	// Wrap with CORS middleware
 	handler := middleware.CORSMiddleware(r)

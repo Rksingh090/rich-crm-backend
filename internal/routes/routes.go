@@ -12,7 +12,7 @@ import (
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
-func SetupRoutes(cfg *config.Config, authHandler *handlers.AuthHandler, roleService service.RoleService, moduleHandler *handlers.ModuleHandler, recordHandler *handlers.RecordHandler, fileHandler *handlers.FileHandler) *http.ServeMux {
+func SetupRoutes(cfg *config.Config, authHandler *handlers.AuthHandler, roleService service.RoleService, moduleHandler *handlers.ModuleHandler, recordHandler *handlers.RecordHandler, fileHandler *handlers.FileHandler, auditHandler *handlers.AuditHandler) *http.ServeMux {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/health", handlers.HealthCheck)
@@ -32,6 +32,9 @@ func SetupRoutes(cfg *config.Config, authHandler *handlers.AuthHandler, roleServ
 	RegisterAuthRoutes(mux, authHandler, cfg.SkipAuth)
 	RegisterAdminRoutes(mux, roleService, cfg.SkipAuth)
 	RegisterModuleRoutes(mux, moduleHandler, recordHandler, cfg.SkipAuth)
+
+	// Audit Logs
+	mux.Handle("/audit-logs", middleware.AuthMiddleware(cfg.SkipAuth)(http.HandlerFunc(auditHandler.ListLogs)))
 
 	// WebSocket Route
 	mux.HandleFunc("/ws", handlers.HandleWebSocket)

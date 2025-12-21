@@ -8,9 +8,7 @@ import (
 	"go-crm/pkg/utils"
 )
 
-type contextKey string
-
-const UserClaimsKey contextKey = "userClaims"
+// UserClaimsKey moved to pkg/utils
 
 func AuthMiddleware(skipAuth bool) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
@@ -21,7 +19,7 @@ func AuthMiddleware(skipAuth bool) func(http.Handler) http.Handler {
 					UserID: "dev-admin-id",
 					Roles:  []string{"val"}, // Matches nothing specific or can match admin if we hack it, but here just valid token struct
 				}
-				ctx := context.WithValue(r.Context(), UserClaimsKey, dummyClaims)
+				ctx := context.WithValue(r.Context(), utils.UserClaimsKey, dummyClaims)
 				next.ServeHTTP(w, r.WithContext(ctx))
 				return
 			}
@@ -44,7 +42,7 @@ func AuthMiddleware(skipAuth bool) func(http.Handler) http.Handler {
 				return
 			}
 
-			ctx := context.WithValue(r.Context(), UserClaimsKey, claims)
+			ctx := context.WithValue(r.Context(), utils.UserClaimsKey, claims)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}

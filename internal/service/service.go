@@ -32,3 +32,8 @@ type RecordService interface {
 	UpdateRecord(ctx context.Context, moduleName, id string, data map[string]interface{}) error
 	DeleteRecord(ctx context.Context, moduleName, id string) error
 }
+
+type AuditService interface {
+	LogChange(ctx context.Context, action models.AuditAction, module string, recordID string, changes map[string]models.Change) error
+	ListLogs(ctx context.Context, page, limit int64) ([]models.AuditLog, error)
+}

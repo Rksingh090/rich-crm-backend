@@ -14,14 +14,16 @@ import (
 )
 
 type AuthServiceImpl struct {
-	UserRepo repository.UserRepository
-	RoleRepo repository.RoleRepository
+	UserRepo     repository.UserRepository
+	RoleRepo     repository.RoleRepository
+	AuditService AuditService
 }
 
-func NewAuthService(userRepo repository.UserRepository, roleRepo repository.RoleRepository) *AuthServiceImpl {
+func NewAuthService(userRepo repository.UserRepository, roleRepo repository.RoleRepository, auditService AuditService) *AuthServiceImpl {
 	return &AuthServiceImpl{
-		UserRepo: userRepo,
-		RoleRepo: roleRepo,
+		UserRepo:     userRepo,
+		RoleRepo:     roleRepo,
+		AuditService: auditService,
 	}
 }
 
@@ -64,6 +66,13 @@ func (s *AuthServiceImpl) Register(ctx context.Context, username, password, emai
 	if err := s.UserRepo.Create(ctx, &user); err != nil {
 		return nil, err
 	}
+
+	// Audit Log
+	changes := map[string]models.Change{
+		"username": {New: username},
+		"email":    {New: email},
+	}
+	_ = s.AuditService.LogChange(ctx, models.AuditActionCreate, "user", user.ID.Hex(), changes)
 
 	return &user, nil
 }

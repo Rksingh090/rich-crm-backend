@@ -11,11 +11,13 @@ import (
 
 type MongoModuleRepository struct {
 	Collection *mongo.Collection
+	DB         *mongo.Database
 }
 
 func NewMongoModuleRepository(db *mongo.Database) *MongoModuleRepository {
 	return &MongoModuleRepository{
 		Collection: db.Collection("modules"),
+		DB:         db,
 	}
 }
 
@@ -57,4 +59,32 @@ func (r *MongoModuleRepository) Update(ctx context.Context, module *models.Modul
 func (r *MongoModuleRepository) Delete(ctx context.Context, name string) error {
 	_, err := r.Collection.DeleteOne(ctx, bson.M{"name": name})
 	return err
+}
+
+func (r *MongoModuleRepository) DropCollection(ctx context.Context, name string) error {
+	return r.DB.Collection(name).Drop(ctx)
+}
+
+func (r *MongoModuleRepository) FindUsingLookup(ctx context.Context, targetModule string) ([]models.Module, error) {
+	// Find modules that have at least one field where field.lookup.module == targetModule
+	filter := bson.M{
+		"fields": bson.M{
+			"$elemMatch": bson.M{
+				"type":          "lookup",
+				"lookup.module": targetModule,
+			},
+		},
+	}
+
+	cursor, err := r.Collection.Find(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var modules []models.Module
+	if err = cursor.All(ctx, &modules); err != nil {
+		return nil, err
+	}
+	return modules, nil
 }

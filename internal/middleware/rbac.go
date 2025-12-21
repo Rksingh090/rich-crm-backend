@@ -16,7 +16,7 @@ func RequirePermission(roleService service.RoleService, skipAuth bool, requiredP
 			return
 		}
 
-		claims, ok := r.Context().Value(UserClaimsKey).(*utils.UserClaims)
+		claims, ok := r.Context().Value(utils.UserClaimsKey).(*utils.UserClaims)
 		if !ok {
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return

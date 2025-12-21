@@ -11,12 +11,14 @@ import (
 )
 
 type RoleServiceImpl struct {
-	RoleRepo repository.RoleRepository
+	RoleRepo     repository.RoleRepository
+	AuditService AuditService
 }
 
-func NewRoleServiceImpl(roleRepo repository.RoleRepository) *RoleServiceImpl {
+func NewRoleServiceImpl(roleRepo repository.RoleRepository, auditService AuditService) *RoleServiceImpl {
 	return &RoleServiceImpl{
-		RoleRepo: roleRepo,
+		RoleRepo:     roleRepo,
+		AuditService: auditService,
 	}
 }
 
@@ -31,6 +33,7 @@ func (s *RoleServiceImpl) CreateRole(ctx context.Context, name string, permissio
 	if err := s.RoleRepo.Create(ctx, &role); err != nil {
 		return nil, err
 	}
+	_ = s.AuditService.LogChange(ctx, models.AuditActionCreate, "role", role.ID.Hex(), map[string]models.Change{"name": {New: name}})
 	return &role, nil
 }
 
