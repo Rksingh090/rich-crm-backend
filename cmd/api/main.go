@@ -40,7 +40,6 @@ func main() {
 	auditRepo := repository.NewAuditRepository(database.DB)
 
 	// Services
-	// Services
 	auditService := service.NewAuditServiceImpl(auditRepo)
 	authService := service.NewAuthService(userRepo, roleRepo, auditService)
 	roleService := service.NewRoleServiceImpl(roleRepo, auditService)
