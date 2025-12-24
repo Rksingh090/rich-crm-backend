@@ -22,8 +22,8 @@ func NewUserApi(controller *controllers.UserController, config *config.Config) *
 
 // Setup registers all user-related routes
 func (h *UserApi) Setup(app *fiber.App) {
-	// User routes group with auth middleware
-	users := app.Group("/users", middleware.AuthMiddleware(h.config.SkipAuth))
+	// User routes group with auth and admin middleware
+	users := app.Group("/users", middleware.AuthMiddleware(h.config.SkipAuth), middleware.AdminMiddleware())
 
 	// User CRUD
 	users.Get("/", h.controller.ListUsers)

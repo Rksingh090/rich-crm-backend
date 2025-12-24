@@ -1,18 +1,18 @@
 basePath: /
 definitions:
-  handlers.AuthResponse:
+  controllers.AuthResponse:
     properties:
       token:
         type: string
     type: object
-  handlers.LoginRequest:
+  controllers.LoginRequest:
     properties:
       password:
         type: string
       username:
         type: string
     type: object
-  handlers.RegisterRequest:
+  controllers.RegisterRequest:
     properties:
       email:
         type: string
@@ -20,6 +20,73 @@ definitions:
         type: string
       username:
         type: string
+    type: object
+  controllers.UpdateUserRequest:
+    properties:
+      email:
+        type: string
+      first_name:
+        type: string
+      last_name:
+        type: string
+      phone:
+        type: string
+      status:
+        type: string
+      username:
+        type: string
+    type: object
+  controllers.UpdateUserRolesRequest:
+    properties:
+      role_ids:
+        items:
+          type: string
+        type: array
+    type: object
+  controllers.UpdateUserStatusRequest:
+    properties:
+      status:
+        type: string
+    type: object
+  models.AuditAction:
+    enum:
+    - CREATE
+    - UPDATE
+    - DELETE
+    - LOGIN
+    type: string
+    x-enum-varnames:
+    - AuditActionCreate
+    - AuditActionUpdate
+    - AuditActionDelete
+    - AuditActionLogin
+  models.AuditLog:
+    properties:
+      action:
+        $ref: '#/definitions/models.AuditAction'
+      actor_id:
+        description: User ID who performed the action
+        type: string
+      changes:
+        additionalProperties:
+          $ref: '#/definitions/models.Change'
+        description: 'For updates: field -> {old, new}'
+        type: object
+      id:
+        type: string
+      module:
+        description: The module/collection name
+        type: string
+      record_id:
+        description: The ID of the record being modified
+        type: string
+      timestamp:
+        type: string
+    type: object
+  models.Change:
+    properties:
+      new: {}
+      old: {}
     type: object
   models.FieldType:
     enum:
@@ -115,30 +182,105 @@ definitions:
       options:
         description: For Select/MultiSelect
         items:
-          type: string
+          $ref: '#/definitions/models.SelectOptions'
         type: array
       required:
         type: boolean
       type:
         $ref: '#/definitions/models.FieldType'
     type: object
-host: localhost:8080
+  models.SelectOptions:
+    properties:
+      label:
+        type: string
+      value:
+        type: string
+    type: object
+  models.User:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      first_name:
+        type: string
+      id:
+        type: string
+      last_login:
+        type: string
+      last_name:
+        type: string
+      phone:
+        type: string
+      roles:
+        description: References to Role IDs
+        items:
+          type: string
+        type: array
+      status:
+        description: active, inactive, suspended
+        type: string
+      updated_at:
+        type: string
+      username:
+        type: string
+    type: object
+host: localhost:8000
 info:
-  contact: {}
-  description: This is a sample CRM server.
-  title: Go CRM API
+  contact:
+    email: support@swagger.io
+    name: API Support
+  description: This is a sample server using Fiber, Uber Fx, and GORM.
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Microservice Demo API
   version: "1.0"
 paths:
-  /health:
+  /audit-logs:
     get:
-      description: Check if the server is up
+      consumes:
+      - application/json
+      description: Get audit logs with pagination
+      parameters:
+      - description: Page number (default 1)
+        in: query
+        name: page
+        type: integer
+      - description: Logs per page (default 20)
+        in: query
+        name: limit
+        type: integer
       produces:
-      - text/plain
+      - application/json
       responses:
         "200":
           description: OK
           schema:
+            items:
+              $ref: '#/definitions/models.AuditLog'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
             type: string
+      summary: List audit logs
+      tags:
+      - audit
+  /health:
+    get:
+      consumes:
+      - application/json
+      description: Get system health status
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
       summary: Health Check
       tags:
       - health
@@ -153,14 +295,14 @@ paths:
         name: input
         required: true
         schema:
-          $ref: '#/definitions/handlers.LoginRequest'
+          $ref: '#/definitions/controllers.LoginRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/handlers.AuthResponse'
+            $ref: '#/definitions/controllers.AuthResponse'
         "400":
           description: Invalid request body
           schema:
@@ -212,6 +354,35 @@ paths:
       summary: Create a new module definition
       tags:
       - modules
+  /modules/{module}/records/{id}:
+    get:
+      description: Get a record by ID
+      parameters:
+      - description: Module Name
+        in: path
+        name: module
+        required: true
+        type: string
+      - description: Record ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            type: string
+      summary: Get a single record
+      tags:
+      - records
   /modules/{name}:
     delete:
       consumes:
@@ -446,7 +617,7 @@ paths:
         name: input
         required: true
         schema:
-          $ref: '#/definitions/handlers.RegisterRequest'
+          $ref: '#/definitions/controllers.RegisterRequest'
       produces:
       - application/json
       responses:
@@ -500,9 +671,200 @@ paths:
       summary: Upload a file
       tags:
       - files
-securityDefinitions:
-  BearerAuth:
-    in: header
-    name: Authorization
-    type: apiKey
+  /users:
+    get:
+      consumes:
+      - application/json
+      description: Get a paginated list of users
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Items per page
+        in: query
+        name: limit
+        type: integer
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Failed to fetch users
+          schema:
+            type: string
+      summary: List all users
+      tags:
+      - users
+  /users/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a user by ID
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Failed to delete user
+          schema:
+            type: string
+      summary: Delete user
+      tags:
+      - users
+    get:
+      consumes:
+      - application/json
+      description: Get detailed information about a specific user
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.User'
+        "404":
+          description: User not found
+          schema:
+            type: string
+      summary: Get user by ID
+      tags:
+      - users
+    put:
+      consumes:
+      - application/json
+      description: Update user information
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update User Input
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.UpdateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid request body
+          schema:
+            type: string
+        "500":
+          description: Failed to update user
+          schema:
+            type: string
+      summary: Update user
+      tags:
+      - users
+  /users/{id}/roles:
+    put:
+      consumes:
+      - application/json
+      description: Update the roles assigned to a user
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update User Roles Input
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.UpdateUserRolesRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid request body
+          schema:
+            type: string
+        "500":
+          description: Failed to update user roles
+          schema:
+            type: string
+      summary: Update user roles
+      tags:
+      - users
+  /users/{id}/status:
+    put:
+      consumes:
+      - application/json
+      description: Update the status of a user (active, inactive, suspended)
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update User Status Input
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.UpdateUserStatusRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid request body
+          schema:
+            type: string
+        "500":
+          description: Failed to update user status
+          schema:
+            type: string
+      summary: Update user status
+      tags:
+      - users
 swagger: "2.0"

@@ -45,11 +45,13 @@ func (s *AuthServiceImpl) Register(ctx context.Context, username, password, emai
 	} else if err == mongo.ErrNoDocuments {
 		// Create default role if not exists (Bootstrap)
 		newRole := models.Role{
-			ID:          primitive.NewObjectID(),
-			Name:        "user",
-			Permissions: []string{"read:own_profile"},
-			CreatedAt:   time.Now(),
-			UpdatedAt:   time.Now(),
+			ID:                primitive.NewObjectID(),
+			Name:              "user",
+			Description:       "Default user role",
+			ModulePermissions: make(map[string]models.ModulePermission),
+			IsSystem:          false,
+			CreatedAt:         time.Now(),
+			UpdatedAt:         time.Now(),
 		}
 		if err := s.RoleRepo.Create(ctx, &newRole); err == nil {
 			roleIDs = append(roleIDs, newRole.ID)
