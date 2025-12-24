@@ -58,6 +58,7 @@ func (s *AuthServiceImpl) Register(ctx context.Context, username, password, emai
 		Username:  username,
 		Password:  hashedPassword,
 		Email:     email,
+		Status:    "active",
 		Roles:     roleIDs,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),

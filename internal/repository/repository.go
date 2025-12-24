@@ -9,6 +9,11 @@ import (
 type UserRepository interface {
 	Create(ctx context.Context, user *models.User) error
 	FindByUsername(ctx context.Context, username string) (*models.User, error)
+	FindByID(ctx context.Context, id string) (*models.User, error)
+	FindByEmail(ctx context.Context, email string) (*models.User, error)
+	List(ctx context.Context, filter map[string]interface{}, limit, offset int64) ([]models.User, int64, error)
+	Update(ctx context.Context, id string, user *models.User) error
+	Delete(ctx context.Context, id string) error
 }
 
 type RoleRepository interface {

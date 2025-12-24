@@ -1,21 +1,20 @@
 package routes
 
 import (
-	"net/http"
-
 	"go-crm/internal/handlers"
 	"go-crm/internal/middleware"
+	"net/http"
+
+	"github.com/go-chi/chi/v5"
 )
 
-func RegisterAuthRoutes(mux *http.ServeMux, authHandler *handlers.AuthHandler, skipAuth bool) {
+func RegisterAuthRoutes(r chi.Router, authHandler *handlers.AuthHandler, skipAuth bool) {
 	// Public Routes
-	mux.HandleFunc("/register", authHandler.Register)
-	mux.HandleFunc("/login", authHandler.Login)
+	r.Post("/register", authHandler.Register)
+	r.Post("/login", authHandler.Login)
 
-	// Protected Routes
-	// We wrap the handler with AuthMiddleware
-	protected := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	// Protected Route Example
+	r.With(middleware.AuthMiddleware(skipAuth)).Get("/protected", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("You are authenticated!"))
 	})
-	mux.Handle("/protected", middleware.AuthMiddleware(skipAuth)(protected))
 }

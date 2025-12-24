@@ -37,3 +37,12 @@ type AuditService interface {
 	LogChange(ctx context.Context, action models.AuditAction, module string, recordID string, changes map[string]models.Change) error
 	ListLogs(ctx context.Context, page, limit int64) ([]models.AuditLog, error)
 }
+
+type UserService interface {
+	ListUsers(ctx context.Context, filter map[string]interface{}, page, limit int64) ([]models.User, int64, error)
+	GetUserByID(ctx context.Context, id string) (*models.User, error)
+	UpdateUser(ctx context.Context, id string, updates map[string]interface{}) error
+	UpdateUserRoles(ctx context.Context, id string, roleIDs []string) error
+	UpdateUserStatus(ctx context.Context, id string, status string) error
+	DeleteUser(ctx context.Context, id string) error
+}

@@ -4,9 +4,10 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
-	"strings"
 
 	"go-crm/internal/service"
+
+	"github.com/go-chi/chi/v5"
 )
 
 type RecordHandler struct {
@@ -32,13 +33,7 @@ func NewRecordHandler(service service.RecordService) *RecordHandler {
 // @Failure      404  {string} string "Module not found"
 // @Router       /modules/{name}/records [post]
 func (h *RecordHandler) CreateRecord(w http.ResponseWriter, r *http.Request) {
-	pathParts := strings.Split(r.URL.Path, "/")
-	// Path should be /modules/{name}/records
-	if len(pathParts) < 3 {
-		http.Error(w, "Invalid path", http.StatusBadRequest)
-		return
-	}
-	moduleName := pathParts[2]
+	moduleName := chi.URLParam(r, "name")
 
 	var data map[string]interface{}
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
@@ -72,13 +67,7 @@ func (h *RecordHandler) CreateRecord(w http.ResponseWriter, r *http.Request) {
 // @Failure      400   {string} string "Invalid input"
 // @Router       /modules/{name}/records [get]
 func (h *RecordHandler) ListRecords(w http.ResponseWriter, r *http.Request) {
-	pathParts := strings.Split(r.URL.Path, "/")
-	// /modules/{name}/records -> ["", "modules", "name", "records"]
-	if len(pathParts) < 4 {
-		http.Error(w, "Invalid path", http.StatusBadRequest)
-		return
-	}
-	moduleName := pathParts[2]
+	moduleName := chi.URLParam(r, "name")
 
 	query := r.URL.Query()
 	pageStr := query.Get("page")
@@ -121,8 +110,8 @@ func (h *RecordHandler) ListRecords(w http.ResponseWriter, r *http.Request) {
 // @Failure      404    {string} string "Not Found"
 // @Router       /modules/{module}/records/{id} [get]
 func (h *RecordHandler) GetRecord(w http.ResponseWriter, r *http.Request) {
-	moduleName := r.PathValue("name")
-	id := r.PathValue("id")
+	moduleName := chi.URLParam(r, "name")
+	id := chi.URLParam(r, "id")
 
 	record, err := h.Service.GetRecord(r.Context(), moduleName, id)
 	if err != nil {
@@ -146,14 +135,8 @@ func (h *RecordHandler) GetRecord(w http.ResponseWriter, r *http.Request) {
 // @Failure      400  {string} string "Invalid input"
 // @Router       /modules/{name}/records/{id} [put]
 func (h *RecordHandler) UpdateRecord(w http.ResponseWriter, r *http.Request) {
-	pathParts := strings.Split(r.URL.Path, "/")
-	// /modules/{name}/records/{id} -> ["", "modules", "name", "records", "id"]
-	if len(pathParts) < 5 {
-		http.Error(w, "Invalid path", http.StatusBadRequest)
-		return
-	}
-	moduleName := pathParts[2]
-	id := pathParts[4]
+	moduleName := chi.URLParam(r, "name")
+	id := chi.URLParam(r, "id")
 
 	var data map[string]interface{}
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
@@ -182,13 +165,8 @@ func (h *RecordHandler) UpdateRecord(w http.ResponseWriter, r *http.Request) {
 // @Failure      400  {string} string "Invalid input"
 // @Router       /modules/{name}/records/{id} [delete]
 func (h *RecordHandler) DeleteRecord(w http.ResponseWriter, r *http.Request) {
-	pathParts := strings.Split(r.URL.Path, "/")
-	if len(pathParts) < 5 {
-		http.Error(w, "Invalid path", http.StatusBadRequest)
-		return
-	}
-	moduleName := pathParts[2]
-	id := pathParts[4]
+	moduleName := chi.URLParam(r, "name")
+	id := chi.URLParam(r, "id")
 
 	if err := h.Service.DeleteRecord(r.Context(), moduleName, id); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

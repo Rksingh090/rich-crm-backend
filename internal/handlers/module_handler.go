@@ -7,6 +7,8 @@ import (
 
 	"go-crm/internal/models"
 	"go-crm/internal/service"
+
+	"github.com/go-chi/chi/v5"
 )
 
 type ModuleHandler struct {
@@ -72,12 +74,7 @@ func (h *ModuleHandler) ListModules(w http.ResponseWriter, r *http.Request) {
 // @Failure      404  {string} string "Module not found"
 // @Router       /modules/{name} [get]
 func (h *ModuleHandler) GetModule(w http.ResponseWriter, r *http.Request) {
-	pathParts := strings.Split(r.URL.Path, "/")
-	if len(pathParts) < 3 {
-		http.Error(w, "Invalid path", http.StatusBadRequest)
-		return
-	}
-	name := pathParts[2] // /modules/{name}
+	name := chi.URLParam(r, "name")
 
 	module, err := h.Service.GetModuleByName(r.Context(), name)
 	if err != nil {
@@ -100,12 +97,7 @@ func (h *ModuleHandler) GetModule(w http.ResponseWriter, r *http.Request) {
 // @Failure      400  {string} string "Invalid input"
 // @Router       /modules/{name} [put]
 func (h *ModuleHandler) UpdateModule(w http.ResponseWriter, r *http.Request) {
-	pathParts := strings.Split(r.URL.Path, "/")
-	if len(pathParts) < 3 {
-		http.Error(w, "Invalid path", http.StatusBadRequest)
-		return
-	}
-	name := pathParts[2]
+	name := chi.URLParam(r, "name")
 
 	var module models.Module
 	if err := json.NewDecoder(r.Body).Decode(&module); err != nil {

@@ -45,6 +45,7 @@ func main() {
 	roleService := service.NewRoleServiceImpl(roleRepo, auditService)
 	moduleService := service.NewModuleServiceImpl(moduleRepo, auditService)
 	recordService := service.NewRecordServiceImpl(moduleRepo, recordRepo, fileRepo, auditService)
+	userService := service.NewUserService(userRepo, auditService)
 
 	// Handlers
 	authHandler := handlers.NewAuthHandler(authService)
@@ -52,9 +53,10 @@ func main() {
 	recordHandler := handlers.NewRecordHandler(recordService)
 	fileHandler := handlers.NewFileHandler("./uploads", fileRepo)
 	auditHandler := handlers.NewAuditHandler(auditService)
+	userHandler := handlers.NewUserHandler(userService)
 
 	// Routes
-	r := routes.SetupRoutes(cfg, authHandler, roleService, moduleHandler, recordHandler, fileHandler, auditHandler)
+	r := routes.SetupRoutes(cfg, authHandler, roleService, moduleHandler, recordHandler, fileHandler, auditHandler, userHandler)
 
 	// Wrap with CORS middleware
 	handler := middleware.CORSMiddleware(r)

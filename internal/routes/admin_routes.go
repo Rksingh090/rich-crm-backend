@@ -1,16 +1,17 @@
 package routes
 
 import (
-	"net/http"
-
 	"go-crm/internal/middleware"
 	"go-crm/internal/service"
+	"net/http"
+
+	"github.com/go-chi/chi/v5"
 )
 
-func RegisterAdminRoutes(mux *http.ServeMux, roleService service.RoleService, skipAuth bool) {
+func RegisterAdminRoutes(r chi.Router, roleService service.RoleService, skipAuth bool) {
 	// RBAC Protected Route
 	adminOnly := middleware.RequirePermission(roleService, skipAuth, "admin:access", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Welcome, Admin!"))
 	})
-	mux.Handle("/admin", middleware.AuthMiddleware(skipAuth)(adminOnly))
+	r.With(middleware.AuthMiddleware(skipAuth)).Get("/admin", adminOnly)
 }

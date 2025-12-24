@@ -24,13 +24,18 @@ const (
 	FieldTypeCurrency    FieldType = "currency"
 )
 
+type SelectOptions struct {
+	Label string `json:"label" bson:"label"`
+	Value string `json:"value" bson:"value"`
+}
+
 type ModuleField struct {
-	Name     string     `json:"name" bson:"name"`
-	Label    string     `json:"label" bson:"label"`
-	Type     FieldType  `json:"type" bson:"type"`
-	Required bool       `json:"required" bson:"required"`
-	Options  []string   `json:"options,omitempty" bson:"options,omitempty"` // For Select/MultiSelect
-	Lookup   *LookupDef `json:"lookup,omitempty" bson:"lookup,omitempty"`
+	Name     string          `json:"name" bson:"name"`
+	Label    string          `json:"label" bson:"label"`
+	Type     FieldType       `json:"type" bson:"type"`
+	Required bool            `json:"required" bson:"required"`
+	Options  []SelectOptions `json:"options,omitempty" bson:"options,omitempty"` // For Select/MultiSelect
+	Lookup   *LookupDef      `json:"lookup,omitempty" bson:"lookup,omitempty"`
 }
 
 type LookupDef struct {
