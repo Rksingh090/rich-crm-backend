@@ -96,12 +96,43 @@ func (s *AuthServiceImpl) Login(ctx context.Context, username, password string) 
 		return "", errors.New("invalid credentials")
 	}
 
-	// Fetch role names instead of IDs
+	// Check user status
+	if user.Status == "suspended" {
+		return "", errors.New("account suspended")
+	}
+	if user.Status == "inactive" {
+		return "", errors.New("account inactive")
+	}
+
+	// Fetch role names and aggregate permissions
 	var roleNames []string
+	permissions := make(map[string][]string)
+
 	for _, roleID := range user.Roles {
 		role, err := s.RoleRepo.FindByID(ctx, roleID.Hex())
 		if err == nil {
 			roleNames = append(roleNames, role.Name)
+
+			// Aggregate permissions from all roles
+			for moduleName, modulePerm := range role.ModulePermissions {
+				if _, exists := permissions[moduleName]; !exists {
+					permissions[moduleName] = []string{}
+				}
+
+				// Add permissions if granted by this role
+				if modulePerm.Create && !contains(permissions[moduleName], "create") {
+					permissions[moduleName] = append(permissions[moduleName], "create")
+				}
+				if modulePerm.Read && !contains(permissions[moduleName], "read") {
+					permissions[moduleName] = append(permissions[moduleName], "read")
+				}
+				if modulePerm.Update && !contains(permissions[moduleName], "update") {
+					permissions[moduleName] = append(permissions[moduleName], "update")
+				}
+				if modulePerm.Delete && !contains(permissions[moduleName], "delete") {
+					permissions[moduleName] = append(permissions[moduleName], "delete")
+				}
+			}
 		}
 	}
 
@@ -110,10 +141,20 @@ func (s *AuthServiceImpl) Login(ctx context.Context, username, password string) 
 		roleNames = []string{}
 	}
 
-	token, err := utils.GenerateToken(user.ID, roleNames)
+	token, err := utils.GenerateToken(user.ID, roleNames, permissions)
 	if err != nil {
 		return "", err
 	}
 
 	return token, nil
+}
+
+// Helper function to check if slice contains string
+func contains(slice []string, item string) bool {
+	for _, s := range slice {
+		if s == item {
+			return true
+		}
+	}
+	return false
 }

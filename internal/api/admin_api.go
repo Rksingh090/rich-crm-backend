@@ -28,7 +28,7 @@ func (h *AdminApi) Setup(app *fiber.App) {
 	// Admin route with RBAC
 	app.Get("/admin",
 		middleware.AuthMiddleware(h.config.SkipAuth),
-		middleware.RequirePermission(h.roleService, h.config.SkipAuth, "admin:access"),
+		middleware.RequirePermission(h.roleService, "", "admin:access"),
 		h.Controller.WelcomeAdmin,
 	)
 }

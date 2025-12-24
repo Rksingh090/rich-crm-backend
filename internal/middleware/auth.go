@@ -13,9 +13,11 @@ func AuthMiddleware(skipAuth bool) fiber.Handler {
 			// Inject dummy context for dev
 			dummyClaims := &utils.UserClaims{
 				UserID: "dev-admin-id",
-				Roles:  []string{"val"}, // Matches nothing specific or can match admin if we hack it
+				Roles:  []string{"admin"}, // Changed to admin for dev mode
 			}
 			c.Locals(utils.UserClaimsKey, dummyClaims)
+			c.Locals("userID", dummyClaims.UserID)
+			c.Locals("roles", dummyClaims.Roles)
 			return c.Next()
 		}
 
@@ -41,7 +43,10 @@ func AuthMiddleware(skipAuth bool) fiber.Handler {
 			})
 		}
 
+		// Store claims and also set userID and roles for other middleware
 		c.Locals(utils.UserClaimsKey, claims)
+		c.Locals("userID", claims.UserID)
+		c.Locals("roles", claims.Roles)
 		return c.Next()
 	}
 }

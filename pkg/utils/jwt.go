@@ -15,15 +15,17 @@ func SetSecret(secret string) {
 }
 
 type UserClaims struct {
-	UserID string   `json:"user_id"`
-	Roles  []string `json:"roles"`
+	UserID      string              `json:"user_id"`
+	Roles       []string            `json:"roles"`
+	Permissions map[string][]string `json:"permissions"` // module -> [create, read, update, delete]
 	jwt.RegisteredClaims
 }
 
-func GenerateToken(userID primitive.ObjectID, roles []string) (string, error) {
+func GenerateToken(userID primitive.ObjectID, roles []string, permissions map[string][]string) (string, error) {
 	claims := UserClaims{
-		UserID: userID.Hex(),
-		Roles:  roles,
+		UserID:      userID.Hex(),
+		Roles:       roles,
+		Permissions: permissions,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour * 72)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),

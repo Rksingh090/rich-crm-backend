@@ -118,9 +118,9 @@ func (s *RoleServiceImpl) GetPermissionsForRoles(ctx context.Context, roleIDHexe
 	return s.RoleRepo.FindPermissionsByRoleIDs(ctx, roleIDs)
 }
 
-func (s *RoleServiceImpl) CheckModulePermission(ctx context.Context, roleIDs []string, moduleName string, permission string) (bool, error) {
-	for _, roleID := range roleIDs {
-		role, err := s.RoleRepo.FindByID(ctx, roleID)
+func (s *RoleServiceImpl) CheckModulePermission(ctx context.Context, roleNames []string, moduleName string, permission string) (bool, error) {
+	for _, roleName := range roleNames {
+		role, err := s.RoleRepo.FindByName(ctx, roleName)
 		if err != nil {
 			continue
 		}
