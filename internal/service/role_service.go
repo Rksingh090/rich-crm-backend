@@ -10,12 +10,18 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
+type RoleService interface {
+	CreateRole(ctx context.Context, name string, permissions []string) (*models.Role, error)
+	GetRoleByName(ctx context.Context, name string) (*models.Role, error)
+	GetPermissionsForRoles(ctx context.Context, roleIDHexes []string) ([]string, error)
+}
+
 type RoleServiceImpl struct {
 	RoleRepo     repository.RoleRepository
 	AuditService AuditService
 }
 
-func NewRoleServiceImpl(roleRepo repository.RoleRepository, auditService AuditService) *RoleServiceImpl {
+func NewRoleService(roleRepo repository.RoleRepository, auditService AuditService) RoleService {
 	return &RoleServiceImpl{
 		RoleRepo:     roleRepo,
 		AuditService: auditService,

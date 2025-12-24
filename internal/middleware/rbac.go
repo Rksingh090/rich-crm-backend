@@ -1,39 +1,42 @@
 package middleware
 
 import (
-	"net/http"
 	"slices"
 
 	"go-crm/internal/service"
 	"go-crm/pkg/utils"
+
+	"github.com/gofiber/fiber/v2"
 )
 
 // RequirePermission checks if the user has a specific permission
-func RequirePermission(roleService service.RoleService, skipAuth bool, requiredPermission string, next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+func RequirePermission(roleService service.RoleService, skipAuth bool, requiredPermission string) fiber.Handler {
+	return func(c *fiber.Ctx) error {
 		if skipAuth {
-			next.ServeHTTP(w, r)
-			return
+			return c.Next()
 		}
 
-		claims, ok := r.Context().Value(utils.UserClaimsKey).(*utils.UserClaims)
+		claims, ok := c.Locals(utils.UserClaimsKey).(*utils.UserClaims)
 		if !ok {
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
-			return
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"error": "Unauthorized",
+			})
 		}
 
 		// Check permissions via service
-		permissions, err := roleService.GetPermissionsForRoles(r.Context(), claims.Roles)
+		permissions, err := roleService.GetPermissionsForRoles(c.Context(), claims.Roles)
 		if err != nil {
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-			return
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": "Internal Server Error",
+			})
 		}
 
 		if !slices.Contains(permissions, requiredPermission) {
-			http.Error(w, "Forbidden: Insufficient permissions", http.StatusForbidden)
-			return
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+				"error": "Forbidden: Insufficient permissions",
+			})
 		}
 
-		next.ServeHTTP(w, r)
+		return c.Next()
 	}
 }

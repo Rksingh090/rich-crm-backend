@@ -11,12 +11,21 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
+type UserService interface {
+	ListUsers(ctx context.Context, filter map[string]interface{}, page, limit int64) ([]models.User, int64, error)
+	GetUserByID(ctx context.Context, id string) (*models.User, error)
+	UpdateUser(ctx context.Context, id string, updates map[string]interface{}) error
+	UpdateUserRoles(ctx context.Context, id string, roleIDs []string) error
+	UpdateUserStatus(ctx context.Context, id string, status string) error
+	DeleteUser(ctx context.Context, id string) error
+}
+
 type UserServiceImpl struct {
 	UserRepo     repository.UserRepository
 	AuditService AuditService
 }
 
-func NewUserService(userRepo repository.UserRepository, auditService AuditService) *UserServiceImpl {
+func NewUserService(userRepo repository.UserRepository, auditService AuditService) UserService {
 	return &UserServiceImpl{
 		UserRepo:     userRepo,
 		AuditService: auditService,

@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"go-crm/internal/database"
 	"go-crm/internal/models"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -14,22 +15,22 @@ type AuditRepository interface {
 	List(ctx context.Context, limit, offset int64) ([]models.AuditLog, error)
 }
 
-type mongoAuditRepository struct {
+type AuditRepositoryImpl struct {
 	Collection *mongo.Collection
 }
 
-func NewAuditRepository(db *mongo.Database) AuditRepository {
-	return &mongoAuditRepository{
-		Collection: db.Collection("audit_logs"),
+func NewAuditRepository(mongodb *database.MongodbDB) AuditRepository {
+	return &AuditRepositoryImpl{
+		Collection: mongodb.DB.Collection("audit_logs"),
 	}
 }
 
-func (r *mongoAuditRepository) Create(ctx context.Context, log models.AuditLog) error {
+func (r *AuditRepositoryImpl) Create(ctx context.Context, log models.AuditLog) error {
 	_, err := r.Collection.InsertOne(ctx, log)
 	return err
 }
 
-func (r *mongoAuditRepository) List(ctx context.Context, limit, offset int64) ([]models.AuditLog, error) {
+func (r *AuditRepositoryImpl) List(ctx context.Context, limit, offset int64) ([]models.AuditLog, error) {
 	opts := options.Find().SetLimit(limit).SetSkip(offset).SetSort(bson.M{"timestamp": -1})
 	cursor, err := r.Collection.Find(ctx, bson.M{}, opts)
 	if err != nil {

@@ -13,12 +13,20 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
+type ModuleService interface {
+	CreateModule(ctx context.Context, module *models.Module) error
+	GetModuleByName(ctx context.Context, name string) (*models.Module, error)
+	ListModules(ctx context.Context) ([]models.Module, error)
+	UpdateModule(ctx context.Context, module *models.Module) error
+	DeleteModule(ctx context.Context, name string) error
+}
+
 type ModuleServiceImpl struct {
 	Repo         repository.ModuleRepository
 	AuditService AuditService
 }
 
-func NewModuleServiceImpl(repo repository.ModuleRepository, auditService AuditService) *ModuleServiceImpl {
+func NewModuleService(repo repository.ModuleRepository, auditService AuditService) ModuleService {
 	return &ModuleServiceImpl{
 		Repo:         repo,
 		AuditService: auditService,

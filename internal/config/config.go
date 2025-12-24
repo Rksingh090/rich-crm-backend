@@ -8,14 +8,17 @@ import (
 )
 
 type Config struct {
-	Port      string
-	JWTSecret string
-	MongoURI  string
-	DBName    string
-	SkipAuth  bool
+	Port        string
+	JWTSecret   string
+	MongoURI    string
+	DBName      string
+	SkipAuth    bool
+	Environment string
+	AppId       string
 }
 
-func LoadConfig() *Config {
+// LoadConfig loads configuration from environment variables
+func LoadConfig() (*Config, error) {
 	if err := godotenv.Load(); err != nil {
 		log.Println("No .env file found")
 	} else {
@@ -23,12 +26,14 @@ func LoadConfig() *Config {
 	}
 
 	return &Config{
-		Port:      getEnv("PORT", "8080"),
-		JWTSecret: getEnv("JWT_SECRET", "secret"),
-		MongoURI:  getEnv("MONGO_URI", "mongodb://localhost:27017"),
-		DBName:    getEnv("DB_NAME", "go-crm"),
-		SkipAuth:  getEnv("SKIP_AUTH", "false") == "true",
-	}
+		Port:        getEnv("PORT", "8080"),
+		JWTSecret:   getEnv("JWT_SECRET", "secret"),
+		MongoURI:    getEnv("MONGO_URI", "mongodb://localhost:27017"),
+		DBName:      getEnv("DB_NAME", "go-crm"),
+		SkipAuth:    getEnv("SKIP_AUTH", "false") == "true",
+		Environment: getEnv("ENVIRONMENT", "development"),
+		AppId:       getEnv("APP_ID", "go-crm"),
+	}, nil
 }
 
 func getEnv(key, fallback string) string {

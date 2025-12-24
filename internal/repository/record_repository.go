@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"fmt"
+	"go-crm/internal/database"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -10,17 +11,25 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-type MongoRecordRepository struct {
+type RecordRepository interface {
+	Create(ctx context.Context, moduleName string, data map[string]any) (any, error)
+	Get(ctx context.Context, moduleName, id string) (map[string]any, error)
+	List(ctx context.Context, moduleName string, filter map[string]any, limit, offset int64) ([]map[string]any, error)
+	Update(ctx context.Context, moduleName, id string, data map[string]any) error
+	Delete(ctx context.Context, moduleName, id string) error
+}
+
+type RecordRepositoryImpl struct {
 	DB *mongo.Database
 }
 
-func NewMongoRecordRepository(db *mongo.Database) *MongoRecordRepository {
-	return &MongoRecordRepository{
-		DB: db,
+func NewRecordRepository(mongodb *database.MongodbDB) RecordRepository {
+	return &RecordRepositoryImpl{
+		DB: mongodb.DB,
 	}
 }
 
-func (r *MongoRecordRepository) Create(ctx context.Context, moduleName string, data map[string]interface{}) (interface{}, error) {
+func (r *RecordRepositoryImpl) Create(ctx context.Context, moduleName string, data map[string]interface{}) (interface{}, error) {
 	collectionName := fmt.Sprintf("module_%s", moduleName)
 	result, err := r.DB.Collection(collectionName).InsertOne(ctx, data)
 	if err != nil {
@@ -29,7 +38,7 @@ func (r *MongoRecordRepository) Create(ctx context.Context, moduleName string, d
 	return result.InsertedID, nil
 }
 
-func (r *MongoRecordRepository) Get(ctx context.Context, moduleName, id string) (map[string]interface{}, error) {
+func (r *RecordRepositoryImpl) Get(ctx context.Context, moduleName, id string) (map[string]interface{}, error) {
 	collectionName := fmt.Sprintf("module_%s", moduleName)
 	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
@@ -41,7 +50,7 @@ func (r *MongoRecordRepository) Get(ctx context.Context, moduleName, id string) 
 	return result, err
 }
 
-func (r *MongoRecordRepository) List(ctx context.Context, moduleName string, filter map[string]any, limit, offset int64) ([]map[string]any, error) {
+func (r *RecordRepositoryImpl) List(ctx context.Context, moduleName string, filter map[string]any, limit, offset int64) ([]map[string]any, error) {
 	collectionName := fmt.Sprintf("module_%s", moduleName)
 
 	findOptions := options.Find()
@@ -63,7 +72,7 @@ func (r *MongoRecordRepository) List(ctx context.Context, moduleName string, fil
 	return results, nil
 }
 
-func (r *MongoRecordRepository) Update(ctx context.Context, moduleName, id string, data map[string]interface{}) error {
+func (r *RecordRepositoryImpl) Update(ctx context.Context, moduleName, id string, data map[string]interface{}) error {
 	collectionName := fmt.Sprintf("module_%s", moduleName)
 	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
@@ -74,7 +83,7 @@ func (r *MongoRecordRepository) Update(ctx context.Context, moduleName, id strin
 	return err
 }
 
-func (r *MongoRecordRepository) Delete(ctx context.Context, moduleName, id string) error {
+func (r *RecordRepositoryImpl) Delete(ctx context.Context, moduleName, id string) error {
 	collectionName := fmt.Sprintf("module_%s", moduleName)
 	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {

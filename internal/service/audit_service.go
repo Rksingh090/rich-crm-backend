@@ -10,11 +10,16 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
+type AuditService interface {
+	LogChange(ctx context.Context, action models.AuditAction, module string, recordID string, changes map[string]models.Change) error
+	ListLogs(ctx context.Context, page, limit int64) ([]models.AuditLog, error)
+}
+
 type AuditServiceImpl struct {
 	Repo repository.AuditRepository
 }
 
-func NewAuditServiceImpl(repo repository.AuditRepository) *AuditServiceImpl {
+func NewAuditService(repo repository.AuditRepository) AuditService {
 	return &AuditServiceImpl{Repo: repo}
 }
 

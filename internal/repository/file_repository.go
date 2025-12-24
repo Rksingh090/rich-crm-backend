@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 
+	"go-crm/internal/database"
 	"go-crm/internal/models"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -10,17 +11,22 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-type MongoFileRepository struct {
+type FileRepository interface {
+	Save(ctx context.Context, file *models.File) error
+	Get(ctx context.Context, id string) (*models.File, error)
+}
+
+type FileRepositoryImpl struct {
 	Collection *mongo.Collection
 }
 
-func NewMongoFileRepository(db *mongo.Database) *MongoFileRepository {
-	return &MongoFileRepository{
-		Collection: db.Collection("files"),
+func NewFileRepository(mongodb *database.MongodbDB) FileRepository {
+	return &FileRepositoryImpl{
+		Collection: mongodb.DB.Collection("files"),
 	}
 }
 
-func (r *MongoFileRepository) Save(ctx context.Context, file *models.File) error {
+func (r *FileRepositoryImpl) Save(ctx context.Context, file *models.File) error {
 	if file.ID.IsZero() {
 		file.ID = primitive.NewObjectID()
 	}
@@ -28,7 +34,7 @@ func (r *MongoFileRepository) Save(ctx context.Context, file *models.File) error
 	return err
 }
 
-func (r *MongoFileRepository) Get(ctx context.Context, id string) (*models.File, error) {
+func (r *FileRepositoryImpl) Get(ctx context.Context, id string) (*models.File, error) {
 	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return nil, err

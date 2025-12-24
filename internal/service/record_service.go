@@ -17,6 +17,14 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
+type RecordService interface {
+	CreateRecord(ctx context.Context, moduleName string, data map[string]interface{}) (interface{}, error)
+	GetRecord(ctx context.Context, moduleName, id string) (map[string]any, error)
+	ListRecords(ctx context.Context, moduleName string, filters map[string]any, page, limit int64) ([]map[string]any, error)
+	UpdateRecord(ctx context.Context, moduleName, id string, data map[string]interface{}) error
+	DeleteRecord(ctx context.Context, moduleName, id string) error
+}
+
 type RecordServiceImpl struct {
 	ModuleRepo   repository.ModuleRepository
 	RecordRepo   repository.RecordRepository
@@ -24,7 +32,7 @@ type RecordServiceImpl struct {
 	AuditService AuditService
 }
 
-func NewRecordServiceImpl(moduleRepo repository.ModuleRepository, recordRepo repository.RecordRepository, fileRepo repository.FileRepository, auditService AuditService) *RecordServiceImpl {
+func NewRecordService(moduleRepo repository.ModuleRepository, recordRepo repository.RecordRepository, fileRepo repository.FileRepository, auditService AuditService) RecordService {
 	return &RecordServiceImpl{
 		ModuleRepo:   moduleRepo,
 		RecordRepo:   recordRepo,

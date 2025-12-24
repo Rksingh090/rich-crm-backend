@@ -13,13 +13,18 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
+type AuthService interface {
+	Register(ctx context.Context, username, password, email string) (*models.User, error)
+	Login(ctx context.Context, username, password string) (string, error)
+}
+
 type AuthServiceImpl struct {
 	UserRepo     repository.UserRepository
 	RoleRepo     repository.RoleRepository
 	AuditService AuditService
 }
 
-func NewAuthService(userRepo repository.UserRepository, roleRepo repository.RoleRepository, auditService AuditService) *AuthServiceImpl {
+func NewAuthService(userRepo repository.UserRepository, roleRepo repository.RoleRepository, auditService AuditService) AuthService {
 	return &AuthServiceImpl{
 		UserRepo:     userRepo,
 		RoleRepo:     roleRepo,

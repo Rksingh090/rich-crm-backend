@@ -9,27 +9,35 @@ import (
 
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.uber.org/fx"
 )
 
-var Client *mongo.Client
-var DB *mongo.Database
-
-func Connect(cfg *config.Config) {
+// NewDatabase creates a new MongoDB database connection with lifecycle management
+func NewDatabase(lc fx.Lifecycle, cfg *config.Config) (*MongodbDB, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(cfg.MongoURI))
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
-	// Ping the database
-	err = client.Ping(ctx, nil)
-	if err != nil {
-		log.Fatal(err)
+	// Ping the database to verify connection
+	if err := client.Ping(ctx, nil); err != nil {
+		return nil, err
 	}
 
-	Client = client
-	DB = client.Database(cfg.DBName)
 	log.Println("Connected to MongoDB!")
+
+	db := client.Database(cfg.DBName)
+
+	// Register lifecycle hooks
+	lc.Append(fx.Hook{
+		OnStop: func(ctx context.Context) error {
+			log.Println("Disconnecting from MongoDB...")
+			return client.Disconnect(ctx)
+		},
+	})
+
+	return &MongodbDB{DB: db}, nil
 }
