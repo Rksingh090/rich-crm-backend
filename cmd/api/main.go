@@ -156,6 +156,7 @@ func main() {
 			controllers.NewUserController,
 			controllers.NewFileController,
 			controllers.NewAuditController,
+			controllers.NewDebugController,
 
 			// Initialize API Routes
 			AsRoute(api.NewAdminApi),
@@ -166,6 +167,7 @@ func main() {
 			AsRoute(api.NewUserApi),
 			AsRoute(api.NewFileApi),
 			AsRoute(api.NewAuditApi),
+			AsRoute(api.NewDebugApi),
 			AsRoute(api.NewHealthApi),
 		),
 		fx.WithLogger(func(log *zap.Logger) fxevent.Logger {

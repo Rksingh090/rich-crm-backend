@@ -96,12 +96,21 @@ func (s *AuthServiceImpl) Login(ctx context.Context, username, password string) 
 		return "", errors.New("invalid credentials")
 	}
 
-	var roleHexIDs []string
-	for _, oid := range user.Roles {
-		roleHexIDs = append(roleHexIDs, oid.Hex())
+	// Fetch role names instead of IDs
+	var roleNames []string
+	for _, roleID := range user.Roles {
+		role, err := s.RoleRepo.FindByID(ctx, roleID.Hex())
+		if err == nil {
+			roleNames = append(roleNames, role.Name)
+		}
 	}
 
-	token, err := utils.GenerateToken(user.ID, roleHexIDs)
+	// If no roles found, assign empty array
+	if roleNames == nil {
+		roleNames = []string{}
+	}
+
+	token, err := utils.GenerateToken(user.ID, roleNames)
 	if err != nil {
 		return "", err
 	}
