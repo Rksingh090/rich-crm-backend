@@ -29,6 +29,7 @@ func (h *UserApi) Setup(app *fiber.App) {
 	users := app.Group("/users", middleware.AuthMiddleware(h.config.SkipAuth))
 
 	// User CRUD - require "users" module permissions
+	users.Post("/", middleware.RequirePermission(h.roleService, "users", "create"), h.controller.CreateUser)
 	users.Get("/", middleware.RequirePermission(h.roleService, "users", "read"), h.controller.ListUsers)
 	users.Get("/:id", middleware.RequirePermission(h.roleService, "users", "read"), h.controller.GetUser)
 	users.Put("/:id", middleware.RequirePermission(h.roleService, "users", "update"), h.controller.UpdateUser)

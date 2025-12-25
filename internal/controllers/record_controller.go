@@ -80,14 +80,21 @@ func (ctrl *RecordController) ListRecords(c *fiber.Ctx) error {
 		}
 	})
 
-	records, err := ctrl.Service.ListRecords(c.Context(), moduleName, filters, page, limit)
+	records, totalCount, err := ctrl.Service.ListRecords(c.Context(), moduleName, filters, page, limit)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err.Error(),
 		})
 	}
 
-	return c.JSON(records)
+	return c.JSON(fiber.Map{
+		"data": records,
+		"meta": fiber.Map{
+			"total": totalCount,
+			"page":  page,
+			"limit": limit,
+		},
+	})
 }
 
 // GetRecord godoc

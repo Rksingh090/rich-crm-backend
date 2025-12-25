@@ -130,7 +130,7 @@ func main() {
 			NewFiberServer,
 
 			// Initialize Database
-			database.NewDatabase, // Returns *MssqlDB
+			database.NewDatabase,
 
 			// Initialize Repository
 			repository.NewFileRepository,
@@ -139,6 +139,8 @@ func main() {
 			repository.NewUserRepository,
 			repository.NewRecordRepository,
 			repository.NewRoleRepository,
+			repository.NewApprovalRepository,
+			repository.NewReportRepository,
 
 			service.NewAuditService,
 			service.NewAuthService,
@@ -146,6 +148,9 @@ func main() {
 			service.NewModuleService,
 			service.NewRecordService,
 			service.NewUserService,
+			// ApprovalService needs AuditService now, so ensure AuditService is provided before or via FX graph
+			service.NewApprovalService,
+			service.NewReportService,
 
 			// Initialize Controller
 			controllers.NewAdminController,
@@ -157,6 +162,8 @@ func main() {
 			controllers.NewFileController,
 			controllers.NewAuditController,
 			controllers.NewDebugController,
+			controllers.NewApprovalController,
+			controllers.NewReportController,
 
 			// Initialize API Routes
 			AsRoute(api.NewAdminApi),
@@ -169,6 +176,8 @@ func main() {
 			AsRoute(api.NewAuditApi),
 			AsRoute(api.NewDebugApi),
 			AsRoute(api.NewHealthApi),
+			AsRoute(api.NewApprovalApi),
+			AsRoute(api.NewReportApi),
 		),
 		fx.WithLogger(func(log *zap.Logger) fxevent.Logger {
 			return &fxevent.ZapLogger{Logger: log}

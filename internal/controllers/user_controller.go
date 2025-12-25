@@ -3,6 +3,7 @@ package controllers
 import (
 	"strconv"
 
+	"go-crm/internal/models"
 	"go-crm/internal/service"
 
 	"github.com/gofiber/fiber/v2"
@@ -21,6 +22,16 @@ func NewUserController(userService service.UserService) *UserController {
 type UpdateUserRequest struct {
 	Username  string `json:"username,omitempty"`
 	Email     string `json:"email,omitempty"`
+	FirstName string `json:"first_name,omitempty"`
+	LastName  string `json:"last_name,omitempty"`
+	Phone     string `json:"phone,omitempty"`
+	Status    string `json:"status,omitempty"`
+}
+
+type CreateUserRequest struct {
+	Username  string `json:"username"`
+	Email     string `json:"email"`
+	Password  string `json:"password"`
 	FirstName string `json:"first_name,omitempty"`
 	LastName  string `json:"last_name,omitempty"`
 	Phone     string `json:"phone,omitempty"`
@@ -92,6 +103,53 @@ func (ctrl *UserController) GetUser(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(user)
+}
+
+// CreateUser godoc
+// @Summary      Create user
+// @Description  Create a new user
+// @Tags         users
+// @Accept       json
+// @Produce      json
+// @Param        input body CreateUserRequest true "Create User Input"
+// @Success      201  {object} map[string]string
+// @Failure      400  {string} string "Invalid request body"
+// @Failure      500  {string} string "Failed to create user"
+// @Router       /users [post]
+func (ctrl *UserController) CreateUser(c *fiber.Ctx) error {
+	var req CreateUserRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid request body",
+		})
+	}
+
+	if req.Username == "" || req.Email == "" || req.Password == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Username, email and password are required",
+		})
+	}
+
+	user := &models.User{
+		Username:  req.Username,
+		Email:     req.Email,
+		Password:  req.Password, // TODO: Use bcrypt hashing
+		FirstName: req.FirstName,
+		LastName:  req.LastName,
+		Phone:     req.Phone,
+		Status:    req.Status,
+	}
+
+	if err := ctrl.UserService.CreateUser(c.Context(), user); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to create user: " + err.Error(),
+		})
+	}
+
+	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
+		"message": "User created successfully",
+		"id":      user.ID.Hex(),
+	})
 }
 
 // UpdateUser godoc

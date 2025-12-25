@@ -125,7 +125,30 @@ func (s *RoleServiceImpl) CheckModulePermission(ctx context.Context, roleNames [
 			continue
 		}
 
+		// Check for wildcard permission first
+		if wildcardPerm, exists := role.ModulePermissions["*"]; exists {
+			switch permission {
+			case "create":
+				if wildcardPerm.Create {
+					return true, nil
+				}
+			case "read":
+				if wildcardPerm.Read {
+					return true, nil
+				}
+			case "update":
+				if wildcardPerm.Update {
+					return true, nil
+				}
+			case "delete":
+				if wildcardPerm.Delete {
+					return true, nil
+				}
+			}
+		}
+
 		if modulePerm, exists := role.ModulePermissions[moduleName]; exists {
+
 			switch permission {
 			case "create":
 				if modulePerm.Create {

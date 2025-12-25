@@ -16,11 +16,15 @@ type AuditService interface {
 }
 
 type AuditServiceImpl struct {
-	Repo repository.AuditRepository
+	Repo     repository.AuditRepository
+	UserRepo repository.UserRepository
 }
 
-func NewAuditService(repo repository.AuditRepository) AuditService {
-	return &AuditServiceImpl{Repo: repo}
+func NewAuditService(repo repository.AuditRepository, userRepo repository.UserRepository) AuditService {
+	return &AuditServiceImpl{
+		Repo:     repo,
+		UserRepo: userRepo,
+	}
 }
 
 func (s *AuditServiceImpl) LogChange(ctx context.Context, action models.AuditAction, module string, recordID string, changes map[string]models.Change) error {
@@ -51,5 +55,25 @@ func (s *AuditServiceImpl) ListLogs(ctx context.Context, page, limit int64) ([]m
 		limit = 10
 	}
 	offset := (page - 1) * limit
-	return s.Repo.List(ctx, limit, offset)
+	logs, err := s.Repo.List(ctx, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+
+	// Populate Actor Names
+	for i, log := range logs {
+		if log.ActorID != "system" && log.ActorID != "" {
+			user, err := s.UserRepo.FindByID(ctx, log.ActorID)
+			if err == nil && user != nil {
+				logs[i].ActorName = user.Username
+				// Or use full name: logs[i].ActorName = user.FirstName + " " + user.LastName
+			} else {
+				logs[i].ActorName = "Unknown User"
+			}
+		} else {
+			logs[i].ActorName = "System"
+		}
+	}
+
+	return logs, nil
 }

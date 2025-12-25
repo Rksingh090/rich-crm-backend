@@ -15,6 +15,7 @@ type RecordRepository interface {
 	Create(ctx context.Context, moduleName string, data map[string]any) (any, error)
 	Get(ctx context.Context, moduleName, id string) (map[string]any, error)
 	List(ctx context.Context, moduleName string, filter map[string]any, limit, offset int64) ([]map[string]any, error)
+	Count(ctx context.Context, moduleName string, filter map[string]any) (int64, error)
 	Update(ctx context.Context, moduleName, id string, data map[string]any) error
 	Delete(ctx context.Context, moduleName, id string) error
 }
@@ -92,4 +93,13 @@ func (r *RecordRepositoryImpl) Delete(ctx context.Context, moduleName, id string
 
 	_, err = r.DB.Collection(collectionName).DeleteOne(ctx, bson.M{"_id": oid})
 	return err
+}
+
+func (r *RecordRepositoryImpl) Count(ctx context.Context, moduleName string, filter map[string]any) (int64, error) {
+	collectionName := fmt.Sprintf("module_%s", moduleName)
+	count, err := r.DB.Collection(collectionName).CountDocuments(ctx, filter)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
 }

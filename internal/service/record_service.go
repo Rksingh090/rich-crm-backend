@@ -20,24 +20,26 @@ import (
 type RecordService interface {
 	CreateRecord(ctx context.Context, moduleName string, data map[string]interface{}) (interface{}, error)
 	GetRecord(ctx context.Context, moduleName, id string) (map[string]any, error)
-	ListRecords(ctx context.Context, moduleName string, filters map[string]any, page, limit int64) ([]map[string]any, error)
+	ListRecords(ctx context.Context, moduleName string, filters map[string]any, page, limit int64) ([]map[string]any, int64, error)
 	UpdateRecord(ctx context.Context, moduleName, id string, data map[string]interface{}) error
 	DeleteRecord(ctx context.Context, moduleName, id string) error
 }
 
 type RecordServiceImpl struct {
-	ModuleRepo   repository.ModuleRepository
-	RecordRepo   repository.RecordRepository
-	FileRepo     repository.FileRepository
-	AuditService AuditService
+	ModuleRepo      repository.ModuleRepository
+	RecordRepo      repository.RecordRepository
+	FileRepo        repository.FileRepository
+	AuditService    AuditService
+	ApprovalService ApprovalService
 }
 
-func NewRecordService(moduleRepo repository.ModuleRepository, recordRepo repository.RecordRepository, fileRepo repository.FileRepository, auditService AuditService) RecordService {
+func NewRecordService(moduleRepo repository.ModuleRepository, recordRepo repository.RecordRepository, fileRepo repository.FileRepository, auditService AuditService, approvalService ApprovalService) RecordService {
 	return &RecordServiceImpl{
-		ModuleRepo:   moduleRepo,
-		RecordRepo:   recordRepo,
-		FileRepo:     fileRepo,
-		AuditService: auditService,
+		ModuleRepo:      moduleRepo,
+		RecordRepo:      recordRepo,
+		FileRepo:        fileRepo,
+		AuditService:    auditService,
+		ApprovalService: approvalService,
 	}
 }
 
@@ -74,7 +76,18 @@ func (s *RecordServiceImpl) CreateRecord(ctx context.Context, moduleName string,
 		validatedData[field.Name] = cleanVal
 	}
 
-	// 3. Insert
+	// 3. Initialize Approval Workflow
+	approvalState, err := s.ApprovalService.InitializeApproval(ctx, moduleName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check approval workflow: %v", err)
+	}
+	if approvalState != nil {
+		validatedData["_approval"] = approvalState
+		// If using statuses, maybe override "status" field too?
+		// validatedData["status"] = "pending_approval"
+	}
+
+	// 4. Insert
 	res, err := s.RecordRepo.Create(ctx, moduleName, validatedData)
 	if err != nil {
 		return nil, err
@@ -117,7 +130,7 @@ func (s *RecordServiceImpl) GetRecord(ctx context.Context, moduleName, id string
 	return record, nil
 }
 
-func (s *RecordServiceImpl) ListRecords(ctx context.Context, moduleName string, filters map[string]any, page, limit int64) ([]map[string]any, error) {
+func (s *RecordServiceImpl) ListRecords(ctx context.Context, moduleName string, filters map[string]any, page, limit int64) ([]map[string]any, int64, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -132,7 +145,7 @@ func (s *RecordServiceImpl) ListRecords(ctx context.Context, moduleName string, 
 	// 1. Fetch Schema to handle type conversion for filters
 	module, err := s.ModuleRepo.FindByName(ctx, moduleName)
 	if err != nil {
-		return nil, errors.New("module not found")
+		return nil, 0, errors.New("module not found")
 	}
 
 	// 2. Convert Filters
@@ -158,14 +171,8 @@ func (s *RecordServiceImpl) ListRecords(ctx context.Context, moduleName string, 
 			}
 		}
 
-		// Validate field existence unless it's a system field like _id (though usually handled separately)
-		// For dynamic fields, if field not found in schema, maybe ignore or treat as string?
-		// Let's assume we filter only by known fields for type safety or strictness.
-		// If field is nil, we might skip or assume string. Let's process if field found.
-
 		if field != nil {
 			typedVal, err := s.validateAndConvert(ctx, *field, v)
-			// For regex/contains, we need string, even if field is number? No, usually text.
 
 			if err == nil {
 				if operator == "" {
@@ -190,14 +197,15 @@ func (s *RecordServiceImpl) ListRecords(ctx context.Context, moduleName string, 
 					typedFilters[fieldName] = bson.M{"$lte": typedVal}
 				}
 			} else {
-				return nil, fmt.Errorf("invalid filter value for '%s': %v", k, err)
+				return nil, 0, fmt.Errorf("invalid filter value for '%s': %v", k, err)
 			}
 		}
 	}
 
+	// 3. List Records
 	records, err := s.RecordRepo.List(ctx, moduleName, typedFilters, limit, offset)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	// Populate Files and Lookups for all records
@@ -206,7 +214,13 @@ func (s *RecordServiceImpl) ListRecords(ctx context.Context, moduleName string, 
 		_ = s.populateLookups(ctx, module.Fields, record)
 	}
 
-	return records, nil
+	// 4. Get Total Count
+	totalCount, err := s.RecordRepo.Count(ctx, moduleName, typedFilters)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return records, totalCount, nil
 }
 
 func (s *RecordServiceImpl) UpdateRecord(ctx context.Context, moduleName, id string, data map[string]interface{}) error {
@@ -234,15 +248,32 @@ func (s *RecordServiceImpl) UpdateRecord(ctx context.Context, moduleName, id str
 		validatedData[field.Name] = cleanVal
 	}
 
-	// 3. Update
-	// For audit log, we need old values.
-	// We could fetch the record first. Since we are doing partial update, valid?
-	// To be accurate, we should fetch. GetRecord handles files/lookups, we might just want raw data?
-	// Using repository Get to get raw.
+	// 3. Check Approval Lock
 	oldRecord, err := s.RecordRepo.Get(ctx, moduleName, id)
 	if err != nil {
 		return err
 	}
+
+	if val, ok := oldRecord["_approval"]; ok {
+		// Use helper or manual check. Since extractApprovalState is private in ApprovalService,
+		// we might need to expose it or just do a quick check here.
+		// Or better, let ApprovalService handle permission check? No, this is Update logic.
+		// Let's rely on map structure. "Pending" is strict string.
+		// Assuming map[string]interface{}.
+
+		// Convert val to map if possible
+		if stateMap, ok := val.(map[string]interface{}); ok {
+			if status, ok := stateMap["status"].(string); ok && status == "pending" {
+				return errors.New("record is locked for approval and cannot be edited")
+			}
+		} else if stateMap, ok := val.(primitive.M); ok {
+			if status, ok := stateMap["status"].(string); ok && status == "pending" {
+				return errors.New("record is locked for approval and cannot be edited")
+			}
+		}
+	}
+
+	// 4. Update
 
 	err = s.RecordRepo.Update(ctx, moduleName, id, validatedData)
 	if err != nil {
@@ -266,7 +297,27 @@ func (s *RecordServiceImpl) UpdateRecord(ctx context.Context, moduleName, id str
 }
 
 func (s *RecordServiceImpl) DeleteRecord(ctx context.Context, moduleName, id string) error {
-	err := s.RecordRepo.Delete(ctx, moduleName, id)
+	// 1. Check Approval Lock
+	oldRecord, err := s.RecordRepo.Get(ctx, moduleName, id)
+	if err != nil {
+		return err
+	}
+
+	if val, ok := oldRecord["_approval"]; ok {
+		if stateMap, ok := val.(map[string]interface{}); ok {
+			if status, ok := stateMap["status"].(string); ok && status == "pending" {
+				return errors.New("record is locked for approval and cannot be deleted")
+			}
+		} else if stateMap, ok := val.(primitive.M); ok {
+			if status, ok := stateMap["status"].(string); ok && status == "pending" {
+				return errors.New("record is locked for approval and cannot be deleted")
+			}
+		}
+	}
+
+	// 2. Delete
+	err = s.RecordRepo.Delete(ctx, moduleName, id)
+
 	if err == nil {
 		_ = s.AuditService.LogChange(ctx, models.AuditActionDelete, moduleName, id, nil)
 	}

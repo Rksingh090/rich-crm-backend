@@ -106,12 +106,14 @@ func (s *AuthServiceImpl) Login(ctx context.Context, username, password string) 
 
 	// Fetch role names and aggregate permissions
 	var roleNames []string
+	var roleIDs []string
 	permissions := make(map[string][]string)
 
 	for _, roleID := range user.Roles {
 		role, err := s.RoleRepo.FindByID(ctx, roleID.Hex())
 		if err == nil {
 			roleNames = append(roleNames, role.Name)
+			roleIDs = append(roleIDs, roleID.Hex())
 
 			// Aggregate permissions from all roles
 			for moduleName, modulePerm := range role.ModulePermissions {
@@ -140,8 +142,11 @@ func (s *AuthServiceImpl) Login(ctx context.Context, username, password string) 
 	if roleNames == nil {
 		roleNames = []string{}
 	}
+	if roleIDs == nil {
+		roleIDs = []string{}
+	}
 
-	token, err := utils.GenerateToken(user.ID, roleNames, permissions)
+	token, err := utils.GenerateToken(user.ID, roleNames, roleIDs, permissions)
 	if err != nil {
 		return "", err
 	}

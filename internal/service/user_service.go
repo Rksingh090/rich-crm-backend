@@ -14,6 +14,7 @@ import (
 type UserService interface {
 	ListUsers(ctx context.Context, filter map[string]interface{}, page, limit int64) ([]models.User, int64, error)
 	GetUserByID(ctx context.Context, id string) (*models.User, error)
+	CreateUser(ctx context.Context, user *models.User) error
 	UpdateUser(ctx context.Context, id string, updates map[string]interface{}) error
 	UpdateUserRoles(ctx context.Context, id string, roleIDs []string) error
 	UpdateUserStatus(ctx context.Context, id string, status string) error
@@ -48,6 +49,36 @@ func (s *UserServiceImpl) ListUsers(ctx context.Context, filter map[string]inter
 
 func (s *UserServiceImpl) GetUserByID(ctx context.Context, id string) (*models.User, error) {
 	return s.UserRepo.FindByID(ctx, id)
+}
+
+func (s *UserServiceImpl) CreateUser(ctx context.Context, user *models.User) error {
+	// Initialize default fields if missing
+	if user.ID.IsZero() {
+		user.ID = primitive.NewObjectID()
+	}
+	if user.CreatedAt.IsZero() {
+		user.CreatedAt = time.Now()
+	}
+	user.UpdatedAt = time.Now()
+
+	if user.Status == "" {
+		user.Status = "active"
+	}
+
+	// Create in database
+	if err := s.UserRepo.Create(ctx, user); err != nil {
+		return err
+	}
+
+	// Audit Log
+	changes := map[string]models.Change{
+		"username": {New: user.Username},
+		"email":    {New: user.Email},
+		"created":  {New: true},
+	}
+	_ = s.AuditService.LogChange(ctx, models.AuditActionCreate, "user", user.ID.Hex(), changes)
+
+	return nil
 }
 
 func (s *UserServiceImpl) UpdateUser(ctx context.Context, id string, updates map[string]interface{}) error {

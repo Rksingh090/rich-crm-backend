@@ -26,6 +26,7 @@ type AuditLog struct {
 	Module    string             `bson:"module" json:"module"`                       // The module/collection name
 	RecordID  string             `bson:"record_id" json:"record_id"`                 // The ID of the record being modified
 	ActorID   string             `bson:"actor_id" json:"actor_id"`                   // User ID who performed the action
+	ActorName string             `bson:"-" json:"actor_name,omitempty"`              // Populated Name of the actor
 	Changes   map[string]Change  `bson:"changes,omitempty" json:"changes,omitempty"` // For updates: field -> {old, new}
 	Timestamp time.Time          `bson:"timestamp" json:"timestamp"`
 }
