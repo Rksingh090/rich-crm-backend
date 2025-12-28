@@ -22,6 +22,8 @@ type ApprovalWorkflow struct {
 	ModuleID  string             `bson:"module_id" json:"module_id"` // The module this workflow applies to
 	Name      string             `bson:"name" json:"name"`
 	Active    bool               `bson:"active" json:"active"`
+	Priority  int                `bson:"priority" json:"priority"` // Evaluation order (0 = highest)
+	Criteria  []RuleCondition    `bson:"criteria" json:"criteria"` // Use RuleCondition from automation or duplicate if strictly decoupled
 	Steps     []ApprovalStep     `bson:"steps" json:"steps"`
 	CreatedAt time.Time          `bson:"created_at" json:"created_at"`
 	UpdatedAt time.Time          `bson:"updated_at" json:"updated_at"`

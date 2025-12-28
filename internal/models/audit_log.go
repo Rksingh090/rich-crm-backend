@@ -9,10 +9,12 @@ import (
 type AuditAction string
 
 const (
-	AuditActionCreate AuditAction = "CREATE"
-	AuditActionUpdate AuditAction = "UPDATE"
-	AuditActionDelete AuditAction = "DELETE"
-	AuditActionLogin  AuditAction = "LOGIN"
+	AuditActionCreate     AuditAction = "CREATE"
+	AuditActionUpdate     AuditAction = "UPDATE"
+	AuditActionDelete     AuditAction = "DELETE"
+	AuditActionLogin      AuditAction = "LOGIN"
+	AuditActionAutomation AuditAction = "AUTOMATION"
+	AuditActionWorkflow   AuditAction = "WORKFLOW"
 )
 
 type Change struct {

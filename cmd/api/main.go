@@ -141,6 +141,7 @@ func main() {
 			repository.NewRoleRepository,
 			repository.NewApprovalRepository,
 			repository.NewReportRepository,
+			repository.NewAutomationRepository,
 
 			service.NewAuditService,
 			service.NewAuthService,
@@ -151,6 +152,7 @@ func main() {
 			// ApprovalService needs AuditService now, so ensure AuditService is provided before or via FX graph
 			service.NewApprovalService,
 			service.NewReportService,
+			service.NewAutomationService,
 
 			// Initialize Controller
 			controllers.NewAdminController,
@@ -164,6 +166,7 @@ func main() {
 			controllers.NewDebugController,
 			controllers.NewApprovalController,
 			controllers.NewReportController,
+			controllers.NewAutomationController,
 
 			// Initialize API Routes
 			AsRoute(api.NewAdminApi),
@@ -178,6 +181,7 @@ func main() {
 			AsRoute(api.NewHealthApi),
 			AsRoute(api.NewApprovalApi),
 			AsRoute(api.NewReportApi),
+			AsRoute(api.NewAutomationApi),
 		),
 		fx.WithLogger(func(log *zap.Logger) fxevent.Logger {
 			return &fxevent.ZapLogger{Logger: log}

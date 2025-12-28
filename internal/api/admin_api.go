@@ -26,7 +26,7 @@ func NewAdminApi(roleService service.RoleService, config *config.Config) *AdminA
 // Setup registers admin-related routes
 func (h *AdminApi) Setup(app *fiber.App) {
 	// Admin route with RBAC
-	app.Get("/admin",
+	app.Get("/api/admin",
 		middleware.AuthMiddleware(h.config.SkipAuth),
 		middleware.RequirePermission(h.roleService, "", "admin:access"),
 		h.Controller.WelcomeAdmin,

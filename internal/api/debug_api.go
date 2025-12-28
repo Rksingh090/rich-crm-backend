@@ -22,6 +22,6 @@ func NewDebugApi(controller *controllers.DebugController, cfg *config.Config) *D
 
 // Setup registers debug routes
 func (h *DebugApi) Setup(app *fiber.App) {
-	debug := app.Group("/debug", middleware.AuthMiddleware(h.config.SkipAuth))
+	debug := app.Group("/api/debug", middleware.AuthMiddleware(h.config.SkipAuth))
 	debug.Get("/me", h.controller.GetCurrentUser)
 }

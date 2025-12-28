@@ -12,7 +12,7 @@ import (
 
 type AuditRepository interface {
 	Create(ctx context.Context, log models.AuditLog) error
-	List(ctx context.Context, limit, offset int64) ([]models.AuditLog, error)
+	List(ctx context.Context, filters map[string]interface{}, limit, offset int64) ([]models.AuditLog, error)
 }
 
 type AuditRepositoryImpl struct {
@@ -30,9 +30,17 @@ func (r *AuditRepositoryImpl) Create(ctx context.Context, log models.AuditLog) e
 	return err
 }
 
-func (r *AuditRepositoryImpl) List(ctx context.Context, limit, offset int64) ([]models.AuditLog, error) {
+func (r *AuditRepositoryImpl) List(ctx context.Context, filters map[string]interface{}, limit, offset int64) ([]models.AuditLog, error) {
 	opts := options.Find().SetLimit(limit).SetSkip(offset).SetSort(bson.M{"timestamp": -1})
-	cursor, err := r.Collection.Find(ctx, bson.M{}, opts)
+
+	query := bson.M{}
+	for k, v := range filters {
+		if v != "" {
+			query[k] = v
+		}
+	}
+
+	cursor, err := r.Collection.Find(ctx, query, opts)
 	if err != nil {
 		return nil, err
 	}

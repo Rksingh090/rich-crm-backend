@@ -25,7 +25,7 @@ func NewApprovalApi(controller *controllers.ApprovalController, roleService serv
 
 func (h *ApprovalApi) Setup(app *fiber.App) {
 	// Group: /workflows
-	workflows := app.Group("/workflows", middleware.AuthMiddleware(h.config.SkipAuth))
+	workflows := app.Group("/api/workflows", middleware.AuthMiddleware(h.config.SkipAuth))
 
 	// Manage Workflows (Admin only or specific permission?)
 	// For now, let's say "modules:update" or similar, or new "workflows" module permission
@@ -36,11 +36,14 @@ func (h *ApprovalApi) Setup(app *fiber.App) {
 
 	// Let's REQUIRE "workflows" permission. User will need to add this module permission to their role.
 	workflows.Post("/", middleware.RequirePermission(h.roleService, "workflows", "create"), h.controller.CreateWorkflow)
+	workflows.Put("/:id", middleware.RequirePermission(h.roleService, "workflows", "update"), h.controller.UpdateWorkflow)
+	workflows.Delete("/:id", middleware.RequirePermission(h.roleService, "workflows", "delete"), h.controller.DeleteWorkflow)
 	workflows.Get("/", middleware.RequirePermission(h.roleService, "workflows", "read"), h.controller.ListWorkflows)
-	workflows.Get("/:moduleId", middleware.RequirePermission(h.roleService, "workflows", "read"), h.controller.GetWorkflow)
+	workflows.Get("/:id", middleware.RequirePermission(h.roleService, "workflows", "read"), h.controller.GetWorkflowByID)
+	workflows.Get("/module/:moduleId", middleware.RequirePermission(h.roleService, "workflows", "read"), h.controller.GetWorkflowByModule)
 
 	// Group: /approvals
-	approvals := app.Group("/approvals", middleware.AuthMiddleware(h.config.SkipAuth))
+	approvals := app.Group("/api/approvals", middleware.AuthMiddleware(h.config.SkipAuth))
 
 	// Approval Actions
 	// Actions are protected by logic inside service (CanApprove), so just AuthMiddleware is base requirement

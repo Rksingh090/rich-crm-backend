@@ -44,7 +44,51 @@ func (c *ApprovalController) CreateWorkflow(ctx *fiber.Ctx) error {
 	return ctx.Status(fiber.StatusCreated).JSON(fiber.Map{"message": "Workflow created successfully"})
 }
 
-// GetWorkflow godoc
+// UpdateWorkflow godoc
+// @Summary      Update approval workflow
+// @Description  Update an existing approval workflow
+// @Tags         approvals
+// @Accept       json
+// @Produce      json
+// @Param        id    path string true "Workflow ID"
+// @Param        input body models.ApprovalWorkflow true "Workflow Input"
+// @Success      200  {object} map[string]string
+// @Failure      400  {string} string "Invalid request body"
+// @Failure      500  {string} string "Failed to update workflow"
+// @Router       /workflows/{id} [put]
+func (c *ApprovalController) UpdateWorkflow(ctx *fiber.Ctx) error {
+	id := ctx.Params("id")
+	var input models.ApprovalWorkflow
+	if err := ctx.BodyParser(&input); err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request body"})
+	}
+
+	if err := c.Service.UpdateWorkflow(ctx.Context(), id, input); err != nil {
+		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	return ctx.JSON(fiber.Map{"message": "Workflow updated successfully"})
+}
+
+// DeleteWorkflow godoc
+// @Summary      Delete approval workflow
+// @Description  Delete an existing approval workflow
+// @Tags         approvals
+// @Accept       json
+// @Produce      json
+// @Param        id    path string true "Workflow ID"
+// @Success      204  {string} string "No Content"
+// @Failure      500  {string} string "Failed to delete workflow"
+// @Router       /workflows/{id} [delete]
+func (c *ApprovalController) DeleteWorkflow(ctx *fiber.Ctx) error {
+	id := ctx.Params("id")
+	if err := c.Service.DeleteWorkflow(ctx.Context(), id); err != nil {
+		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+	}
+	return ctx.SendStatus(fiber.StatusNoContent)
+}
+
+// GetWorkflowByModule godoc
 // @Summary      Get workflow by module
 // @Description  Get the active workflow for a specific module
 // @Tags         approvals
@@ -53,8 +97,8 @@ func (c *ApprovalController) CreateWorkflow(ctx *fiber.Ctx) error {
 // @Param        moduleId path string true "Module ID (hex)"
 // @Success      200  {object} models.ApprovalWorkflow
 // @Failure      404  {string} string "Workflow not found"
-// @Router       /workflows/{moduleId} [get]
-func (c *ApprovalController) GetWorkflow(ctx *fiber.Ctx) error {
+// @Router       /workflows/module/{moduleId} [get]
+func (c *ApprovalController) GetWorkflowByModule(ctx *fiber.Ctx) error {
 	moduleID := ctx.Params("moduleId")
 	workflow, err := c.Service.GetWorkflowByModule(ctx.Context(), moduleID)
 	if err != nil {
@@ -62,6 +106,28 @@ func (c *ApprovalController) GetWorkflow(ctx *fiber.Ctx) error {
 	}
 	if workflow == nil {
 		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "No active workflow found for this module"})
+	}
+	return ctx.JSON(workflow)
+}
+
+// GetWorkflowByID godoc
+// @Summary      Get workflow by ID
+// @Description  Get a specific workflow by its ID
+// @Tags         approvals
+// @Accept       json
+// @Produce      json
+// @Param        id path string true "Workflow ID (hex)"
+// @Success      200  {object} models.ApprovalWorkflow
+// @Failure      404  {string} string "Workflow not found"
+// @Router       /workflows/{id} [get]
+func (c *ApprovalController) GetWorkflowByID(ctx *fiber.Ctx) error {
+	id := ctx.Params("id")
+	workflow, err := c.Service.GetWorkflowByID(ctx.Context(), id)
+	if err != nil {
+		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+	}
+	if workflow == nil {
+		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Workflow not found"})
 	}
 	return ctx.JSON(workflow)
 }

@@ -7,6 +7,7 @@ import (
 	"go-crm/internal/service"
 
 	"github.com/gofiber/fiber/v2"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type UserController struct {
@@ -26,6 +27,7 @@ type UpdateUserRequest struct {
 	LastName  string `json:"last_name,omitempty"`
 	Phone     string `json:"phone,omitempty"`
 	Status    string `json:"status,omitempty"`
+	ReportsTo string `json:"reports_to,omitempty"`
 }
 
 type CreateUserRequest struct {
@@ -36,6 +38,7 @@ type CreateUserRequest struct {
 	LastName  string `json:"last_name,omitempty"`
 	Phone     string `json:"phone,omitempty"`
 	Status    string `json:"status,omitempty"`
+	ReportsTo string `json:"reports_to,omitempty"`
 }
 
 type UpdateUserRolesRequest struct {
@@ -140,6 +143,12 @@ func (ctrl *UserController) CreateUser(c *fiber.Ctx) error {
 		Status:    req.Status,
 	}
 
+	if req.ReportsTo != "" {
+		if oid, err := primitive.ObjectIDFromHex(req.ReportsTo); err == nil {
+			user.ReportsTo = &oid
+		}
+	}
+
 	if err := ctrl.UserService.CreateUser(c.Context(), user); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to create user: " + err.Error(),
@@ -192,6 +201,13 @@ func (ctrl *UserController) UpdateUser(c *fiber.Ctx) error {
 	}
 	if req.Status != "" {
 		updates["status"] = req.Status
+	}
+	if req.ReportsTo != "" {
+		if req.ReportsTo == "null" {
+			updates["reports_to"] = nil
+		} else if oid, err := primitive.ObjectIDFromHex(req.ReportsTo); err == nil {
+			updates["reports_to"] = oid
+		}
 	}
 
 	if err := ctrl.UserService.UpdateUser(c.Context(), id, updates); err != nil {

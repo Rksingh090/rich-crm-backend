@@ -23,5 +23,5 @@ func NewAuditApi(controller *controllers.AuditController, config *config.Config)
 // Setup registers all audit-related routes
 func (h *AuditApi) Setup(app *fiber.App) {
 	// Audit logs route (protected)
-	app.Get("/audit-logs", middleware.AuthMiddleware(h.config.SkipAuth), h.controller.ListLogs)
+	app.Get("/api/audit-logs", middleware.AuthMiddleware(h.config.SkipAuth), h.controller.ListLogs)
 }

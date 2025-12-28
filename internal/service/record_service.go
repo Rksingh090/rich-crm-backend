@@ -20,26 +20,28 @@ import (
 type RecordService interface {
 	CreateRecord(ctx context.Context, moduleName string, data map[string]interface{}) (interface{}, error)
 	GetRecord(ctx context.Context, moduleName, id string) (map[string]any, error)
-	ListRecords(ctx context.Context, moduleName string, filters map[string]any, page, limit int64) ([]map[string]any, int64, error)
+	ListRecords(ctx context.Context, moduleName string, filters map[string]any, page, limit int64, sortBy string, sortOrder string) ([]map[string]any, int64, error)
 	UpdateRecord(ctx context.Context, moduleName, id string, data map[string]interface{}) error
 	DeleteRecord(ctx context.Context, moduleName, id string) error
 }
 
 type RecordServiceImpl struct {
-	ModuleRepo      repository.ModuleRepository
-	RecordRepo      repository.RecordRepository
-	FileRepo        repository.FileRepository
-	AuditService    AuditService
-	ApprovalService ApprovalService
+	ModuleRepo        repository.ModuleRepository
+	RecordRepo        repository.RecordRepository
+	FileRepo          repository.FileRepository
+	AuditService      AuditService
+	ApprovalService   ApprovalService
+	AutomationService AutomationService
 }
 
-func NewRecordService(moduleRepo repository.ModuleRepository, recordRepo repository.RecordRepository, fileRepo repository.FileRepository, auditService AuditService, approvalService ApprovalService) RecordService {
+func NewRecordService(moduleRepo repository.ModuleRepository, recordRepo repository.RecordRepository, fileRepo repository.FileRepository, auditService AuditService, approvalService ApprovalService, automationService AutomationService) RecordService {
 	return &RecordServiceImpl{
-		ModuleRepo:      moduleRepo,
-		RecordRepo:      recordRepo,
-		FileRepo:        fileRepo,
-		AuditService:    auditService,
-		ApprovalService: approvalService,
+		ModuleRepo:        moduleRepo,
+		RecordRepo:        recordRepo,
+		FileRepo:          fileRepo,
+		AuditService:      auditService,
+		ApprovalService:   approvalService,
+		AutomationService: automationService,
 	}
 }
 
@@ -77,7 +79,7 @@ func (s *RecordServiceImpl) CreateRecord(ctx context.Context, moduleName string,
 	}
 
 	// 3. Initialize Approval Workflow
-	approvalState, err := s.ApprovalService.InitializeApproval(ctx, moduleName)
+	approvalState, err := s.ApprovalService.InitializeApproval(ctx, moduleName, validatedData)
 	if err != nil {
 		return nil, fmt.Errorf("failed to check approval workflow: %v", err)
 	}
@@ -100,6 +102,16 @@ func (s *RecordServiceImpl) CreateRecord(ctx context.Context, moduleName string,
 			changes[k] = models.Change{New: v}
 		}
 		_ = s.AuditService.LogChange(ctx, models.AuditActionCreate, moduleName, oid.Hex(), changes)
+
+		// 5. Automation Trigger (Async optional, but sync for now)
+		// Pass the full record (including generated ID)
+		// Note: validatedData has the raw values. Automation might expect formatted/lookup objects?
+		// AutomationService expects map[string]interface
+		go func() {
+			// Use background context or detached context if needed, but for now simple go routine with current context
+			// might be risky if context cancels. Better to create new context in real app.
+			_ = s.AutomationService.ExecuteFromTrigger(context.Background(), moduleName, validatedData, "create")
+		}()
 	}
 
 	return res, nil
@@ -130,7 +142,7 @@ func (s *RecordServiceImpl) GetRecord(ctx context.Context, moduleName, id string
 	return record, nil
 }
 
-func (s *RecordServiceImpl) ListRecords(ctx context.Context, moduleName string, filters map[string]any, page, limit int64) ([]map[string]any, int64, error) {
+func (s *RecordServiceImpl) ListRecords(ctx context.Context, moduleName string, filters map[string]any, page, limit int64, sortBy string, sortOrder string) ([]map[string]any, int64, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -172,38 +184,90 @@ func (s *RecordServiceImpl) ListRecords(ctx context.Context, moduleName string, 
 		}
 
 		if field != nil {
-			typedVal, err := s.validateAndConvert(ctx, *field, v)
+			// Special handling for 'between' operator before general validateAndConvert
+			if operator == "between" {
+				// Expecting val to be string "start,end"
+				if strVal, ok := v.(string); ok {
+					parts := strings.Split(strVal, ",")
+					if len(parts) == 2 {
+						startStr := strings.TrimSpace(parts[0])
+						endStr := strings.TrimSpace(parts[1])
 
-			if err == nil {
-				if operator == "" {
-					typedFilters[fieldName] = typedVal
-				} else if operator == "ne" {
-					typedFilters[fieldName] = bson.M{"$ne": typedVal}
-				} else if operator == "contains" {
-					// Contains only makes sense for strings usually
-					if strVal, ok := v.(string); ok {
-						typedFilters[fieldName] = bson.M{"$regex": primitive.Regex{Pattern: strVal, Options: "i"}}
-					} else {
-						// e.g. contains for number? not really supported easily
-						typedFilters[fieldName] = typedVal // Fallback to eq
+						// Try to parse dates
+						startTime, err1 := time.Parse("2006-01-02", startStr)
+						endTime, err2 := time.Parse("2006-01-02", endStr)
+
+						// If YYYY-MM-DD fails, try RFC3339
+						if err1 != nil {
+							startTime, err1 = time.Parse(time.RFC3339, startStr)
+						}
+						if err2 != nil {
+							endTime, err2 = time.Parse(time.RFC3339, endStr)
+						}
+
+						if err1 == nil && err2 == nil {
+							typedFilters[fieldName] = bson.M{
+								"$gte": startTime,
+								"$lte": endTime,
+							}
+						} else {
+							// If parsing fails for Date fields, maybe it's Number or something else?
+							// Fallback: try float for numbers?
+							startFloat, errF1 := strconv.ParseFloat(startStr, 64)
+							endFloat, errF2 := strconv.ParseFloat(endStr, 64)
+							if errF1 == nil && errF2 == nil {
+								typedFilters[fieldName] = bson.M{
+									"$gte": startFloat,
+									"$lte": endFloat,
+								}
+							} else {
+								// Invalid range format
+								return nil, 0, fmt.Errorf("invalid range values for field '%s'", k)
+							}
+						}
 					}
-				} else if operator == "gt" {
-					typedFilters[fieldName] = bson.M{"$gt": typedVal}
-				} else if operator == "lt" {
-					typedFilters[fieldName] = bson.M{"$lt": typedVal}
-				} else if operator == "gte" {
-					typedFilters[fieldName] = bson.M{"$gte": typedVal}
-				} else if operator == "lte" {
-					typedFilters[fieldName] = bson.M{"$lte": typedVal}
 				}
 			} else {
-				return nil, 0, fmt.Errorf("invalid filter value for '%s': %v", k, err)
+				typedVal, err := s.validateAndConvert(ctx, *field, v)
+
+				if err == nil {
+					switch operator {
+					case "":
+						typedFilters[fieldName] = typedVal
+					case "ne":
+						typedFilters[fieldName] = bson.M{"$ne": typedVal}
+					case "contains":
+						// Contains only makes sense for strings usually
+						if strVal, ok := v.(string); ok {
+							typedFilters[fieldName] = bson.M{"$regex": primitive.Regex{Pattern: strVal, Options: "i"}}
+						} else {
+							// e.g. contains for number? not really supported easily
+							typedFilters[fieldName] = typedVal // Fallback to eq
+						}
+					case "gt":
+						typedFilters[fieldName] = bson.M{"$gt": typedVal}
+					case "lt":
+						typedFilters[fieldName] = bson.M{"$lt": typedVal}
+					case "gte":
+						typedFilters[fieldName] = bson.M{"$gte": typedVal}
+					case "lte":
+						typedFilters[fieldName] = bson.M{"$lte": typedVal}
+					}
+				} else {
+					return nil, 0, fmt.Errorf("invalid filter value for '%s': %v", k, err)
+				}
 			}
 		}
 	}
 
+	// Map sortOrder string ("asc"/"desc") to int (1/-1)
+	sortOrderInt := -1
+	if strings.ToLower(sortOrder) == "asc" {
+		sortOrderInt = 1
+	}
+
 	// 3. List Records
-	records, err := s.RecordRepo.List(ctx, moduleName, typedFilters, limit, offset)
+	records, err := s.RecordRepo.List(ctx, moduleName, typedFilters, limit, offset, sortBy, sortOrderInt)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -292,6 +356,21 @@ func (s *RecordServiceImpl) UpdateRecord(ctx context.Context, moduleName, id str
 	}
 	if len(changes) > 0 {
 		_ = s.AuditService.LogChange(ctx, models.AuditActionUpdate, moduleName, id, changes)
+
+		// 5. Automation Trigger
+		go func() {
+			// Need the full updated record for conditions
+			// We only have 'validatedData' (partial update) and 'oldRecord'.
+			// Construct merged record for evaluation
+			mergedRecord := make(map[string]interface{})
+			for k, v := range oldRecord {
+				mergedRecord[k] = v
+			}
+			for k, v := range validatedData {
+				mergedRecord[k] = v
+			}
+			_ = s.AutomationService.ExecuteFromTrigger(context.Background(), moduleName, mergedRecord, "update")
+		}()
 	}
 	return nil
 }

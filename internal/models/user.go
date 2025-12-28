@@ -14,8 +14,9 @@ type User struct {
 	FirstName string               `bson:"first_name,omitempty" json:"first_name,omitempty"`
 	LastName  string               `bson:"last_name,omitempty" json:"last_name,omitempty"`
 	Phone     string               `bson:"phone,omitempty" json:"phone,omitempty"`
-	Status    string               `bson:"status" json:"status"` // active, inactive, suspended
-	Roles     []primitive.ObjectID `bson:"roles" json:"roles"`   // References to Role IDs
+	Status    string               `bson:"status" json:"status"`                             // active, inactive, suspended
+	Roles     []primitive.ObjectID `bson:"roles" json:"roles"`                               // References to Role IDs
+	ReportsTo *primitive.ObjectID  `bson:"reports_to,omitempty" json:"reports_to,omitempty"` // Manager ID
 	LastLogin *time.Time           `bson:"last_login,omitempty" json:"last_login,omitempty"`
 	CreatedAt time.Time            `bson:"created_at" json:"created_at"`
 	UpdatedAt time.Time            `bson:"updated_at" json:"updated_at"`

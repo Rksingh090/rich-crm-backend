@@ -23,7 +23,7 @@ func NewFileApi(controller *controllers.FileController, config *config.Config) *
 // Setup registers all file-related routes
 func (h *FileApi) Setup(app *fiber.App) {
 	// File upload route (protected)
-	app.Post("/upload", middleware.AuthMiddleware(h.config.SkipAuth), h.controller.UploadFile)
+	app.Post("/api/upload", middleware.AuthMiddleware(h.config.SkipAuth), h.controller.UploadFile)
 
 	// Static file serving
 	app.Static("/uploads", "./uploads")

@@ -48,6 +48,7 @@ type Module struct {
 	ID        primitive.ObjectID `json:"id" bson:"_id,omitempty"`
 	Name      string             `json:"name" bson:"name"` // Unique Identifier (e.g., "leads", "deals")
 	Label     string             `json:"label" bson:"label"`
+	IsSystem  bool               `json:"is_system" bson:"is_system"` // If true, cannot be deleted
 	Fields    []ModuleField      `json:"fields" bson:"fields"`
 	CreatedAt time.Time          `json:"created_at" bson:"created_at"`
 	UpdatedAt time.Time          `json:"updated_at" bson:"updated_at"`

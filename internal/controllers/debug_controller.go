@@ -10,7 +10,13 @@ func NewDebugController() *DebugController {
 	return &DebugController{}
 }
 
-// GetCurrentUser returns the current user's info from JWT
+// GetCurrentUser godoc
+// @Summary      Get current user info
+// @Description  Get the current user's info from JWT
+// @Tags         debug
+// @Produce      json
+// @Success      200  {object}  map[string]interface{}
+// @Router       /debug/user [get]
 func (c *DebugController) GetCurrentUser(ctx *fiber.Ctx) error {
 	userID := ctx.Locals("userID")
 	roles := ctx.Locals("roles")

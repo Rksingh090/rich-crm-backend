@@ -12,7 +12,7 @@ import (
 
 type AuditService interface {
 	LogChange(ctx context.Context, action models.AuditAction, module string, recordID string, changes map[string]models.Change) error
-	ListLogs(ctx context.Context, page, limit int64) ([]models.AuditLog, error)
+	ListLogs(ctx context.Context, filters map[string]interface{}, page, limit int64) ([]models.AuditLog, error)
 }
 
 type AuditServiceImpl struct {
@@ -47,7 +47,7 @@ func (s *AuditServiceImpl) LogChange(ctx context.Context, action models.AuditAct
 	return s.Repo.Create(ctx, log)
 }
 
-func (s *AuditServiceImpl) ListLogs(ctx context.Context, page, limit int64) ([]models.AuditLog, error) {
+func (s *AuditServiceImpl) ListLogs(ctx context.Context, filters map[string]interface{}, page, limit int64) ([]models.AuditLog, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -55,7 +55,7 @@ func (s *AuditServiceImpl) ListLogs(ctx context.Context, page, limit int64) ([]m
 		limit = 10
 	}
 	offset := (page - 1) * limit
-	logs, err := s.Repo.List(ctx, limit, offset)
+	logs, err := s.Repo.List(ctx, filters, limit, offset)
 	if err != nil {
 		return nil, err
 	}

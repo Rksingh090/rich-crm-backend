@@ -60,11 +60,42 @@ func (s *ModuleServiceImpl) CreateModule(ctx context.Context, module *models.Mod
 }
 
 func (s *ModuleServiceImpl) GetModuleByName(ctx context.Context, name string) (*models.Module, error) {
-	return s.Repo.FindByName(ctx, name)
+	module, err := s.Repo.FindByName(ctx, name)
+	if err != nil {
+		return nil, err
+	}
+	s.appendSystemFields(module)
+	return module, nil
 }
 
 func (s *ModuleServiceImpl) ListModules(ctx context.Context) ([]models.Module, error) {
-	return s.Repo.List(ctx)
+	modules, err := s.Repo.List(ctx)
+	if err != nil {
+		return nil, err
+	}
+	for i := range modules {
+		s.appendSystemFields(&modules[i])
+	}
+	return modules, nil
+}
+
+func (s *ModuleServiceImpl) appendSystemFields(module *models.Module) {
+	// Add Virtual System Fields
+	systemFields := []models.ModuleField{
+		{
+			Name:     "created_at",
+			Label:    "Created At",
+			Type:     models.FieldTypeDate,
+			Required: false,
+		},
+		{
+			Name:     "updated_at",
+			Label:    "Updated At",
+			Type:     models.FieldTypeDate,
+			Required: false,
+		},
+	}
+	module.Fields = append(module.Fields, systemFields...)
 }
 
 func (s *ModuleServiceImpl) UpdateModule(ctx context.Context, module *models.Module) error {
@@ -125,7 +156,16 @@ func (s *ModuleServiceImpl) UpdateModule(ctx context.Context, module *models.Mod
 }
 
 func (s *ModuleServiceImpl) DeleteModule(ctx context.Context, name string) error {
-	// 1. Dependency Check
+	// 1. Check if System Module
+	module, err := s.Repo.FindByName(ctx, name)
+	if err != nil {
+		return err
+	}
+	if module.IsSystem {
+		return errors.New("cannot delete system module")
+	}
+
+	// 2. Dependency Check
 	dependentModules, err := s.Repo.FindUsingLookup(ctx, name)
 	if err != nil {
 		return err

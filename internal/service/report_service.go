@@ -78,7 +78,8 @@ func (s *ReportServiceImpl) RunReport(ctx context.Context, id string) ([]map[str
 	// For "Run", maybe limit 100 for preview. For "Export", unlimited.
 	// Let's assume RunReport fetches all for now (be careful with large datasets).
 	// A better approach for UI is RunReport returns paginated, but for simplicity here:
-	records, _, err := s.RecordService.ListRecords(ctx, moduleName, report.Filters, 1, 10000)
+	// A better approach for UI is RunReport returns paginated, but for simplicity here:
+	records, _, err := s.RecordService.ListRecords(ctx, moduleName, report.Filters, 1, 10000, "created_at", "desc")
 	if err != nil {
 		return nil, err
 	}
@@ -118,7 +119,8 @@ func (s *ReportServiceImpl) ExportReport(ctx context.Context, id string, format 
 	}
 
 	// Fetch Data (All)
-	records, _, err := s.RecordService.ListRecords(ctx, report.ModuleID, report.Filters, 1, 100000)
+	// Fetch Data (All)
+	records, _, err := s.RecordService.ListRecords(ctx, report.ModuleID, report.Filters, 1, 100000, "created_at", "desc")
 	if err != nil {
 		return nil, "", err
 	}

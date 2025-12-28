@@ -5,6 +5,23 @@ definitions:
       token:
         type: string
     type: object
+  controllers.CreateUserRequest:
+    properties:
+      email:
+        type: string
+      first_name:
+        type: string
+      last_name:
+        type: string
+      password:
+        type: string
+      phone:
+        type: string
+      status:
+        type: string
+      username:
+        type: string
+    type: object
   controllers.LoginRequest:
     properties:
       password:
@@ -48,24 +65,94 @@ definitions:
       status:
         type: string
     type: object
+  models.ActionType:
+    enum:
+    - send_email
+    - create_task
+    - update_field
+    type: string
+    x-enum-comments:
+      ActionCreateTask: Creates a record in "tasks" module
+    x-enum-descriptions:
+    - ""
+    - Creates a record in "tasks" module
+    - ""
+    x-enum-varnames:
+    - ActionSendEmail
+    - ActionCreateTask
+    - ActionUpdateField
+  models.ApprovalStep:
+    properties:
+      approver_roles:
+        description: Role IDs allowed to approve
+        items:
+          type: string
+        type: array
+      approver_users:
+        description: User IDs allowed to approve
+        items:
+          type: string
+        type: array
+      id:
+        description: Unique ID for the step (e.g., uuid)
+        type: string
+      name:
+        description: Display name (e.g., "Manager Approval")
+        type: string
+      order:
+        description: Sequence number
+        type: integer
+    type: object
+  models.ApprovalWorkflow:
+    properties:
+      active:
+        type: boolean
+      created_at:
+        type: string
+      criteria:
+        description: Use RuleCondition from automation or duplicate if strictly decoupled
+        items:
+          $ref: '#/definitions/models.RuleCondition'
+        type: array
+      id:
+        type: string
+      module_id:
+        description: The module this workflow applies to
+        type: string
+      name:
+        type: string
+      steps:
+        items:
+          $ref: '#/definitions/models.ApprovalStep'
+        type: array
+      updated_at:
+        type: string
+    type: object
   models.AuditAction:
     enum:
     - CREATE
     - UPDATE
     - DELETE
     - LOGIN
+    - AUTOMATION
+    - WORKFLOW
     type: string
     x-enum-varnames:
     - AuditActionCreate
     - AuditActionUpdate
     - AuditActionDelete
     - AuditActionLogin
+    - AuditActionAutomation
+    - AuditActionWorkflow
   models.AuditLog:
     properties:
       action:
         $ref: '#/definitions/models.AuditAction'
       actor_id:
         description: User ID who performed the action
+        type: string
+      actor_name:
+        description: Populated Name of the actor
         type: string
       changes:
         additionalProperties:
@@ -81,6 +168,33 @@ definitions:
         description: The ID of the record being modified
         type: string
       timestamp:
+        type: string
+    type: object
+  models.AutomationRule:
+    properties:
+      actions:
+        items:
+          $ref: '#/definitions/models.RuleAction'
+        type: array
+      active:
+        type: boolean
+      conditions:
+        items:
+          $ref: '#/definitions/models.RuleCondition'
+        type: array
+      created_at:
+        type: string
+      id:
+        type: string
+      module_id:
+        description: Target Module Name or ID
+        type: string
+      name:
+        type: string
+      trigger_type:
+        description: '"create", "update", "delete"'
+        type: string
+      updated_at:
         type: string
     type: object
   models.Change:
@@ -163,6 +277,9 @@ definitions:
         type: array
       id:
         type: string
+      is_system:
+        description: If true, cannot be deleted
+        type: boolean
       label:
         type: string
       name:
@@ -188,6 +305,84 @@ definitions:
         type: boolean
       type:
         $ref: '#/definitions/models.FieldType'
+    type: object
+  models.ModulePermission:
+    properties:
+      create:
+        type: boolean
+      delete:
+        type: boolean
+      read:
+        type: boolean
+      update:
+        type: boolean
+    type: object
+  models.Report:
+    properties:
+      columns:
+        description: List of field names to display
+        items:
+          type: string
+        type: array
+      created_at:
+        type: string
+      created_by:
+        type: string
+      description:
+        type: string
+      filters:
+        additionalProperties: {}
+        description: Stored query filters
+        type: object
+      id:
+        type: string
+      module_id:
+        description: The module this report is based on
+        type: string
+      name:
+        type: string
+      updated_at:
+        type: string
+      updated_by:
+        type: string
+    type: object
+  models.Role:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      is_system:
+        description: Prevent deletion of system roles
+        type: boolean
+      module_permissions:
+        additionalProperties:
+          $ref: '#/definitions/models.ModulePermission'
+        type: object
+      name:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  models.RuleAction:
+    properties:
+      config:
+        additionalProperties: true
+        description: 'e.g., { "to": "user@example.com", "subject": "..." } or { "field":
+          "status", "value": "Contacted" }'
+        type: object
+      type:
+        $ref: '#/definitions/models.ActionType'
+    type: object
+  models.RuleCondition:
+    properties:
+      field:
+        type: string
+      operator:
+        $ref: '#/definitions/models.ValidationOperator'
+      value: {}
     type: object
   models.SelectOptions:
     properties:
@@ -225,6 +420,20 @@ definitions:
       username:
         type: string
     type: object
+  models.ValidationOperator:
+    enum:
+    - equals
+    - not_equals
+    - contains
+    - gt
+    - lt
+    type: string
+    x-enum-varnames:
+    - OperatorEquals
+    - OperatorNotEquals
+    - OperatorContains
+    - OperatorGreaterThan
+    - OperatorLessThan
 host: localhost:8000
 info:
   contact:
@@ -238,6 +447,317 @@ info:
   title: Microservice Demo API
   version: "1.0"
 paths:
+  /api/automation:
+    get:
+      parameters:
+      - description: Module ID
+        in: query
+        name: module_id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.AutomationRule'
+            type: array
+      summary: List automation rules
+      tags:
+      - automation
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Rule
+        in: body
+        name: rule
+        required: true
+        schema:
+          $ref: '#/definitions/models.AutomationRule'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.AutomationRule'
+      summary: Create a new automation rule
+      tags:
+      - automation
+  /api/automation/{id}:
+    delete:
+      parameters:
+      - description: Rule ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+      summary: Delete automation rule
+      tags:
+      - automation
+    get:
+      parameters:
+      - description: Rule ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.AutomationRule'
+        "404":
+          description: Rule not found
+          schema:
+            type: string
+      summary: Get automation rule
+      tags:
+      - automation
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Rule ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Rule Update
+        in: body
+        name: rule
+        required: true
+        schema:
+          $ref: '#/definitions/models.AutomationRule'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.AutomationRule'
+      summary: Update automation rule
+      tags:
+      - automation
+  /api/reports:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Report'
+            type: array
+      summary: List all reports
+      tags:
+      - Reports
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Report Definition
+        in: body
+        name: report
+        required: true
+        schema:
+          $ref: '#/definitions/models.Report'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.Report'
+      summary: Create a new report
+      tags:
+      - Reports
+  /api/reports/{id}:
+    delete:
+      parameters:
+      - description: Report ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+      summary: Delete a report
+      tags:
+      - Reports
+    get:
+      parameters:
+      - description: Report ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Report'
+      summary: Get a report by ID
+      tags:
+      - Reports
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Report ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Report Update
+        in: body
+        name: report
+        required: true
+        schema:
+          $ref: '#/definitions/models.Report'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Report'
+      summary: Update a report
+      tags:
+      - Reports
+  /api/reports/{id}/export:
+    get:
+      parameters:
+      - description: Report ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: 'Format (default: csv)'
+        in: query
+        name: format
+        type: string
+      produces:
+      - text/csv
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: file
+      summary: Export a report to CSV
+      tags:
+      - Reports
+  /api/reports/{id}/run:
+    get:
+      parameters:
+      - description: Report ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              type: object
+            type: array
+      summary: Run a report and return JSON data
+      tags:
+      - Reports
+  /approvals/{module}/{id}/approve:
+    post:
+      consumes:
+      - application/json
+      description: Approve the current step for a record
+      parameters:
+      - description: Module Name
+        in: path
+        name: module
+        required: true
+        type: string
+      - description: Record ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Comment
+        in: body
+        name: input
+        required: true
+        schema:
+          additionalProperties:
+            type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            type: string
+      summary: Approve a record
+      tags:
+      - approvals
+  /approvals/{module}/{id}/reject:
+    post:
+      consumes:
+      - application/json
+      description: Reject the current step for a record
+      parameters:
+      - description: Module Name
+        in: path
+        name: module
+        required: true
+        type: string
+      - description: Record ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Comment
+        in: body
+        name: input
+        required: true
+        schema:
+          additionalProperties:
+            type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            type: string
+      summary: Reject a record
+      tags:
+      - approvals
   /audit-logs:
     get:
       consumes:
@@ -268,6 +788,20 @@ paths:
       summary: List audit logs
       tags:
       - audit
+  /debug/user:
+    get:
+      description: Get the current user's info from JWT
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get current user info
+      tags:
+      - debug
   /health:
     get:
       consumes:
@@ -638,6 +1172,145 @@ paths:
       summary: Register a new user
       tags:
       - auth
+  /roles:
+    get:
+      description: Get all roles with their permissions
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Role'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: List all roles
+      tags:
+      - roles
+    post:
+      consumes:
+      - application/json
+      description: Create a new role with module permissions
+      parameters:
+      - description: Role data
+        in: body
+        name: role
+        required: true
+        schema:
+          $ref: '#/definitions/models.Role'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.Role'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Create a new role
+      tags:
+      - roles
+  /roles/{id}:
+    delete:
+      description: Delete a role (cannot delete system roles)
+      parameters:
+      - description: Role ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Delete a role
+      tags:
+      - roles
+    get:
+      description: Get a specific role with its permissions
+      parameters:
+      - description: Role ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Role'
+        "404":
+          description: Not Found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Get role by ID
+      tags:
+      - roles
+    put:
+      consumes:
+      - application/json
+      description: Update role permissions
+      parameters:
+      - description: Role ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Role data
+        in: body
+        name: role
+        required: true
+        schema:
+          $ref: '#/definitions/models.Role'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Role'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Update a role
+      tags:
+      - roles
   /upload:
     post:
       consumes:
@@ -704,6 +1377,37 @@ paths:
           schema:
             type: string
       summary: List all users
+      tags:
+      - users
+    post:
+      consumes:
+      - application/json
+      description: Create a new user
+      parameters:
+      - description: Create User Input
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.CreateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid request body
+          schema:
+            type: string
+        "500":
+          description: Failed to create user
+          schema:
+            type: string
+      summary: Create user
       tags:
       - users
   /users/{id}:
@@ -867,4 +1571,169 @@ paths:
       summary: Update user status
       tags:
       - users
+  /workflows:
+    get:
+      consumes:
+      - application/json
+      description: List all approval workflows
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.ApprovalWorkflow'
+            type: array
+      summary: List all workflows
+      tags:
+      - approvals
+    post:
+      consumes:
+      - application/json
+      description: Create a new approval workflow for a module
+      parameters:
+      - description: Workflow Input
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/models.ApprovalWorkflow'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid request body
+          schema:
+            type: string
+        "500":
+          description: Failed to create workflow
+          schema:
+            type: string
+      summary: Create approval workflow
+      tags:
+      - approvals
+  /workflows/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete an existing approval workflow
+      parameters:
+      - description: Workflow ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+          schema:
+            type: string
+        "500":
+          description: Failed to delete workflow
+          schema:
+            type: string
+      summary: Delete approval workflow
+      tags:
+      - approvals
+    get:
+      consumes:
+      - application/json
+      description: Get a specific workflow by its ID
+      parameters:
+      - description: Workflow ID (hex)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ApprovalWorkflow'
+        "404":
+          description: Workflow not found
+          schema:
+            type: string
+      summary: Get workflow by ID
+      tags:
+      - approvals
+    put:
+      consumes:
+      - application/json
+      description: Update an existing approval workflow
+      parameters:
+      - description: Workflow ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Workflow Input
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/models.ApprovalWorkflow'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid request body
+          schema:
+            type: string
+        "500":
+          description: Failed to update workflow
+          schema:
+            type: string
+      summary: Update approval workflow
+      tags:
+      - approvals
+  /workflows/module/{moduleId}:
+    get:
+      consumes:
+      - application/json
+      description: Get the active workflow for a specific module
+      parameters:
+      - description: Module ID (hex)
+        in: path
+        name: moduleId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ApprovalWorkflow'
+        "404":
+          description: Workflow not found
+          schema:
+            type: string
+      summary: Get workflow by module
+      tags:
+      - approvals
+  /ws:
+    get:
+      description: WebSocket connection handler
+      responses: {}
+      summary: WebSocket Endpoint
+      tags:
+      - websocket
 swagger: "2.0"

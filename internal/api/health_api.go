@@ -12,7 +12,7 @@ func NewHealthApi() *HealthApi {
 
 // Setup registers health check route
 func (h *HealthApi) Setup(app *fiber.App) {
-	app.Get("/health", h.HealthCheck)
+	app.Get("/api/health", h.HealthCheck)
 }
 
 // HealthCheck godoc

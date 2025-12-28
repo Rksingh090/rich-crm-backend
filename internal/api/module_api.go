@@ -29,7 +29,7 @@ func NewModuleApi(
 // Setup registers all module and record-related routes
 func (h *ModuleApi) Setup(app *fiber.App) {
 	// Module routes group with auth middleware
-	modules := app.Group("/modules", middleware.AuthMiddleware(h.config.SkipAuth))
+	modules := app.Group("/api/modules", middleware.AuthMiddleware(h.config.SkipAuth))
 
 	// Module CRUD
 	modules.Post("/", h.moduleController.CreateModule)

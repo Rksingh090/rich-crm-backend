@@ -14,6 +14,7 @@ import (
 type ApprovalRepository interface {
 	Create(ctx context.Context, workflow models.ApprovalWorkflow) error
 	GetByModuleID(ctx context.Context, moduleID string) (*models.ApprovalWorkflow, error)
+	ListActiveByModuleID(ctx context.Context, moduleID string) ([]models.ApprovalWorkflow, error)
 	GetByID(ctx context.Context, id string) (*models.ApprovalWorkflow, error)
 	List(ctx context.Context) ([]models.ApprovalWorkflow, error)
 	Update(ctx context.Context, id string, workflow models.ApprovalWorkflow) error
@@ -45,6 +46,19 @@ func (r *ApprovalRepositoryImpl) GetByModuleID(ctx context.Context, moduleID str
 		return nil, err
 	}
 	return &workflow, nil
+}
+
+func (r *ApprovalRepositoryImpl) ListActiveByModuleID(ctx context.Context, moduleID string) ([]models.ApprovalWorkflow, error) {
+	cursor, err := r.Collection.Find(ctx, bson.M{"module_id": moduleID, "active": true})
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+	var workflows []models.ApprovalWorkflow
+	if err = cursor.All(ctx, &workflows); err != nil {
+		return nil, err
+	}
+	return workflows, nil
 }
 
 func (r *ApprovalRepositoryImpl) GetByID(ctx context.Context, id string) (*models.ApprovalWorkflow, error) {
@@ -84,6 +98,7 @@ func (r *ApprovalRepositoryImpl) Update(ctx context.Context, id string, workflow
 		"$set": bson.M{
 			"name":       workflow.Name,
 			"active":     workflow.Active,
+			"criteria":   workflow.Criteria,
 			"steps":      workflow.Steps,
 			"updated_at": time.Now(),
 		},

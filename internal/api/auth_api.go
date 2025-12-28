@@ -23,11 +23,11 @@ func NewAuthApi(controller *controllers.AuthController, config *config.Config) *
 // Setup registers all auth-related routes
 func (h *AuthApi) Setup(app *fiber.App) {
 	// Public routes
-	app.Post("/register", h.controller.Register)
-	app.Post("/login", h.controller.Login)
+	app.Post("/api/register", h.controller.Register)
+	app.Post("/api/login", h.controller.Login)
 
 	// Protected route example
-	app.Get("/protected", middleware.AuthMiddleware(h.config.SkipAuth), h.protectedRoute)
+	app.Get("/api/protected", middleware.AuthMiddleware(h.config.SkipAuth), h.protectedRoute)
 }
 
 func (h *AuthApi) protectedRoute(c *fiber.Ctx) error {

@@ -14,6 +14,11 @@ func NewWebSocketController() *WebSocketController {
 }
 
 // HandleWebSocket handles WebSocket connections
+// HandleWebSocket godoc
+// @Summary      WebSocket Endpoint
+// @Description  WebSocket connection handler
+// @Tags         websocket
+// @Router       /ws [get]
 func (h *WebSocketController) HandleWebSocket(c *websocket.Conn) {
 	var (
 		mt  int

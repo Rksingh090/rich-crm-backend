@@ -70,17 +70,19 @@ func (ctrl *RecordController) ListRecords(c *fiber.Ctx) error {
 
 	page, _ := strconv.ParseInt(c.Query("page", "1"), 10, 64)
 	limit, _ := strconv.ParseInt(c.Query("limit", "10"), 10, 64)
+	sortBy := c.Query("sort_by", "created_at")
+	sortOrder := c.Query("order", "desc")
 
 	// Extract filters from query params
 	filters := make(map[string]interface{})
 	c.Context().QueryArgs().VisitAll(func(key, value []byte) {
 		k := string(key)
-		if k != "page" && k != "limit" {
+		if k != "page" && k != "limit" && k != "sort_by" && k != "order" {
 			filters[k] = string(value)
 		}
 	})
 
-	records, totalCount, err := ctrl.Service.ListRecords(c.Context(), moduleName, filters, page, limit)
+	records, totalCount, err := ctrl.Service.ListRecords(c.Context(), moduleName, filters, page, limit, sortBy, sortOrder)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err.Error(),

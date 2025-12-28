@@ -14,7 +14,7 @@ import (
 type RecordRepository interface {
 	Create(ctx context.Context, moduleName string, data map[string]any) (any, error)
 	Get(ctx context.Context, moduleName, id string) (map[string]any, error)
-	List(ctx context.Context, moduleName string, filter map[string]any, limit, offset int64) ([]map[string]any, error)
+	List(ctx context.Context, moduleName string, filter map[string]any, limit, offset int64, sortBy string, sortOrder int) ([]map[string]any, error)
 	Count(ctx context.Context, moduleName string, filter map[string]any) (int64, error)
 	Update(ctx context.Context, moduleName, id string, data map[string]any) error
 	Delete(ctx context.Context, moduleName, id string) error
@@ -51,14 +51,21 @@ func (r *RecordRepositoryImpl) Get(ctx context.Context, moduleName, id string) (
 	return result, err
 }
 
-func (r *RecordRepositoryImpl) List(ctx context.Context, moduleName string, filter map[string]any, limit, offset int64) ([]map[string]any, error) {
+func (r *RecordRepositoryImpl) List(ctx context.Context, moduleName string, filter map[string]any, limit, offset int64, sortBy string, sortOrder int) ([]map[string]any, error) {
 	collectionName := fmt.Sprintf("module_%s", moduleName)
 
 	findOptions := options.Find()
 	findOptions.SetLimit(limit)
 	findOptions.SetSkip(offset)
-	// Optional: Default sort by created_at desc
-	findOptions.SetSort(bson.D{{Key: "created_at", Value: -1}})
+
+	// Sort logic
+	if sortBy == "" {
+		sortBy = "created_at"
+	}
+	if sortOrder == 0 {
+		sortOrder = -1 // Default DESC
+	}
+	findOptions.SetSort(bson.D{{Key: sortBy, Value: sortOrder}})
 
 	cursor, err := r.DB.Collection(collectionName).Find(ctx, filter, findOptions)
 	if err != nil {

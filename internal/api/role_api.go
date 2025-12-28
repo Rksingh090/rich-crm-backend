@@ -26,7 +26,7 @@ func NewRoleApi(controller *controllers.RoleController, cfg *config.Config, role
 // Setup registers role routes
 func (h *RoleApi) Setup(app *fiber.App) {
 	// Role routes group with auth middleware
-	roles := app.Group("/roles", middleware.AuthMiddleware(h.config.SkipAuth))
+	roles := app.Group("/api/roles", middleware.AuthMiddleware(h.config.SkipAuth))
 
 	// Role CRUD - require "roles" module permissions
 	roles.Get("/", middleware.RequirePermission(h.roleService, "roles", "read"), h.controller.ListRoles)

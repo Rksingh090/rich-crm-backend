@@ -31,7 +31,15 @@ func (ctrl *AuditController) ListLogs(c *fiber.Ctx) error {
 	page, _ := strconv.ParseInt(c.Query("page", "1"), 10, 64)
 	limit, _ := strconv.ParseInt(c.Query("limit", "20"), 10, 64)
 
-	logs, err := ctrl.Service.ListLogs(c.Context(), page, limit)
+	filters := make(map[string]interface{})
+	if module := c.Query("module"); module != "" {
+		filters["module"] = module
+	}
+	if recordID := c.Query("record_id"); recordID != "" {
+		filters["record_id"] = recordID
+	}
+
+	logs, err := ctrl.Service.ListLogs(c.Context(), filters, page, limit)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err.Error(),
