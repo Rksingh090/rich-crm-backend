@@ -19,8 +19,8 @@ import (
 
 type RecordService interface {
 	CreateRecord(ctx context.Context, moduleName string, data map[string]interface{}, userID primitive.ObjectID) (interface{}, error)
-	GetRecord(ctx context.Context, moduleName, id string) (map[string]any, error)
-	ListRecords(ctx context.Context, moduleName string, filters map[string]any, page, limit int64, sortBy string, sortOrder string) ([]map[string]any, int64, error)
+	GetRecord(ctx context.Context, moduleName, id string, userID primitive.ObjectID) (map[string]any, error)
+	ListRecords(ctx context.Context, moduleName string, filters map[string]any, page, limit int64, sortBy string, sortOrder string, userID primitive.ObjectID) ([]map[string]any, int64, error)
 	UpdateRecord(ctx context.Context, moduleName, id string, data map[string]interface{}, userID primitive.ObjectID) error
 	DeleteRecord(ctx context.Context, moduleName, id string) error
 }
@@ -29,19 +29,27 @@ type RecordServiceImpl struct {
 	ModuleRepo        repository.ModuleRepository
 	RecordRepo        repository.RecordRepository
 	FileRepo          repository.FileRepository
+	UserRepo          repository.UserRepository
+	RoleRepo          repository.RoleRepository
+	RoleService       RoleService
 	AuditService      AuditService
 	ApprovalService   ApprovalService
 	AutomationService AutomationService
+	WebhookService    WebhookService
 }
 
-func NewRecordService(moduleRepo repository.ModuleRepository, recordRepo repository.RecordRepository, fileRepo repository.FileRepository, auditService AuditService, approvalService ApprovalService, automationService AutomationService) RecordService {
+func NewRecordService(moduleRepo repository.ModuleRepository, recordRepo repository.RecordRepository, fileRepo repository.FileRepository, userRepo repository.UserRepository, roleRepo repository.RoleRepository, roleService RoleService, auditService AuditService, approvalService ApprovalService, automationService AutomationService, webhookService WebhookService) RecordService {
 	return &RecordServiceImpl{
 		ModuleRepo:        moduleRepo,
 		RecordRepo:        recordRepo,
 		FileRepo:          fileRepo,
+		UserRepo:          userRepo,
+		RoleRepo:          roleRepo,
+		RoleService:       roleService,
 		AuditService:      auditService,
 		ApprovalService:   approvalService,
 		AutomationService: automationService,
+		WebhookService:    webhookService,
 	}
 }
 
@@ -60,6 +68,9 @@ func (s *RecordServiceImpl) CreateRecord(ctx context.Context, moduleName string,
 	validatedData["created_by"] = userID // System field - immutable
 	validatedData["owner"] = userID      // Mutable field - can be changed
 
+	// Fetch Field Permissions
+	perms, _ := s.RoleService.GetFieldPermissions(ctx, userID, moduleName)
+
 	for _, field := range module.Fields {
 		val, exists := data[field.Name]
 
@@ -70,6 +81,15 @@ func (s *RecordServiceImpl) CreateRecord(ctx context.Context, moduleName string,
 
 		if !exists {
 			continue // Skip optional missing fields
+		}
+
+		// Check Field Permissions
+		if perms != nil {
+			if p, ok := perms[field.Name]; ok {
+				if p == models.FieldPermReadOnly || p == models.FieldPermNone {
+					return nil, fmt.Errorf("field '%s' is read-only or hidden", field.Label)
+				}
+			}
 		}
 
 		// Validate Type
@@ -110,16 +130,31 @@ func (s *RecordServiceImpl) CreateRecord(ctx context.Context, moduleName string,
 		// Note: validatedData has the raw values. Automation might expect formatted/lookup objects?
 		// AutomationService expects map[string]interface
 		go func() {
+			// Need the full updated record for conditions
+			mergedRecord := make(map[string]interface{})
+			for k, v := range validatedData {
+				mergedRecord[k] = v
+			}
+
 			// Use background context or detached context if needed, but for now simple go routine with current context
 			// might be risky if context cancels. Better to create new context in real app.
 			_ = s.AutomationService.ExecuteFromTrigger(context.Background(), moduleName, validatedData, "create")
+
+			// Webhook
+			s.WebhookService.Trigger(context.Background(), "record.updated", models.WebhookPayload{
+				Event:     "record.created",
+				Module:    moduleName,
+				RecordID:  validatedData["_id"].(primitive.ObjectID).Hex(),
+				Data:      mergedRecord,
+				Timestamp: time.Now(),
+			})
 		}()
 	}
 
 	return res, nil
 }
 
-func (s *RecordServiceImpl) GetRecord(ctx context.Context, moduleName, id string) (map[string]any, error) {
+func (s *RecordServiceImpl) GetRecord(ctx context.Context, moduleName, id string, userID primitive.ObjectID) (map[string]any, error) {
 	record, err := s.RecordRepo.Get(ctx, moduleName, id)
 	if err != nil {
 		return nil, err
@@ -141,10 +176,20 @@ func (s *RecordServiceImpl) GetRecord(ctx context.Context, moduleName, id string
 		return nil, err
 	}
 
+	// Apply Field Permissions
+	perms, err := s.RoleService.GetFieldPermissions(ctx, userID, moduleName)
+	if err == nil && perms != nil {
+		for field, p := range perms {
+			if p == models.FieldPermNone {
+				delete(record, field)
+			}
+		}
+	}
+
 	return record, nil
 }
 
-func (s *RecordServiceImpl) ListRecords(ctx context.Context, moduleName string, filters map[string]any, page, limit int64, sortBy string, sortOrder string) ([]map[string]any, int64, error) {
+func (s *RecordServiceImpl) ListRecords(ctx context.Context, moduleName string, filters map[string]any, page, limit int64, sortBy string, sortOrder string, userID primitive.ObjectID) ([]map[string]any, int64, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -286,6 +331,18 @@ func (s *RecordServiceImpl) ListRecords(ctx context.Context, moduleName string, 
 		return nil, 0, err
 	}
 
+	// Apply Field Permissions to all records
+	perms, err := s.RoleService.GetFieldPermissions(ctx, userID, moduleName)
+	if err == nil && perms != nil {
+		for _, record := range records {
+			for field, p := range perms {
+				if p == models.FieldPermNone {
+					delete(record, field)
+				}
+			}
+		}
+	}
+
 	return records, totalCount, nil
 }
 
@@ -310,6 +367,9 @@ func (s *RecordServiceImpl) UpdateRecord(ctx context.Context, moduleName, id str
 		}
 	}
 
+	// Fetch Field Permissions
+	perms, _ := s.RoleService.GetFieldPermissions(ctx, userID, moduleName)
+
 	for _, field := range module.Fields {
 		val, exists := data[field.Name]
 		if !exists {
@@ -317,6 +377,15 @@ func (s *RecordServiceImpl) UpdateRecord(ctx context.Context, moduleName, id str
 		}
 
 		// Validate Type if present
+		// Check Field Permissions
+		if perms != nil {
+			if p, ok := perms[field.Name]; ok {
+				if p == models.FieldPermReadOnly || p == models.FieldPermNone {
+					return fmt.Errorf("field '%s' is read-only or hidden", field.Label)
+				}
+			}
+		}
+
 		cleanVal, err := s.validateAndConvert(ctx, field, val)
 		if err != nil {
 			return fmt.Errorf("invalid value for field '%s': %v", field.Label, err)
@@ -369,11 +438,9 @@ func (s *RecordServiceImpl) UpdateRecord(ctx context.Context, moduleName, id str
 	if len(changes) > 0 {
 		_ = s.AuditService.LogChange(ctx, models.AuditActionUpdate, moduleName, id, changes)
 
-		// 5. Automation Trigger
+		// 5. Automation & Webhook Trigger
 		go func() {
 			// Need the full updated record for conditions
-			// We only have 'validatedData' (partial update) and 'oldRecord'.
-			// Construct merged record for evaluation
 			mergedRecord := make(map[string]interface{})
 			for k, v := range oldRecord {
 				mergedRecord[k] = v
@@ -381,7 +448,18 @@ func (s *RecordServiceImpl) UpdateRecord(ctx context.Context, moduleName, id str
 			for k, v := range validatedData {
 				mergedRecord[k] = v
 			}
+
+			// Automation
 			_ = s.AutomationService.ExecuteFromTrigger(context.Background(), moduleName, mergedRecord, "update")
+
+			// Webhook
+			s.WebhookService.Trigger(context.Background(), "record.updated", models.WebhookPayload{
+				Event:     "record.updated",
+				Module:    moduleName,
+				RecordID:  id,
+				Data:      mergedRecord,
+				Timestamp: time.Now(),
+			})
 		}()
 	}
 	return nil
@@ -584,4 +662,65 @@ func (s *RecordServiceImpl) validateAndConvert(ctx context.Context, field models
 	default:
 		return val, nil
 	}
+}
+
+func (s *RecordServiceImpl) getFieldPermissions(ctx context.Context, userID primitive.ObjectID, moduleName string) (map[string]string, error) {
+	// 1. Get User
+	user, err := s.UserRepo.FindByID(ctx, userID.Hex())
+	if err != nil {
+		return nil, err
+	}
+	if user == nil {
+		return nil, errors.New("user not found")
+	}
+
+	// 2. Iterate Roles
+	finalPerms := make(map[string]string)
+	hasFieldRules := false
+
+	for _, roleID := range user.Roles {
+		role, err := s.RoleRepo.FindByID(ctx, roleID.Hex())
+		if err != nil || role == nil {
+			continue
+		}
+
+		if role.FieldPermissions != nil {
+			if modPerms, ok := role.FieldPermissions[moduleName]; ok {
+				hasFieldRules = true
+				for field, p := range modPerms {
+					current, exists := finalPerms[field]
+					if !exists {
+						finalPerms[field] = p
+					} else {
+						// Union: read_write > read_only > none
+						// If we already have a permission, we take the MORE permissive one usually?
+						// Wait, current logic:
+						// if p == models.FieldPermReadWrite { finalPerms[field] = models.FieldPermReadWrite }
+						// if p == models.FieldPermReadOnly && current == models.FieldPermNone { finalPerms[field] = models.FieldPermReadOnly }
+
+						// Let's stick to simple "Least Restrictive"
+						if p == models.FieldPermReadWrite {
+							finalPerms[field] = models.FieldPermReadWrite
+						} else if p == models.FieldPermReadOnly {
+							if current == models.FieldPermNone {
+								finalPerms[field] = models.FieldPermReadOnly
+							}
+						}
+					}
+				}
+			}
+		}
+
+		if role.FieldPermissions == nil || role.FieldPermissions[moduleName] == nil {
+			// This role grants full access to this module's fields.
+			// Return nil effectively.
+			return nil, nil
+		}
+	}
+
+	if !hasFieldRules {
+		return nil, nil
+	}
+
+	return finalPerms, nil
 }

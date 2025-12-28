@@ -11,6 +11,7 @@ import (
 	"go-crm/internal/repository"
 	"go-crm/internal/service"
 	"log"
+	"time"
 
 	_ "go-crm/docs" // Import swagger docs
 
@@ -148,6 +149,11 @@ func main() {
 			repository.NewTicketCommentRepository,
 			repository.NewEscalationRuleRepository,
 			repository.NewGroupRepository,
+			repository.NewNotificationRepository,
+			repository.NewWebhookRepository,
+			repository.NewExtensionRepository,
+			repository.NewSyncSettingRepository,
+			repository.NewSyncLogRepository,
 
 			service.NewAuditService,
 			service.NewAuthService,
@@ -164,6 +170,10 @@ func main() {
 			service.NewSLAService,
 			service.NewEscalationService,
 			service.NewGroupService,
+			service.NewNotificationService,
+			service.NewWebhookService,
+			service.NewExtensionService,
+			service.NewSyncService,
 
 			// Initialize Controller
 			controllers.NewAdminController,
@@ -181,6 +191,10 @@ func main() {
 			controllers.NewSettingsController,
 			controllers.NewTicketController,
 			controllers.NewGroupController,
+			controllers.NewNotificationController,
+			controllers.NewWebhookController,
+			controllers.NewExtensionController,
+			controllers.NewSyncController,
 
 			// Initialize API Routes
 			AsRoute(api.NewAdminApi),
@@ -199,6 +213,10 @@ func main() {
 			AsRoute(api.NewSettingsApi),
 			AsRoute(api.NewTicketApi),
 			AsRoute(api.NewGroupApi),
+			AsRoute(api.NewNotificationApi),
+			AsRoute(api.NewWebhookApi),
+			AsRoute(api.NewExtensionApi),
+			AsRoute(api.NewSyncApi),
 		),
 		fx.WithLogger(func(log *zap.Logger) fxevent.Logger {
 			return &fxevent.ZapLogger{Logger: log}
@@ -208,6 +226,28 @@ func main() {
 			RegisterSwagger,
 			RegisterAllRoutesWithAnnotation,
 			StartServer,
+			func(lc fx.Lifecycle, syncService service.SyncService) {
+				ticker := time.NewTicker(1 * time.Minute)
+				lc.Append(fx.Hook{
+					OnStart: func(ctx context.Context) error {
+						go func() {
+							for {
+								select {
+								case <-ticker.C:
+									syncService.ProcessScheduledSyncs(context.Background())
+								case <-ctx.Done():
+									return
+								}
+							}
+						}()
+						return nil
+					},
+					OnStop: func(ctx context.Context) error {
+						ticker.Stop()
+						return nil
+					},
+				})
+			},
 		),
 	)
 

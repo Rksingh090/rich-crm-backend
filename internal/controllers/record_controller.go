@@ -30,7 +30,7 @@ func NewRecordController(service service.RecordService) *RecordController {
 // @Success      201  {object} map[string]interface{}
 // @Failure      400  {string} string "Invalid request"
 // @Failure      404  {string} string "Module not found"
-// @Router       /modules/{name}/records [post]
+// @Router       /api/modules/{name}/records [post]
 func (ctrl *RecordController) CreateRecord(c *fiber.Ctx) error {
 	moduleName := c.Params("name")
 
@@ -80,7 +80,7 @@ func (ctrl *RecordController) CreateRecord(c *fiber.Ctx) error {
 // @Param        limit query int    false "Records per page (default 10)"
 // @Success      200   {array}  map[string]interface{}
 // @Failure      400   {string} string "Invalid input"
-// @Router       /modules/{name}/records [get]
+// @Router       /api/modules/{name}/records [get]
 func (ctrl *RecordController) ListRecords(c *fiber.Ctx) error {
 	moduleName := c.Params("name")
 
@@ -98,7 +98,21 @@ func (ctrl *RecordController) ListRecords(c *fiber.Ctx) error {
 		}
 	})
 
-	records, totalCount, err := ctrl.Service.ListRecords(c.Context(), moduleName, filters, page, limit, sortBy, sortOrder)
+	// Get user ID from context
+	userIDStr, ok := c.Locals("userID").(string)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "User ID not found in context",
+		})
+	}
+	userID, err := primitive.ObjectIDFromHex(userIDStr)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid user ID",
+		})
+	}
+
+	records, totalCount, err := ctrl.Service.ListRecords(c.Context(), moduleName, filters, page, limit, sortBy, sortOrder, userID)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err.Error(),
@@ -124,12 +138,26 @@ func (ctrl *RecordController) ListRecords(c *fiber.Ctx) error {
 // @Param        id     path string true "Record ID"
 // @Success      200    {object} map[string]any
 // @Failure      404    {string} string "Not Found"
-// @Router       /modules/{module}/records/{id} [get]
+// @Router       /api/modules/{module}/records/{id} [get]
 func (ctrl *RecordController) GetRecord(c *fiber.Ctx) error {
 	moduleName := c.Params("name")
 	id := c.Params("id")
 
-	record, err := ctrl.Service.GetRecord(c.Context(), moduleName, id)
+	// Get user ID from context
+	userIDStr, ok := c.Locals("userID").(string)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "User ID not found in context",
+		})
+	}
+	userID, err := primitive.ObjectIDFromHex(userIDStr)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid user ID",
+		})
+	}
+
+	record, err := ctrl.Service.GetRecord(c.Context(), moduleName, id, userID)
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"error": err.Error(),
@@ -150,7 +178,7 @@ func (ctrl *RecordController) GetRecord(c *fiber.Ctx) error {
 // @Param        input body map[string]interface{} true "Record Data"
 // @Success      200  {object} map[string]string
 // @Failure      400  {string} string "Invalid input"
-// @Router       /modules/{name}/records/{id} [put]
+// @Router       /api/modules/{name}/records/{id} [put]
 func (ctrl *RecordController) UpdateRecord(c *fiber.Ctx) error {
 	moduleName := c.Params("name")
 	id := c.Params("id")
@@ -198,7 +226,7 @@ func (ctrl *RecordController) UpdateRecord(c *fiber.Ctx) error {
 // @Param        id   path string true "Record ID"
 // @Success      200  {object} map[string]string
 // @Failure      400  {string} string "Invalid input"
-// @Router       /modules/{name}/records/{id} [delete]
+// @Router       /api/modules/{name}/records/{id} [delete]
 func (ctrl *RecordController) DeleteRecord(c *fiber.Ctx) error {
 	moduleName := c.Params("name")
 	id := c.Params("id")

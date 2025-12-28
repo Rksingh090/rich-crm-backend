@@ -23,7 +23,7 @@ func NewTicketApi(controller *controllers.TicketController, config *config.Confi
 // Setup registers all ticket-related routes
 func (h *TicketApi) Setup(app *fiber.App) {
 	// Ticket routes
-	tickets := app.Group("/v1/tickets", middleware.AuthMiddleware(h.config.SkipAuth))
+	tickets := app.Group("/api/tickets", middleware.AuthMiddleware(h.config.SkipAuth))
 
 	// Ticket CRUD
 	tickets.Post("/", h.controller.CreateTicket)
@@ -43,7 +43,7 @@ func (h *TicketApi) Setup(app *fiber.App) {
 	tickets.Get("/:id/comments", h.controller.ListComments)
 
 	// SLA Policy routes
-	slaPolicies := app.Group("/v1/sla-policies", middleware.AuthMiddleware(h.config.SkipAuth))
+	slaPolicies := app.Group("/api/sla-policies", middleware.AuthMiddleware(h.config.SkipAuth))
 	slaPolicies.Post("/", h.controller.CreateSLAPolicy)
 	slaPolicies.Get("/", h.controller.ListSLAPolicies)
 	slaPolicies.Get("/:id", h.controller.GetSLAPolicy)
@@ -51,7 +51,7 @@ func (h *TicketApi) Setup(app *fiber.App) {
 	slaPolicies.Delete("/:id", h.controller.DeleteSLAPolicy)
 
 	// Escalation Rule routes
-	escalationRules := app.Group("/v1/escalation-rules", middleware.AuthMiddleware(h.config.SkipAuth))
+	escalationRules := app.Group("/api/escalation-rules", middleware.AuthMiddleware(h.config.SkipAuth))
 	escalationRules.Post("/", h.controller.CreateEscalationRule)
 	escalationRules.Get("/", h.controller.ListEscalationRules)
 	escalationRules.Get("/:id", h.controller.GetEscalationRule)

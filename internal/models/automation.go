@@ -23,6 +23,7 @@ const (
 	ActionSendEmail   ActionType = "send_email"
 	ActionCreateTask  ActionType = "create_task" // Creates a record in "tasks" module
 	ActionUpdateField ActionType = "update_field"
+	ActionWebhook     ActionType = "webhook" // Custom HTTP trigger
 )
 
 type RuleCondition struct {

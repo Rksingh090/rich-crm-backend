@@ -85,6 +85,7 @@ func (r *RoleRepositoryImpl) Update(ctx context.Context, id string, role *models
 			"name":               role.Name,
 			"description":        role.Description,
 			"module_permissions": role.ModulePermissions,
+			"field_permissions":  role.FieldPermissions,
 			"updated_at":         role.UpdatedAt,
 		},
 	}

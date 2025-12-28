@@ -2,10 +2,13 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"go-crm/internal/models"
 	"go-crm/internal/repository"
+	"net/http"
 	"strings"
+	"time"
 )
 
 type AutomationService interface {
@@ -24,6 +27,7 @@ type AutomationServiceImpl struct {
 	RecordRepo   repository.RecordRepository
 	AuditService AuditService
 	EmailService EmailService
+	HttpClient   *http.Client
 }
 
 func NewAutomationService(repo repository.AutomationRepository, recordRepo repository.RecordRepository, auditService AuditService, emailService EmailService) AutomationService {
@@ -32,6 +36,9 @@ func NewAutomationService(repo repository.AutomationRepository, recordRepo repos
 		RecordRepo:   recordRepo,
 		AuditService: auditService,
 		EmailService: emailService,
+		HttpClient: &http.Client{
+			Timeout: 10 * time.Second,
+		},
 	}
 }
 
@@ -189,6 +196,58 @@ func (s *AutomationServiceImpl) executeActions(ctx context.Context, actions []mo
 				}
 				_ = s.AuditService.LogChange(ctx, models.AuditActionAutomation, moduleName, recID, map[string]models.Change{
 					"action": {New: fmt.Sprintf("Sent Email: %v", action.Config["subject"])},
+				})
+			}
+
+		case models.ActionWebhook:
+			// Config: { "url": "...", "method": "POST", "headers": {...} }
+			url, _ := action.Config["url"].(string)
+			if url == "" {
+				continue
+			}
+
+			method := "POST"
+			if m, ok := action.Config["method"].(string); ok && m != "" {
+				method = m
+			}
+
+			payload := map[string]interface{}{
+				"event":     "automation.trigger",
+				"module":    moduleName,
+				"data":      record,
+				"timestamp": time.Now(),
+			}
+
+			body, _ := json.Marshal(payload)
+			req, err := http.NewRequest(method, url, strings.NewReader(string(body)))
+			if err != nil {
+				fmt.Printf("Failed to create webhook request: %v\n", err)
+				continue
+			}
+
+			req.Header.Set("Content-Type", "application/json")
+			if headers, ok := action.Config["headers"].(map[string]interface{}); ok {
+				for k, v := range headers {
+					req.Header.Set(k, fmt.Sprintf("%v", v))
+				}
+			}
+
+			resp, err := s.HttpClient.Do(req)
+			if err != nil {
+				fmt.Printf("Failed to trigger webhook: %v\n", err)
+				continue
+			}
+			resp.Body.Close()
+
+			// Log to Audit
+			if s.AuditService != nil {
+				recID := ""
+				if idRaw, ok := record["_id"]; ok {
+					idHex := fmt.Sprintf("%v", idRaw)
+					recID = strings.TrimPrefix(strings.TrimSuffix(idHex, ")"), "ObjectID(\"")
+				}
+				_ = s.AuditService.LogChange(ctx, models.AuditActionAutomation, moduleName, recID, map[string]models.Change{
+					"action": {New: fmt.Sprintf("Triggered Webhook: %s", url)},
 				})
 			}
 		}

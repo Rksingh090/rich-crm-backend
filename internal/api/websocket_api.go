@@ -18,5 +18,5 @@ func NewWebSocketApi() *WebSocketApi {
 
 // Setup registers WebSocket route
 func (h *WebSocketApi) Setup(app *fiber.App) {
-	app.Get("/ws", websocket.New(h.Controller.HandleWebSocket))
+	app.Get("/api/ws", websocket.New(h.Controller.HandleWebSocket))
 }

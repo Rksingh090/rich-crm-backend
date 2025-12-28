@@ -20,16 +20,19 @@ type RoleService interface {
 	DeleteRole(ctx context.Context, id string) error
 	GetPermissionsForRoles(ctx context.Context, roleIDHexes []string) ([]string, error)
 	CheckModulePermission(ctx context.Context, roleIDs []string, moduleName string, permission string) (bool, error)
+	GetFieldPermissions(ctx context.Context, userID primitive.ObjectID, moduleName string) (map[string]string, error)
 }
 
 type RoleServiceImpl struct {
 	RoleRepo     repository.RoleRepository
+	UserRepo     repository.UserRepository
 	AuditService AuditService
 }
 
-func NewRoleService(roleRepo repository.RoleRepository, auditService AuditService) RoleService {
+func NewRoleService(roleRepo repository.RoleRepository, userRepo repository.UserRepository, auditService AuditService) RoleService {
 	return &RoleServiceImpl{
 		RoleRepo:     roleRepo,
+		UserRepo:     userRepo,
 		AuditService: auditService,
 	}
 }
@@ -125,6 +128,11 @@ func (s *RoleServiceImpl) CheckModulePermission(ctx context.Context, roleNames [
 			continue
 		}
 
+		// Admin Bypass
+		if role.Name == "admin" {
+			return true, nil
+		}
+
 		// Check for wildcard permission first
 		if wildcardPerm, exists := role.ModulePermissions["*"]; exists {
 			switch permission {
@@ -171,4 +179,62 @@ func (s *RoleServiceImpl) CheckModulePermission(ctx context.Context, roleNames [
 	}
 
 	return false, nil
+}
+
+func (s *RoleServiceImpl) GetFieldPermissions(ctx context.Context, userID primitive.ObjectID, moduleName string) (map[string]string, error) {
+	// 1. Get User
+	user, err := s.UserRepo.FindByID(ctx, userID.Hex())
+	if err != nil {
+		return nil, err
+	}
+	if user == nil {
+		return nil, fmt.Errorf("user not found")
+	}
+
+	// 2. Iterate Roles
+	finalPerms := make(map[string]string)
+	hasFieldRules := false
+
+	for _, roleID := range user.Roles {
+		role, err := s.RoleRepo.FindByID(ctx, roleID.Hex())
+		if err != nil || role == nil {
+			continue
+		}
+
+		if role.FieldPermissions != nil {
+			if modPerms, ok := role.FieldPermissions[moduleName]; ok {
+				hasFieldRules = true
+				for field, p := range modPerms {
+					current, exists := finalPerms[field]
+					if !exists {
+						finalPerms[field] = p
+					} else {
+						// Union: read_write > read_only > none
+						// Least Restrictive logic:
+						// If any role says read_write, it's read_write.
+						// If any role says read_only (and no read_write), it's read_only.
+						if p == models.FieldPermReadWrite {
+							finalPerms[field] = models.FieldPermReadWrite
+						} else if p == models.FieldPermReadOnly {
+							if current == models.FieldPermNone {
+								finalPerms[field] = models.FieldPermReadOnly
+							}
+						}
+					}
+				}
+			}
+		}
+
+		if role.FieldPermissions == nil || role.FieldPermissions[moduleName] == nil {
+			// This role grants full access to this module's fields.
+			// Return nil effectively.
+			return nil, nil
+		}
+	}
+
+	if !hasFieldRules {
+		return nil, nil
+	}
+
+	return finalPerms, nil
 }

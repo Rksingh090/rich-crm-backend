@@ -35,9 +35,13 @@ func (r *AuditRepositoryImpl) List(ctx context.Context, filters map[string]inter
 
 	query := bson.M{}
 	for k, v := range filters {
-		if v != "" {
-			query[k] = v
+		if v == nil {
+			continue
 		}
+		if str, ok := v.(string); ok && str == "" {
+			continue
+		}
+		query[k] = v
 	}
 
 	cursor, err := r.Collection.Find(ctx, query, opts)

@@ -24,8 +24,12 @@ type EmailConfig struct {
 }
 
 type GeneralConfig struct {
-	AppName string `json:"app_name" bson:"app_name"`
-	AppURL  string `json:"app_url" bson:"app_url"`
+	AppName          string `json:"app_name" bson:"app_name"`
+	AppURL           string `json:"app_url" bson:"app_url"`
+	LogoURL          string `json:"logo_url" bson:"logo_url"`
+	Description      string `json:"description" bson:"description"`
+	SupportEmail     string `json:"support_email" bson:"support_email"`
+	LandingPageTitle string `json:"landing_page_title" bson:"landing_page_title"`
 }
 
 type Settings struct {

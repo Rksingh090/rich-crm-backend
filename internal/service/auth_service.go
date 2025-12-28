@@ -138,6 +138,19 @@ func (s *AuthServiceImpl) Login(ctx context.Context, username, password string) 
 		}
 	}
 
+	// If user has admin role, grant full wildcard permission
+	isAdmin := false
+	for _, name := range roleNames {
+		if name == "admin" || name == "Super Admin" {
+			isAdmin = true
+			break
+		}
+	}
+
+	if isAdmin {
+		permissions["*"] = []string{"create", "read", "update", "delete"}
+	}
+
 	// If no roles found, assign empty array
 	if roleNames == nil {
 		roleNames = []string{}

@@ -15,20 +15,22 @@ import (
 
 type ModuleService interface {
 	CreateModule(ctx context.Context, module *models.Module) error
-	GetModuleByName(ctx context.Context, name string) (*models.Module, error)
-	ListModules(ctx context.Context) ([]models.Module, error)
+	GetModuleByName(ctx context.Context, name string, userID primitive.ObjectID) (*models.Module, error)
+	ListModules(ctx context.Context, userID primitive.ObjectID) ([]models.Module, error)
 	UpdateModule(ctx context.Context, module *models.Module) error
 	DeleteModule(ctx context.Context, name string) error
 }
 
 type ModuleServiceImpl struct {
 	Repo         repository.ModuleRepository
+	RoleService  RoleService
 	AuditService AuditService
 }
 
-func NewModuleService(repo repository.ModuleRepository, auditService AuditService) ModuleService {
+func NewModuleService(repo repository.ModuleRepository, roleService RoleService, auditService AuditService) ModuleService {
 	return &ModuleServiceImpl{
 		Repo:         repo,
+		RoleService:  roleService,
 		AuditService: auditService,
 	}
 }
@@ -59,22 +61,57 @@ func (s *ModuleServiceImpl) CreateModule(ctx context.Context, module *models.Mod
 	return err
 }
 
-func (s *ModuleServiceImpl) GetModuleByName(ctx context.Context, name string) (*models.Module, error) {
+func (s *ModuleServiceImpl) GetModuleByName(ctx context.Context, name string, userID primitive.ObjectID) (*models.Module, error) {
 	module, err := s.Repo.FindByName(ctx, name)
 	if err != nil {
 		return nil, err
 	}
 	s.appendSystemFields(module)
+
+	// Filter Fields based on FLS
+	if !userID.IsZero() {
+		perms, _ := s.RoleService.GetFieldPermissions(ctx, userID, name)
+		if perms != nil {
+			visibleFields := []models.ModuleField{}
+			for _, f := range module.Fields {
+				if p, ok := perms[f.Name]; ok {
+					if p == models.FieldPermNone {
+						continue // Skip hidden fields
+					}
+				}
+				visibleFields = append(visibleFields, f)
+			}
+			module.Fields = visibleFields
+		}
+	}
+
 	return module, nil
 }
 
-func (s *ModuleServiceImpl) ListModules(ctx context.Context) ([]models.Module, error) {
+func (s *ModuleServiceImpl) ListModules(ctx context.Context, userID primitive.ObjectID) ([]models.Module, error) {
 	modules, err := s.Repo.List(ctx)
 	if err != nil {
 		return nil, err
 	}
 	for i := range modules {
 		s.appendSystemFields(&modules[i])
+
+		// Filter Fields
+		if !userID.IsZero() {
+			perms, _ := s.RoleService.GetFieldPermissions(ctx, userID, modules[i].Name)
+			if perms != nil {
+				visibleFields := []models.ModuleField{}
+				for _, f := range modules[i].Fields {
+					if p, ok := perms[f.Name]; ok {
+						if p == models.FieldPermNone {
+							continue
+						}
+					}
+					visibleFields = append(visibleFields, f)
+				}
+				modules[i].Fields = visibleFields
+			}
+		}
 	}
 	return modules, nil
 }
@@ -87,12 +124,14 @@ func (s *ModuleServiceImpl) appendSystemFields(module *models.Module) {
 			Label:    "Created At",
 			Type:     models.FieldTypeDate,
 			Required: false,
+			IsSystem: true,
 		},
 		{
 			Name:     "updated_at",
 			Label:    "Updated At",
 			Type:     models.FieldTypeDate,
 			Required: false,
+			IsSystem: true,
 		},
 	}
 	module.Fields = append(module.Fields, systemFields...)

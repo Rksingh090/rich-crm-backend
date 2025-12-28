@@ -36,6 +36,7 @@ type ModuleField struct {
 	Required bool            `json:"required" bson:"required"`
 	Options  []SelectOptions `json:"options,omitempty" bson:"options,omitempty"` // For Select/MultiSelect
 	Lookup   *LookupDef      `json:"lookup,omitempty" bson:"lookup,omitempty"`
+	IsSystem bool            `json:"is_system" bson:"is_system"`
 }
 
 type LookupDef struct {

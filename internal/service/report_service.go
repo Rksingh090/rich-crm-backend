@@ -18,8 +18,8 @@ type ReportService interface {
 	ListReports(ctx context.Context) ([]models.Report, error)
 	UpdateReport(ctx context.Context, id string, report *models.Report) error
 	DeleteReport(ctx context.Context, id string) error
-	RunReport(ctx context.Context, id string) ([]map[string]any, error)
-	ExportReport(ctx context.Context, id string, format string) ([]byte, string, error)
+	RunReport(ctx context.Context, id string, userID primitive.ObjectID) ([]map[string]any, error)
+	ExportReport(ctx context.Context, id string, format string, userID primitive.ObjectID) ([]byte, string, error)
 }
 
 type ReportServiceImpl struct {
@@ -59,7 +59,7 @@ func (s *ReportServiceImpl) DeleteReport(ctx context.Context, id string) error {
 	return s.ReportRepo.Delete(ctx, id)
 }
 
-func (s *ReportServiceImpl) RunReport(ctx context.Context, id string) ([]map[string]any, error) {
+func (s *ReportServiceImpl) RunReport(ctx context.Context, id string, userID primitive.ObjectID) ([]map[string]any, error) {
 	// 1. Fetch Report Definition
 	report, err := s.GetReport(ctx, id)
 	if err != nil {
@@ -79,7 +79,8 @@ func (s *ReportServiceImpl) RunReport(ctx context.Context, id string) ([]map[str
 	// Let's assume RunReport fetches all for now (be careful with large datasets).
 	// A better approach for UI is RunReport returns paginated, but for simplicity here:
 	// A better approach for UI is RunReport returns paginated, but for simplicity here:
-	records, _, err := s.RecordService.ListRecords(ctx, moduleName, report.Filters, 1, 10000, "created_at", "desc")
+	// A better approach for UI is RunReport returns paginated, but for simplicity here:
+	records, _, err := s.RecordService.ListRecords(ctx, moduleName, report.Filters, 1, 10000, "created_at", "desc", userID)
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +109,7 @@ func (s *ReportServiceImpl) RunReport(ctx context.Context, id string) ([]map[str
 	return records, nil
 }
 
-func (s *ReportServiceImpl) ExportReport(ctx context.Context, id string, format string) ([]byte, string, error) {
+func (s *ReportServiceImpl) ExportReport(ctx context.Context, id string, format string, userID primitive.ObjectID) ([]byte, string, error) {
 	if format != "csv" {
 		return nil, "", fmt.Errorf("unsupported format: %s", format)
 	}
@@ -120,7 +121,8 @@ func (s *ReportServiceImpl) ExportReport(ctx context.Context, id string, format 
 
 	// Fetch Data (All)
 	// Fetch Data (All)
-	records, _, err := s.RecordService.ListRecords(ctx, report.ModuleID, report.Filters, 1, 100000, "created_at", "desc")
+	// Fetch Data (All)
+	records, _, err := s.RecordService.ListRecords(ctx, report.ModuleID, report.Filters, 1, 100000, "created_at", "desc", userID)
 	if err != nil {
 		return nil, "", err
 	}

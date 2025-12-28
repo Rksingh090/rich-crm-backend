@@ -56,3 +56,40 @@ func (c *SettingsController) UpdateEmailConfig(ctx *fiber.Ctx) error {
 
 	return ctx.JSON(fiber.Map{"message": "Settings updated successfully"})
 }
+
+// @Summary Get General Configuration
+// @Description Get system general settings
+// @Tags settings
+// @Produce json
+// @Success 200 {object} models.GeneralConfig
+// @Failure 500 {object} map[string]string
+// @Router /settings/general [get]
+func (c *SettingsController) GetGeneralConfig(ctx *fiber.Ctx) error {
+	config, err := c.Service.GetGeneralConfig(ctx.Context())
+	if err != nil {
+		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+	}
+	return ctx.JSON(config)
+}
+
+// @Summary Update General Configuration
+// @Description Update system general settings
+// @Tags settings
+// @Accept json
+// @Produce json
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /settings/general [put]
+func (c *SettingsController) UpdateGeneralConfig(ctx *fiber.Ctx) error {
+	var config models.GeneralConfig
+	if err := ctx.BodyParser(&config); err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request body"})
+	}
+
+	if err := c.Service.UpdateGeneralConfig(ctx.Context(), config); err != nil {
+		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	return ctx.JSON(fiber.Map{"message": "Settings updated successfully"})
+}

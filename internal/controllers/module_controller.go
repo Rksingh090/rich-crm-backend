@@ -5,6 +5,7 @@ import (
 	"go-crm/internal/service"
 
 	"github.com/gofiber/fiber/v2"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type ModuleController struct {
@@ -26,7 +27,7 @@ func NewModuleController(service service.ModuleService) *ModuleController {
 // @Param        input body models.Module true "Module Definition"
 // @Success      201  {string} string "Module created"
 // @Failure      400  {string} string "Invalid request"
-// @Router       /modules [post]
+// @Router       /api/modules [post]
 func (ctrl *ModuleController) CreateModule(c *fiber.Ctx) error {
 	var module models.Module
 	if err := c.BodyParser(&module); err != nil {
@@ -52,9 +53,14 @@ func (ctrl *ModuleController) CreateModule(c *fiber.Ctx) error {
 // @Tags         modules
 // @Produce      json
 // @Success      200  {array} models.Module
-// @Router       /modules [get]
+// @Router       /api/modules [get]
 func (ctrl *ModuleController) ListModules(c *fiber.Ctx) error {
-	modules, err := ctrl.Service.ListModules(c.Context())
+	var userID primitive.ObjectID
+	if idStr, ok := c.Locals("userID").(string); ok && idStr != "" {
+		userID, _ = primitive.ObjectIDFromHex(idStr)
+	}
+
+	modules, err := ctrl.Service.ListModules(c.Context(), userID)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to fetch modules",
@@ -72,11 +78,16 @@ func (ctrl *ModuleController) ListModules(c *fiber.Ctx) error {
 // @Param        name path string true "Module Name"
 // @Success      200  {object} models.Module
 // @Failure      404  {string} string "Module not found"
-// @Router       /modules/{name} [get]
+// @Router       /api/modules/{name} [get]
 func (ctrl *ModuleController) GetModule(c *fiber.Ctx) error {
 	name := c.Params("name")
 
-	module, err := ctrl.Service.GetModuleByName(c.Context(), name)
+	var userID primitive.ObjectID
+	if idStr, ok := c.Locals("userID").(string); ok && idStr != "" {
+		userID, _ = primitive.ObjectIDFromHex(idStr)
+	}
+
+	module, err := ctrl.Service.GetModuleByName(c.Context(), name, userID)
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"error": "Module not found",
@@ -96,7 +107,7 @@ func (ctrl *ModuleController) GetModule(c *fiber.Ctx) error {
 // @Param        input body models.Module true "Module Definition"
 // @Success      200  {object} map[string]string
 // @Failure      400  {string} string "Invalid input"
-// @Router       /modules/{name} [put]
+// @Router       /api/modules/{name} [put]
 func (ctrl *ModuleController) UpdateModule(c *fiber.Ctx) error {
 	name := c.Params("name")
 
@@ -128,7 +139,7 @@ func (ctrl *ModuleController) UpdateModule(c *fiber.Ctx) error {
 // @Param        name path string true "Module Name"
 // @Success      200  {object} map[string]string
 // @Failure      400  {string} string "Invalid input"
-// @Router       /modules/{name} [delete]
+// @Router       /api/modules/{name} [delete]
 func (ctrl *ModuleController) DeleteModule(c *fiber.Ctx) error {
 	name := c.Params("name")
 

@@ -6,6 +6,7 @@ import (
 	"go-crm/internal/service"
 
 	"github.com/gofiber/fiber/v2"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type ReportController struct {
@@ -113,7 +114,18 @@ func (c *ReportController) Delete(ctx *fiber.Ctx) error {
 // @Router /api/reports/{id}/run [get]
 func (c *ReportController) Run(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
-	data, err := c.ReportService.RunReport(ctx.Context(), id)
+
+	// Get user ID from context
+	userIDStr, ok := ctx.Locals("userID").(string)
+	if !ok {
+		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "User ID not found"})
+	}
+	userID, err := primitive.ObjectIDFromHex(userIDStr)
+	if err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid user ID"})
+	}
+
+	data, err := c.ReportService.RunReport(ctx.Context(), id, userID)
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
@@ -132,7 +144,17 @@ func (c *ReportController) Export(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 	format := ctx.Query("format", "csv")
 
-	data, filename, err := c.ReportService.ExportReport(ctx.Context(), id, format)
+	// Get user ID from context
+	userIDStr, ok := ctx.Locals("userID").(string)
+	if !ok {
+		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "User ID not found"})
+	}
+	userID, err := primitive.ObjectIDFromHex(userIDStr)
+	if err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid user ID"})
+	}
+
+	data, filename, err := c.ReportService.ExportReport(ctx.Context(), id, format, userID)
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}

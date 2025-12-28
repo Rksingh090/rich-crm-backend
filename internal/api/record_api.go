@@ -26,6 +26,6 @@ func (h *RecordApi) Setup(app *fiber.App) {
 	// Record routes are handled by ModuleApi
 	// This is just a placeholder to satisfy the Route interface
 	// If you want standalone record routes, add them here with auth middleware
-	records := app.Group("/records", middleware.AuthMiddleware(h.config.SkipAuth))
+	records := app.Group("/api/records", middleware.AuthMiddleware(h.config.SkipAuth))
 	_ = records // Placeholder to avoid unused variable error
 }

@@ -37,7 +37,7 @@ func NewTicketController(
 // @Param        input body models.Ticket true "Ticket Data"
 // @Success      201  {object} map[string]interface{}
 // @Failure      400  {string} string "Invalid request"
-// @Router       /tickets [post]
+// @Router       /api/tickets [post]
 func (ctrl *TicketController) CreateTicket(c *fiber.Ctx) error {
 	var ticket models.Ticket
 	if err := c.BodyParser(&ticket); err != nil {
@@ -87,7 +87,7 @@ func (ctrl *TicketController) CreateTicket(c *fiber.Ctx) error {
 // @Param        search   query string false "Search by ticket number, subject, or customer"
 // @Success      200   {array}  models.Ticket
 // @Failure      400   {string} string "Invalid input"
-// @Router       /tickets [get]
+// @Router       /api/tickets [get]
 func (ctrl *TicketController) ListTickets(c *fiber.Ctx) error {
 	page, _ := strconv.ParseInt(c.Query("page", "1"), 10, 64)
 	limit, _ := strconv.ParseInt(c.Query("limit", "10"), 10, 64)
@@ -140,7 +140,7 @@ func (ctrl *TicketController) ListTickets(c *fiber.Ctx) error {
 // @Param        id path string true "Ticket ID"
 // @Success      200 {object} models.Ticket
 // @Failure      404 {string} string "Not Found"
-// @Router       /tickets/{id} [get]
+// @Router       /api/tickets/{id} [get]
 func (ctrl *TicketController) GetTicket(c *fiber.Ctx) error {
 	id := c.Params("id")
 
@@ -164,7 +164,7 @@ func (ctrl *TicketController) GetTicket(c *fiber.Ctx) error {
 // @Param        input body map[string]interface{} true "Update Data"
 // @Success      200  {object} map[string]string
 // @Failure      400  {string} string "Invalid input"
-// @Router       /tickets/{id} [put]
+// @Router       /api/tickets/{id} [put]
 func (ctrl *TicketController) UpdateTicket(c *fiber.Ctx) error {
 	id := c.Params("id")
 
@@ -208,7 +208,7 @@ func (ctrl *TicketController) UpdateTicket(c *fiber.Ctx) error {
 // @Param        id path string true "Ticket ID"
 // @Success      200 {object} map[string]string
 // @Failure      400 {string} string "Invalid input"
-// @Router       /tickets/{id} [delete]
+// @Router       /api/tickets/{id} [delete]
 func (ctrl *TicketController) DeleteTicket(c *fiber.Ctx) error {
 	id := c.Params("id")
 
@@ -247,7 +247,7 @@ func (ctrl *TicketController) DeleteTicket(c *fiber.Ctx) error {
 // @Param        input body map[string]interface{} true "Status Data"
 // @Success      200  {object} map[string]string
 // @Failure      400  {string} string "Invalid input"
-// @Router       /tickets/{id}/status [patch]
+// @Router       /api/tickets/{id}/status [patch]
 func (ctrl *TicketController) UpdateStatus(c *fiber.Ctx) error {
 	id := c.Params("id")
 
@@ -297,7 +297,7 @@ func (ctrl *TicketController) UpdateStatus(c *fiber.Ctx) error {
 // @Param        input body map[string]interface{} true "Assignment Data"
 // @Success      200  {object} map[string]string
 // @Failure      400  {string} string "Invalid input"
-// @Router       /tickets/{id}/assign [patch]
+// @Router       /api/tickets/{id}/assign [patch]
 func (ctrl *TicketController) AssignTicket(c *fiber.Ctx) error {
 	id := c.Params("id")
 
@@ -352,7 +352,7 @@ func (ctrl *TicketController) AssignTicket(c *fiber.Ctx) error {
 // @Param        input body models.TicketComment true "Comment Data"
 // @Success      201  {object} map[string]interface{}
 // @Failure      400  {string} string "Invalid input"
-// @Router       /tickets/{id}/comments [post]
+// @Router       /api/tickets/{id}/comments [post]
 func (ctrl *TicketController) AddComment(c *fiber.Ctx) error {
 	id := c.Params("id")
 
@@ -398,7 +398,7 @@ func (ctrl *TicketController) AddComment(c *fiber.Ctx) error {
 // @Param        id path string true "Ticket ID"
 // @Success      200 {array} models.TicketComment
 // @Failure      400 {string} string "Invalid input"
-// @Router       /tickets/{id}/comments [get]
+// @Router       /api/tickets/{id}/comments [get]
 func (ctrl *TicketController) ListComments(c *fiber.Ctx) error {
 	id := c.Params("id")
 
@@ -423,7 +423,7 @@ func (ctrl *TicketController) ListComments(c *fiber.Ctx) error {
 // @Param        limit query int false "Records per page (default 10)"
 // @Success      200 {array} models.Ticket
 // @Failure      400 {string} string "Invalid input"
-// @Router       /tickets/my [get]
+// @Router       /api/tickets/my [get]
 func (ctrl *TicketController) GetMyTickets(c *fiber.Ctx) error {
 	page, _ := strconv.ParseInt(c.Query("page", "1"), 10, 64)
 	limit, _ := strconv.ParseInt(c.Query("limit", "10"), 10, 64)
@@ -469,7 +469,7 @@ func (ctrl *TicketController) GetMyTickets(c *fiber.Ctx) error {
 // @Param        limit      query int false "Records per page (default 10)"
 // @Success      200 {array} models.Ticket
 // @Failure      400 {string} string "Invalid input"
-// @Router       /tickets/customer/{customerId} [get]
+// @Router       /api/tickets/customer/{customerId} [get]
 func (ctrl *TicketController) GetCustomerTickets(c *fiber.Ctx) error {
 	customerIDStr := c.Params("customerId")
 	customerID, err := primitive.ObjectIDFromHex(customerIDStr)
@@ -510,7 +510,7 @@ func (ctrl *TicketController) GetCustomerTickets(c *fiber.Ctx) error {
 // @Param        input body models.SLAPolicy true "SLA Policy Data"
 // @Success      201  {object} map[string]interface{}
 // @Failure      400  {string} string "Invalid request"
-// @Router       /sla-policies [post]
+// @Router       /api/sla-policies [post]
 func (ctrl *TicketController) CreateSLAPolicy(c *fiber.Ctx) error {
 	var policy models.SLAPolicy
 	if err := c.BodyParser(&policy); err != nil {
@@ -537,7 +537,7 @@ func (ctrl *TicketController) CreateSLAPolicy(c *fiber.Ctx) error {
 // @Tags         sla-policies
 // @Produce      json
 // @Success      200 {array} models.SLAPolicy
-// @Router       /sla-policies [get]
+// @Router       /api/sla-policies [get]
 func (ctrl *TicketController) ListSLAPolicies(c *fiber.Ctx) error {
 	policies, err := ctrl.SLAService.ListPolicies(c.Context())
 	if err != nil {
@@ -559,7 +559,7 @@ func (ctrl *TicketController) ListSLAPolicies(c *fiber.Ctx) error {
 // @Param        id path string true "Policy ID"
 // @Success      200 {object} models.SLAPolicy
 // @Failure      404 {string} string "Not Found"
-// @Router       /sla-policies/{id} [get]
+// @Router       /api/sla-policies/{id} [get]
 func (ctrl *TicketController) GetSLAPolicy(c *fiber.Ctx) error {
 	id := c.Params("id")
 
@@ -583,7 +583,7 @@ func (ctrl *TicketController) GetSLAPolicy(c *fiber.Ctx) error {
 // @Param        input body map[string]interface{} true "Update Data"
 // @Success      200  {object} map[string]string
 // @Failure      400  {string} string "Invalid input"
-// @Router       /sla-policies/{id} [put]
+// @Router       /api/sla-policies/{id} [put]
 func (ctrl *TicketController) UpdateSLAPolicy(c *fiber.Ctx) error {
 	id := c.Params("id")
 
@@ -613,7 +613,7 @@ func (ctrl *TicketController) UpdateSLAPolicy(c *fiber.Ctx) error {
 // @Param        id path string true "Policy ID"
 // @Success      200 {object} map[string]string
 // @Failure      400 {string} string "Invalid input"
-// @Router       /sla-policies/{id} [delete]
+// @Router       /api/sla-policies/{id} [delete]
 func (ctrl *TicketController) DeleteSLAPolicy(c *fiber.Ctx) error {
 	id := c.Params("id")
 
@@ -639,7 +639,7 @@ func (ctrl *TicketController) DeleteSLAPolicy(c *fiber.Ctx) error {
 // @Param        input body models.EscalationRule true "Escalation Rule Data"
 // @Success      201  {object} map[string]interface{}
 // @Failure      400  {string} string "Invalid request"
-// @Router       /escalation-rules [post]
+// @Router       /api/escalation-rules [post]
 func (ctrl *TicketController) CreateEscalationRule(c *fiber.Ctx) error {
 	var rule models.EscalationRule
 	if err := c.BodyParser(&rule); err != nil {
@@ -666,7 +666,7 @@ func (ctrl *TicketController) CreateEscalationRule(c *fiber.Ctx) error {
 // @Tags         escalation-rules
 // @Produce      json
 // @Success      200 {array} models.EscalationRule
-// @Router       /escalation-rules [get]
+// @Router       /api/escalation-rules [get]
 func (ctrl *TicketController) ListEscalationRules(c *fiber.Ctx) error {
 	rules, err := ctrl.EscalationService.ListRules(c.Context())
 	if err != nil {
@@ -688,7 +688,7 @@ func (ctrl *TicketController) ListEscalationRules(c *fiber.Ctx) error {
 // @Param        id path string true "Rule ID"
 // @Success      200 {object} models.EscalationRule
 // @Failure      404 {string} string "Not Found"
-// @Router       /escalation-rules/{id} [get]
+// @Router       /api/escalation-rules/{id} [get]
 func (ctrl *TicketController) GetEscalationRule(c *fiber.Ctx) error {
 	id := c.Params("id")
 
@@ -712,7 +712,7 @@ func (ctrl *TicketController) GetEscalationRule(c *fiber.Ctx) error {
 // @Param        input body map[string]interface{} true "Update Data"
 // @Success      200  {object} map[string]string
 // @Failure      400  {string} string "Invalid input"
-// @Router       /escalation-rules/{id} [put]
+// @Router       /api/escalation-rules/{id} [put]
 func (ctrl *TicketController) UpdateEscalationRule(c *fiber.Ctx) error {
 	id := c.Params("id")
 
@@ -742,7 +742,7 @@ func (ctrl *TicketController) UpdateEscalationRule(c *fiber.Ctx) error {
 // @Param        id path string true "Rule ID"
 // @Success      200 {object} map[string]string
 // @Failure      400 {string} string "Invalid input"
-// @Router       /escalation-rules/{id} [delete]
+// @Router       /api/escalation-rules/{id} [delete]
 func (ctrl *TicketController) DeleteEscalationRule(c *fiber.Ctx) error {
 	id := c.Params("id")
 

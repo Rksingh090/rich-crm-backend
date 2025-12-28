@@ -3,7 +3,6 @@ package api
 import (
 	"go-crm/internal/config"
 	"go-crm/internal/controllers"
-	"go-crm/internal/middleware"
 	"go-crm/internal/service"
 
 	"github.com/gofiber/fiber/v2"
@@ -27,8 +26,9 @@ func NewAdminApi(roleService service.RoleService, config *config.Config) *AdminA
 func (h *AdminApi) Setup(app *fiber.App) {
 	// Admin route with RBAC
 	app.Get("/api/admin",
-		middleware.AuthMiddleware(h.config.SkipAuth),
-		middleware.RequirePermission(h.roleService, "", "admin:access"),
 		h.Controller.WelcomeAdmin,
+	)
+	app.Post("/api/admin/handle-webhook",
+		h.Controller.HandleWebhook,
 	)
 }

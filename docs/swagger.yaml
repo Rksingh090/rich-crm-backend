@@ -74,17 +74,21 @@ definitions:
     - send_email
     - create_task
     - update_field
+    - webhook
     type: string
     x-enum-comments:
       ActionCreateTask: Creates a record in "tasks" module
+      ActionWebhook: Custom HTTP trigger
     x-enum-descriptions:
     - ""
     - Creates a record in "tasks" module
     - ""
+    - Custom HTTP trigger
     x-enum-varnames:
     - ActionSendEmail
     - ActionCreateTask
     - ActionUpdateField
+    - ActionWebhook
   models.ApprovalStep:
     properties:
       approver_roles:
@@ -306,6 +310,81 @@ definitions:
         example: "2024-01-13T10:00:00Z"
         type: string
     type: object
+  models.Extension:
+    properties:
+      base_url:
+        description: Implementation details
+        type: string
+      capabilities:
+        items:
+          $ref: '#/definitions/models.ExtensionCapability'
+        type: array
+      created_at:
+        type: string
+      description:
+        type: string
+      icon:
+        description: URL or base64
+        type: string
+      id:
+        type: string
+      installed:
+        type: boolean
+      installed_at:
+        type: string
+      name:
+        type: string
+      permissions:
+        description: Required scopes
+        items:
+          type: string
+        type: array
+      publisher:
+        type: string
+      settings:
+        additionalProperties: true
+        description: App-specific config
+        type: object
+      status:
+        $ref: '#/definitions/models.ExtensionStatus'
+      updated_at:
+        type: string
+      version:
+        type: string
+      webhook_url:
+        type: string
+      widget_url:
+        description: iFrame URL
+        type: string
+    type: object
+  models.ExtensionCapability:
+    enum:
+    - widget
+    - webhook
+    - api
+    type: string
+    x-enum-comments:
+      CapabilityAPI: Data integration
+      CapabilityWebhook: Real-time events
+      CapabilityWidget: UI integration
+    x-enum-descriptions:
+    - UI integration
+    - Real-time events
+    - Data integration
+    x-enum-varnames:
+    - CapabilityWidget
+    - CapabilityWebhook
+    - CapabilityAPI
+  models.ExtensionStatus:
+    enum:
+    - active
+    - inactive
+    - pending
+    type: string
+    x-enum-varnames:
+    - ExtensionStatusActive
+    - ExtensionStatusInactive
+    - ExtensionStatusPending
   models.FieldType:
     enum:
     - text
@@ -419,6 +498,8 @@ definitions:
     type: object
   models.ModuleField:
     properties:
+      is_system:
+        type: boolean
       label:
         type: string
       lookup:
@@ -806,6 +887,49 @@ definitions:
     - OperatorContains
     - OperatorGreaterThan
     - OperatorLessThan
+  models.Webhook:
+    description: Webhook configuration for event notifications
+    properties:
+      created_at:
+        type: string
+      created_by:
+        example: 507f1f77bcf86cd799439011
+        type: string
+      description:
+        example: Sync contacts to remote CRM
+        type: string
+      events:
+        example:
+        - record.updated
+        - record.created
+        items:
+          type: string
+        type: array
+      headers:
+        additionalProperties:
+          type: string
+        description: Custom headers to send
+        type: object
+      id:
+        example: 507f1f77bcf86cd799439011
+        type: string
+      is_active:
+        example: true
+        type: boolean
+      module_name:
+        description: 'Optional: limit to specific module'
+        example: leads
+        type: string
+      secret:
+        description: For HMCA signature
+        example: my_secret_key
+        type: string
+      updated_at:
+        type: string
+      url:
+        example: https://example.com/webhook
+        type: string
+    type: object
 host: localhost:8000
 info:
   contact:
@@ -819,6 +943,43 @@ info:
   title: Microservice Demo API
   version: "1.0"
 paths:
+  /api/admin:
+    get:
+      consumes:
+      - text/plain
+      description: Simple welcome message for admin
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: Welcome, Admin!
+          schema:
+            type: string
+      summary: Welcome Admin
+      tags:
+      - admin
+  /api/admin/handle-webhook:
+    post:
+      consumes:
+      - application/json
+      description: Receive and print webhook payload
+      parameters:
+      - description: Webhook Payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          type: string
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: Webhook handled successfully!
+          schema:
+            type: string
+      summary: Handle Webhook
+      tags:
+      - admin
   /api/automation:
     get:
       parameters:
@@ -918,6 +1079,237 @@ paths:
       summary: Update automation rule
       tags:
       - automation
+  /api/escalation-rules:
+    get:
+      description: Get all escalation rules
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.EscalationRule'
+            type: array
+      summary: List escalation rules
+      tags:
+      - escalation-rules
+    post:
+      consumes:
+      - application/json
+      description: Create a new escalation rule
+      parameters:
+      - description: Escalation Rule Data
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/models.EscalationRule'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            type: string
+      summary: Create escalation rule
+      tags:
+      - escalation-rules
+  /api/escalation-rules/{id}:
+    delete:
+      description: Delete an escalation rule by ID
+      parameters:
+      - description: Rule ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid input
+          schema:
+            type: string
+      summary: Delete escalation rule
+      tags:
+      - escalation-rules
+    get:
+      description: Get an escalation rule by ID
+      parameters:
+      - description: Rule ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.EscalationRule'
+        "404":
+          description: Not Found
+          schema:
+            type: string
+      summary: Get escalation rule
+      tags:
+      - escalation-rules
+    put:
+      consumes:
+      - application/json
+      description: Update an escalation rule by ID
+      parameters:
+      - description: Rule ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update Data
+        in: body
+        name: input
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid input
+          schema:
+            type: string
+      summary: Update escalation rule
+      tags:
+      - escalation-rules
+  /api/extensions:
+    get:
+      consumes:
+      - application/json
+      description: Get all available marketplace extensions
+      parameters:
+      - description: Only show installed extensions
+        in: query
+        name: installed
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Extension'
+            type: array
+      summary: List Extensions
+      tags:
+      - extensions
+    post:
+      consumes:
+      - application/json
+      description: Create a new marketplace extension (Admin only)
+      parameters:
+      - description: Extension Data
+        in: body
+        name: extension
+        required: true
+        schema:
+          $ref: '#/definitions/models.Extension'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.Extension'
+      summary: Create Extension
+      tags:
+      - extensions
+  /api/extensions/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Get a specific extension by ID
+      parameters:
+      - description: Extension ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Extension'
+      summary: Get Extension
+      tags:
+      - extensions
+  /api/extensions/{id}/install:
+    post:
+      consumes:
+      - application/json
+      description: Install an extension by ID
+      parameters:
+      - description: Extension ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Install Extension
+      tags:
+      - extensions
+  /api/extensions/{id}/uninstall:
+    post:
+      consumes:
+      - application/json
+      description: Uninstall an extension by ID
+      parameters:
+      - description: Extension ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Uninstall Extension
+      tags:
+      - extensions
   /api/groups:
     get:
       description: Retrieve all groups
@@ -1122,6 +1514,427 @@ paths:
       summary: Remove member from group
       tags:
       - groups
+  /api/modules:
+    get:
+      description: Get a list of all defined modules
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Module'
+            type: array
+      summary: List all modules
+      tags:
+      - modules
+    post:
+      consumes:
+      - application/json
+      description: Create a dynamic module with fields
+      parameters:
+      - description: Module Definition
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/models.Module'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Module created
+          schema:
+            type: string
+        "400":
+          description: Invalid request
+          schema:
+            type: string
+      summary: Create a new module definition
+      tags:
+      - modules
+  /api/modules/{module}/records/{id}:
+    get:
+      description: Get a record by ID
+      parameters:
+      - description: Module Name
+        in: path
+        name: module
+        required: true
+        type: string
+      - description: Record ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            type: string
+      summary: Get a single record
+      tags:
+      - records
+  /api/modules/{name}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a module and its definition
+      parameters:
+      - description: Module Name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid input
+          schema:
+            type: string
+      summary: Delete a module
+      tags:
+      - modules
+    get:
+      description: Get specific module definition including fields
+      parameters:
+      - description: Module Name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Module'
+        "404":
+          description: Module not found
+          schema:
+            type: string
+      summary: Get a module by name
+      tags:
+      - modules
+    put:
+      consumes:
+      - application/json
+      description: Update schema for a module
+      parameters:
+      - description: Module Name
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: Module Definition
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/models.Module'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid input
+          schema:
+            type: string
+      summary: Update a module definition
+      tags:
+      - modules
+  /api/modules/{name}/records:
+    get:
+      consumes:
+      - application/json
+      description: Get records with pagination and filters
+      parameters:
+      - description: Module Name
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: Page number (default 1)
+        in: query
+        name: page
+        type: integer
+      - description: Records per page (default 10)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+        "400":
+          description: Invalid input
+          schema:
+            type: string
+      summary: List records from a module
+      tags:
+      - records
+    post:
+      consumes:
+      - application/json
+      description: Insert data into a dynamic module with validation
+      parameters:
+      - description: Module Name
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: Record Data
+        in: body
+        name: input
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            type: string
+        "404":
+          description: Module not found
+          schema:
+            type: string
+      summary: Create a record in a module
+      tags:
+      - records
+  /api/modules/{name}/records/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a record from a module
+      parameters:
+      - description: Module Name
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: Record ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid input
+          schema:
+            type: string
+      summary: Delete a record
+      tags:
+      - records
+    put:
+      consumes:
+      - application/json
+      description: Update a record in a module
+      parameters:
+      - description: Module Name
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: Record ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Record Data
+        in: body
+        name: input
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid input
+          schema:
+            type: string
+      summary: Update a record
+      tags:
+      - records
+  /api/notifications:
+    get:
+      consumes:
+      - application/json
+      description: Get a list of notifications for the current user
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Items per page
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List notifications
+      tags:
+      - Notifications
+  /api/notifications/{id}/read:
+    put:
+      consumes:
+      - application/json
+      description: Mark a specific notification as read
+      parameters:
+      - description: Notification ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Mark notification as read
+      tags:
+      - Notifications
+  /api/notifications/mark-all-read:
+    post:
+      consumes:
+      - application/json
+      description: Mark all notifications for the current user as read
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Mark all as read
+      tags:
+      - Notifications
+  /api/notifications/unread-count:
+    get:
+      consumes:
+      - application/json
+      description: Get the number of unread notifications
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get unread count
+      tags:
+      - Notifications
   /api/reports:
     get:
       produces:
@@ -1254,6 +2067,585 @@ paths:
       summary: Run a report and return JSON data
       tags:
       - Reports
+  /api/sla-policies:
+    get:
+      description: Get all SLA policies
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.SLAPolicy'
+            type: array
+      summary: List SLA policies
+      tags:
+      - sla-policies
+    post:
+      consumes:
+      - application/json
+      description: Create a new SLA policy
+      parameters:
+      - description: SLA Policy Data
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/models.SLAPolicy'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            type: string
+      summary: Create SLA policy
+      tags:
+      - sla-policies
+  /api/sla-policies/{id}:
+    delete:
+      description: Delete an SLA policy by ID
+      parameters:
+      - description: Policy ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid input
+          schema:
+            type: string
+      summary: Delete SLA policy
+      tags:
+      - sla-policies
+    get:
+      description: Get an SLA policy by ID
+      parameters:
+      - description: Policy ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.SLAPolicy'
+        "404":
+          description: Not Found
+          schema:
+            type: string
+      summary: Get SLA policy
+      tags:
+      - sla-policies
+    put:
+      consumes:
+      - application/json
+      description: Update an SLA policy by ID
+      parameters:
+      - description: Policy ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update Data
+        in: body
+        name: input
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid input
+          schema:
+            type: string
+      summary: Update SLA policy
+      tags:
+      - sla-policies
+  /api/tickets:
+    get:
+      consumes:
+      - application/json
+      description: Get tickets with filtering and pagination
+      parameters:
+      - description: Page number (default 1)
+        in: query
+        name: page
+        type: integer
+      - description: Records per page (default 10)
+        in: query
+        name: limit
+        type: integer
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      - description: Filter by priority
+        in: query
+        name: priority
+        type: string
+      - description: Filter by channel
+        in: query
+        name: channel
+        type: string
+      - description: Search by ticket number, subject, or customer
+        in: query
+        name: search
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Ticket'
+            type: array
+        "400":
+          description: Invalid input
+          schema:
+            type: string
+      summary: List tickets
+      tags:
+      - tickets
+    post:
+      consumes:
+      - application/json
+      description: Create a new support ticket
+      parameters:
+      - description: Ticket Data
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/models.Ticket'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            type: string
+      summary: Create a new ticket
+      tags:
+      - tickets
+  /api/tickets/{id}:
+    delete:
+      description: Delete a ticket by ID
+      parameters:
+      - description: Ticket ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid input
+          schema:
+            type: string
+      summary: Delete a ticket
+      tags:
+      - tickets
+    get:
+      description: Get a ticket by ID
+      parameters:
+      - description: Ticket ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Ticket'
+        "404":
+          description: Not Found
+          schema:
+            type: string
+      summary: Get a ticket
+      tags:
+      - tickets
+    put:
+      consumes:
+      - application/json
+      description: Update a ticket by ID
+      parameters:
+      - description: Ticket ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update Data
+        in: body
+        name: input
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid input
+          schema:
+            type: string
+      summary: Update a ticket
+      tags:
+      - tickets
+  /api/tickets/{id}/assign:
+    patch:
+      consumes:
+      - application/json
+      description: Assign a ticket to a user
+      parameters:
+      - description: Ticket ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Assignment Data
+        in: body
+        name: input
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid input
+          schema:
+            type: string
+      summary: Assign ticket
+      tags:
+      - tickets
+  /api/tickets/{id}/comments:
+    get:
+      description: Get all comments for a ticket
+      parameters:
+      - description: Ticket ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.TicketComment'
+            type: array
+        "400":
+          description: Invalid input
+          schema:
+            type: string
+      summary: List ticket comments
+      tags:
+      - tickets
+    post:
+      consumes:
+      - application/json
+      description: Add a comment or note to a ticket
+      parameters:
+      - description: Ticket ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Comment Data
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/models.TicketComment'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid input
+          schema:
+            type: string
+      summary: Add comment to ticket
+      tags:
+      - tickets
+  /api/tickets/{id}/status:
+    patch:
+      consumes:
+      - application/json
+      description: Update the status of a ticket
+      parameters:
+      - description: Ticket ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Status Data
+        in: body
+        name: input
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid input
+          schema:
+            type: string
+      summary: Update ticket status
+      tags:
+      - tickets
+  /api/tickets/customer/{customerId}:
+    get:
+      description: Get all tickets for a specific customer
+      parameters:
+      - description: Customer ID
+        in: path
+        name: customerId
+        required: true
+        type: string
+      - description: Page number (default 1)
+        in: query
+        name: page
+        type: integer
+      - description: Records per page (default 10)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Ticket'
+            type: array
+        "400":
+          description: Invalid input
+          schema:
+            type: string
+      summary: Get customer tickets
+      tags:
+      - tickets
+  /api/tickets/my:
+    get:
+      description: Get tickets assigned to the current user
+      parameters:
+      - description: Page number (default 1)
+        in: query
+        name: page
+        type: integer
+      - description: Records per page (default 10)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Ticket'
+            type: array
+        "400":
+          description: Invalid input
+          schema:
+            type: string
+      summary: Get my tickets
+      tags:
+      - tickets
+  /api/webhooks:
+    get:
+      description: Get a list of all webhooks
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Webhook'
+            type: array
+      summary: List all webhooks
+      tags:
+      - webhooks
+    post:
+      consumes:
+      - application/json
+      description: Register a new webhook url
+      parameters:
+      - description: Webhook Data
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/models.Webhook'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            type: string
+      summary: Create a new webhook
+      tags:
+      - webhooks
+  /api/webhooks/{id}:
+    delete:
+      description: Delete a webhook by ID
+      parameters:
+      - description: Webhook ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid input
+          schema:
+            type: string
+      summary: Delete a webhook
+      tags:
+      - webhooks
+    get:
+      description: Get a webhook by ID
+      parameters:
+      - description: Webhook ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Webhook'
+        "404":
+          description: Not Found
+          schema:
+            type: string
+      summary: Get a webhook
+      tags:
+      - webhooks
+    put:
+      consumes:
+      - application/json
+      description: Update a webhook by ID
+      parameters:
+      - description: Webhook ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update Data
+        in: body
+        name: input
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid input
+          schema:
+            type: string
+      summary: Update a webhook
+      tags:
+      - webhooks
   /approvals/{module}/{id}/approve:
     post:
       consumes:
@@ -1378,140 +2770,16 @@ paths:
       summary: Get current user info
       tags:
       - debug
-  /escalation-rules:
-    get:
-      description: Get all escalation rules
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/models.EscalationRule'
-            type: array
-      summary: List escalation rules
-      tags:
-      - escalation-rules
-    post:
-      consumes:
-      - application/json
-      description: Create a new escalation rule
-      parameters:
-      - description: Escalation Rule Data
-        in: body
-        name: input
-        required: true
-        schema:
-          $ref: '#/definitions/models.EscalationRule'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: Invalid request
-          schema:
-            type: string
-      summary: Create escalation rule
-      tags:
-      - escalation-rules
-  /escalation-rules/{id}:
-    delete:
-      description: Delete an escalation rule by ID
-      parameters:
-      - description: Rule ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "400":
-          description: Invalid input
-          schema:
-            type: string
-      summary: Delete escalation rule
-      tags:
-      - escalation-rules
-    get:
-      description: Get an escalation rule by ID
-      parameters:
-      - description: Rule ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/models.EscalationRule'
-        "404":
-          description: Not Found
-          schema:
-            type: string
-      summary: Get escalation rule
-      tags:
-      - escalation-rules
-    put:
-      consumes:
-      - application/json
-      description: Update an escalation rule by ID
-      parameters:
-      - description: Rule ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Update Data
-        in: body
-        name: input
-        required: true
-        schema:
-          additionalProperties: true
-          type: object
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "400":
-          description: Invalid input
-          schema:
-            type: string
-      summary: Update escalation rule
-      tags:
-      - escalation-rules
   /health:
     get:
-      consumes:
-      - application/json
-      description: Get system health status
+      description: Check if the server is up
       produces:
-      - application/json
+      - text/plain
       responses:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            type: string
       summary: Health Check
       tags:
       - health
@@ -1545,298 +2813,6 @@ paths:
       summary: Login
       tags:
       - auth
-  /modules:
-    get:
-      description: Get a list of all defined modules
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/models.Module'
-            type: array
-      summary: List all modules
-      tags:
-      - modules
-    post:
-      consumes:
-      - application/json
-      description: Create a dynamic module with fields
-      parameters:
-      - description: Module Definition
-        in: body
-        name: input
-        required: true
-        schema:
-          $ref: '#/definitions/models.Module'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Module created
-          schema:
-            type: string
-        "400":
-          description: Invalid request
-          schema:
-            type: string
-      summary: Create a new module definition
-      tags:
-      - modules
-  /modules/{module}/records/{id}:
-    get:
-      description: Get a record by ID
-      parameters:
-      - description: Module Name
-        in: path
-        name: module
-        required: true
-        type: string
-      - description: Record ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: Not Found
-          schema:
-            type: string
-      summary: Get a single record
-      tags:
-      - records
-  /modules/{name}:
-    delete:
-      consumes:
-      - application/json
-      description: Delete a module and its definition
-      parameters:
-      - description: Module Name
-        in: path
-        name: name
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "400":
-          description: Invalid input
-          schema:
-            type: string
-      summary: Delete a module
-      tags:
-      - modules
-    get:
-      description: Get specific module definition including fields
-      parameters:
-      - description: Module Name
-        in: path
-        name: name
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/models.Module'
-        "404":
-          description: Module not found
-          schema:
-            type: string
-      summary: Get a module by name
-      tags:
-      - modules
-    put:
-      consumes:
-      - application/json
-      description: Update schema for a module
-      parameters:
-      - description: Module Name
-        in: path
-        name: name
-        required: true
-        type: string
-      - description: Module Definition
-        in: body
-        name: input
-        required: true
-        schema:
-          $ref: '#/definitions/models.Module'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "400":
-          description: Invalid input
-          schema:
-            type: string
-      summary: Update a module definition
-      tags:
-      - modules
-  /modules/{name}/records:
-    get:
-      consumes:
-      - application/json
-      description: Get records with pagination and filters
-      parameters:
-      - description: Module Name
-        in: path
-        name: name
-        required: true
-        type: string
-      - description: Page number (default 1)
-        in: query
-        name: page
-        type: integer
-      - description: Records per page (default 10)
-        in: query
-        name: limit
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              additionalProperties: true
-              type: object
-            type: array
-        "400":
-          description: Invalid input
-          schema:
-            type: string
-      summary: List records from a module
-      tags:
-      - records
-    post:
-      consumes:
-      - application/json
-      description: Insert data into a dynamic module with validation
-      parameters:
-      - description: Module Name
-        in: path
-        name: name
-        required: true
-        type: string
-      - description: Record Data
-        in: body
-        name: input
-        required: true
-        schema:
-          additionalProperties: true
-          type: object
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: Invalid request
-          schema:
-            type: string
-        "404":
-          description: Module not found
-          schema:
-            type: string
-      summary: Create a record in a module
-      tags:
-      - records
-  /modules/{name}/records/{id}:
-    delete:
-      consumes:
-      - application/json
-      description: Delete a record from a module
-      parameters:
-      - description: Module Name
-        in: path
-        name: name
-        required: true
-        type: string
-      - description: Record ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "400":
-          description: Invalid input
-          schema:
-            type: string
-      summary: Delete a record
-      tags:
-      - records
-    put:
-      consumes:
-      - application/json
-      description: Update a record in a module
-      parameters:
-      - description: Module Name
-        in: path
-        name: name
-        required: true
-        type: string
-      - description: Record ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Record Data
-        in: body
-        name: input
-        required: true
-        schema:
-          additionalProperties: true
-          type: object
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "400":
-          description: Invalid input
-          schema:
-            type: string
-      summary: Update a record
-      tags:
-      - records
   /register:
     post:
       consumes:
@@ -2055,464 +3031,6 @@ paths:
       summary: Update Email Configuration
       tags:
       - settings
-  /sla-policies:
-    get:
-      description: Get all SLA policies
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/models.SLAPolicy'
-            type: array
-      summary: List SLA policies
-      tags:
-      - sla-policies
-    post:
-      consumes:
-      - application/json
-      description: Create a new SLA policy
-      parameters:
-      - description: SLA Policy Data
-        in: body
-        name: input
-        required: true
-        schema:
-          $ref: '#/definitions/models.SLAPolicy'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: Invalid request
-          schema:
-            type: string
-      summary: Create SLA policy
-      tags:
-      - sla-policies
-  /sla-policies/{id}:
-    delete:
-      description: Delete an SLA policy by ID
-      parameters:
-      - description: Policy ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "400":
-          description: Invalid input
-          schema:
-            type: string
-      summary: Delete SLA policy
-      tags:
-      - sla-policies
-    get:
-      description: Get an SLA policy by ID
-      parameters:
-      - description: Policy ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/models.SLAPolicy'
-        "404":
-          description: Not Found
-          schema:
-            type: string
-      summary: Get SLA policy
-      tags:
-      - sla-policies
-    put:
-      consumes:
-      - application/json
-      description: Update an SLA policy by ID
-      parameters:
-      - description: Policy ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Update Data
-        in: body
-        name: input
-        required: true
-        schema:
-          additionalProperties: true
-          type: object
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "400":
-          description: Invalid input
-          schema:
-            type: string
-      summary: Update SLA policy
-      tags:
-      - sla-policies
-  /tickets:
-    get:
-      consumes:
-      - application/json
-      description: Get tickets with filtering and pagination
-      parameters:
-      - description: Page number (default 1)
-        in: query
-        name: page
-        type: integer
-      - description: Records per page (default 10)
-        in: query
-        name: limit
-        type: integer
-      - description: Filter by status
-        in: query
-        name: status
-        type: string
-      - description: Filter by priority
-        in: query
-        name: priority
-        type: string
-      - description: Filter by channel
-        in: query
-        name: channel
-        type: string
-      - description: Search by ticket number, subject, or customer
-        in: query
-        name: search
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/models.Ticket'
-            type: array
-        "400":
-          description: Invalid input
-          schema:
-            type: string
-      summary: List tickets
-      tags:
-      - tickets
-    post:
-      consumes:
-      - application/json
-      description: Create a new support ticket
-      parameters:
-      - description: Ticket Data
-        in: body
-        name: input
-        required: true
-        schema:
-          $ref: '#/definitions/models.Ticket'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: Invalid request
-          schema:
-            type: string
-      summary: Create a new ticket
-      tags:
-      - tickets
-  /tickets/{id}:
-    delete:
-      description: Delete a ticket by ID
-      parameters:
-      - description: Ticket ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "400":
-          description: Invalid input
-          schema:
-            type: string
-      summary: Delete a ticket
-      tags:
-      - tickets
-    get:
-      description: Get a ticket by ID
-      parameters:
-      - description: Ticket ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/models.Ticket'
-        "404":
-          description: Not Found
-          schema:
-            type: string
-      summary: Get a ticket
-      tags:
-      - tickets
-    put:
-      consumes:
-      - application/json
-      description: Update a ticket by ID
-      parameters:
-      - description: Ticket ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Update Data
-        in: body
-        name: input
-        required: true
-        schema:
-          additionalProperties: true
-          type: object
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "400":
-          description: Invalid input
-          schema:
-            type: string
-      summary: Update a ticket
-      tags:
-      - tickets
-  /tickets/{id}/assign:
-    patch:
-      consumes:
-      - application/json
-      description: Assign a ticket to a user
-      parameters:
-      - description: Ticket ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Assignment Data
-        in: body
-        name: input
-        required: true
-        schema:
-          additionalProperties: true
-          type: object
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "400":
-          description: Invalid input
-          schema:
-            type: string
-      summary: Assign ticket
-      tags:
-      - tickets
-  /tickets/{id}/comments:
-    get:
-      description: Get all comments for a ticket
-      parameters:
-      - description: Ticket ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/models.TicketComment'
-            type: array
-        "400":
-          description: Invalid input
-          schema:
-            type: string
-      summary: List ticket comments
-      tags:
-      - tickets
-    post:
-      consumes:
-      - application/json
-      description: Add a comment or note to a ticket
-      parameters:
-      - description: Ticket ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Comment Data
-        in: body
-        name: input
-        required: true
-        schema:
-          $ref: '#/definitions/models.TicketComment'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: Invalid input
-          schema:
-            type: string
-      summary: Add comment to ticket
-      tags:
-      - tickets
-  /tickets/{id}/status:
-    patch:
-      consumes:
-      - application/json
-      description: Update the status of a ticket
-      parameters:
-      - description: Ticket ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Status Data
-        in: body
-        name: input
-        required: true
-        schema:
-          additionalProperties: true
-          type: object
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "400":
-          description: Invalid input
-          schema:
-            type: string
-      summary: Update ticket status
-      tags:
-      - tickets
-  /tickets/customer/{customerId}:
-    get:
-      description: Get all tickets for a specific customer
-      parameters:
-      - description: Customer ID
-        in: path
-        name: customerId
-        required: true
-        type: string
-      - description: Page number (default 1)
-        in: query
-        name: page
-        type: integer
-      - description: Records per page (default 10)
-        in: query
-        name: limit
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/models.Ticket'
-            type: array
-        "400":
-          description: Invalid input
-          schema:
-            type: string
-      summary: Get customer tickets
-      tags:
-      - tickets
-  /tickets/my:
-    get:
-      description: Get tickets assigned to the current user
-      parameters:
-      - description: Page number (default 1)
-        in: query
-        name: page
-        type: integer
-      - description: Records per page (default 10)
-        in: query
-        name: limit
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/models.Ticket'
-            type: array
-        "400":
-          description: Invalid input
-          schema:
-            type: string
-      summary: Get my tickets
-      tags:
-      - tickets
   /upload:
     post:
       consumes:
