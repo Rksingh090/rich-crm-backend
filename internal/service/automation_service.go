@@ -23,13 +23,15 @@ type AutomationServiceImpl struct {
 	Repo         repository.AutomationRepository
 	RecordRepo   repository.RecordRepository
 	AuditService AuditService
+	EmailService EmailService
 }
 
-func NewAutomationService(repo repository.AutomationRepository, recordRepo repository.RecordRepository, auditService AuditService) AutomationService {
+func NewAutomationService(repo repository.AutomationRepository, recordRepo repository.RecordRepository, auditService AuditService, emailService EmailService) AutomationService {
 	return &AutomationServiceImpl{
 		Repo:         repo,
 		RecordRepo:   recordRepo,
 		AuditService: auditService,
+		EmailService: emailService,
 	}
 }
 
@@ -157,6 +159,26 @@ func (s *AutomationServiceImpl) executeActions(ctx context.Context, actions []mo
 		case models.ActionSendEmail:
 			// Config: { "to": "...", "subject": "...", "body": "..." }
 			fmt.Printf("Automation Action: Send Email %v\n", action.Config)
+
+			if s.EmailService != nil {
+				// Parse recipients. Config 'to' might be string (comma user) or array
+				toStr, ok := action.Config["to"].(string)
+				if ok && toStr != "" {
+					to := []string{toStr} // TODO: Handle multiple/comma separated
+					subject, _ := action.Config["subject"].(string)
+					body, _ := action.Config["body"].(string)
+
+					// Send in background? Or sync?
+					// Sync ensures we know if it failed, but might block.
+					// Let's assume sync for now.
+					if err := s.EmailService.SendEmail(ctx, to, subject, body); err != nil {
+						fmt.Printf("Failed to send email: %v\n", err)
+						// Don't return error to stop other actions? Or return?
+						// Just log for now.
+					}
+				}
+			}
+
 			// Log to Audit
 			if s.AuditService != nil {
 				// Try to get Record ID
