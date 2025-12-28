@@ -18,10 +18,10 @@ import (
 )
 
 type RecordService interface {
-	CreateRecord(ctx context.Context, moduleName string, data map[string]interface{}) (interface{}, error)
+	CreateRecord(ctx context.Context, moduleName string, data map[string]interface{}, userID primitive.ObjectID) (interface{}, error)
 	GetRecord(ctx context.Context, moduleName, id string) (map[string]any, error)
 	ListRecords(ctx context.Context, moduleName string, filters map[string]any, page, limit int64, sortBy string, sortOrder string) ([]map[string]any, int64, error)
-	UpdateRecord(ctx context.Context, moduleName, id string, data map[string]interface{}) error
+	UpdateRecord(ctx context.Context, moduleName, id string, data map[string]interface{}, userID primitive.ObjectID) error
 	DeleteRecord(ctx context.Context, moduleName, id string) error
 }
 
@@ -45,7 +45,7 @@ func NewRecordService(moduleRepo repository.ModuleRepository, recordRepo reposit
 	}
 }
 
-func (s *RecordServiceImpl) CreateRecord(ctx context.Context, moduleName string, data map[string]interface{}) (interface{}, error) {
+func (s *RecordServiceImpl) CreateRecord(ctx context.Context, moduleName string, data map[string]interface{}, userID primitive.ObjectID) (interface{}, error) {
 	// 1. Fetch Schema
 	module, err := s.ModuleRepo.FindByName(ctx, moduleName)
 	if err != nil {
@@ -57,6 +57,8 @@ func (s *RecordServiceImpl) CreateRecord(ctx context.Context, moduleName string,
 	validatedData["_id"] = primitive.NewObjectID()
 	validatedData["created_at"] = time.Now()
 	validatedData["updated_at"] = time.Now()
+	validatedData["created_by"] = userID // System field - immutable
+	validatedData["owner"] = userID      // Mutable field - can be changed
 
 	for _, field := range module.Fields {
 		val, exists := data[field.Name]
@@ -287,7 +289,7 @@ func (s *RecordServiceImpl) ListRecords(ctx context.Context, moduleName string, 
 	return records, totalCount, nil
 }
 
-func (s *RecordServiceImpl) UpdateRecord(ctx context.Context, moduleName, id string, data map[string]interface{}) error {
+func (s *RecordServiceImpl) UpdateRecord(ctx context.Context, moduleName, id string, data map[string]interface{}, userID primitive.ObjectID) error {
 	// 1. Fetch Schema
 	module, err := s.ModuleRepo.FindByName(ctx, moduleName)
 	if err != nil {
@@ -297,6 +299,16 @@ func (s *RecordServiceImpl) UpdateRecord(ctx context.Context, moduleName, id str
 	// 2. Validate Data (Partial update)
 	validatedData := make(map[string]interface{})
 	validatedData["updated_at"] = time.Now()
+
+	// Allow owner to be updated if provided
+	if ownerVal, exists := data["owner"]; exists {
+		// Validate owner is a valid ObjectID
+		if ownerStr, ok := ownerVal.(string); ok {
+			if ownerID, err := primitive.ObjectIDFromHex(ownerStr); err == nil {
+				validatedData["owner"] = ownerID
+			}
+		}
+	}
 
 	for _, field := range module.Fields {
 		val, exists := data[field.Name]

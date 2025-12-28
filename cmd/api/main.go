@@ -143,6 +143,11 @@ func main() {
 			repository.NewReportRepository,
 			repository.NewAutomationRepository,
 			repository.NewSettingsRepository,
+			repository.NewTicketRepository,
+			repository.NewSLAPolicyRepository,
+			repository.NewTicketCommentRepository,
+			repository.NewEscalationRuleRepository,
+			repository.NewGroupRepository,
 
 			service.NewAuditService,
 			service.NewAuthService,
@@ -155,6 +160,10 @@ func main() {
 			service.NewSettingsService,
 			service.NewEmailService,
 			service.NewAutomationService,
+			service.NewTicketService,
+			service.NewSLAService,
+			service.NewEscalationService,
+			service.NewGroupService,
 
 			// Initialize Controller
 			controllers.NewAdminController,
@@ -170,6 +179,8 @@ func main() {
 			controllers.NewReportController,
 			controllers.NewAutomationController,
 			controllers.NewSettingsController,
+			controllers.NewTicketController,
+			controllers.NewGroupController,
 
 			// Initialize API Routes
 			AsRoute(api.NewAdminApi),
@@ -186,6 +197,8 @@ func main() {
 			AsRoute(api.NewReportApi),
 			AsRoute(api.NewAutomationApi),
 			AsRoute(api.NewSettingsApi),
+			AsRoute(api.NewTicketApi),
+			AsRoute(api.NewGroupApi),
 		),
 		fx.WithLogger(func(log *zap.Logger) fxevent.Logger {
 			return &fxevent.ZapLogger{Logger: log}

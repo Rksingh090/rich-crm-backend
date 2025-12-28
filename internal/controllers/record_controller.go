@@ -6,6 +6,7 @@ import (
 	"go-crm/internal/service"
 
 	"github.com/gofiber/fiber/v2"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type RecordController struct {
@@ -40,7 +41,22 @@ func (ctrl *RecordController) CreateRecord(c *fiber.Ctx) error {
 		})
 	}
 
-	id, err := ctrl.Service.CreateRecord(c.Context(), moduleName, data)
+	// Get user ID from context
+	userIDStr, ok := c.Locals("userID").(string)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "User ID not found in context",
+		})
+	}
+
+	userID, err := primitive.ObjectIDFromHex(userIDStr)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid user ID",
+		})
+	}
+
+	id, err := ctrl.Service.CreateRecord(c.Context(), moduleName, data, userID)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": err.Error(),
@@ -146,7 +162,22 @@ func (ctrl *RecordController) UpdateRecord(c *fiber.Ctx) error {
 		})
 	}
 
-	if err := ctrl.Service.UpdateRecord(c.Context(), moduleName, id, data); err != nil {
+	// Get user ID from context
+	userIDStr, ok := c.Locals("userID").(string)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "User ID not found in context",
+		})
+	}
+
+	userID, err := primitive.ObjectIDFromHex(userIDStr)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid user ID",
+		})
+	}
+
+	if err := ctrl.Service.UpdateRecord(c.Context(), moduleName, id, data, userID); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": err.Error(),
 		})

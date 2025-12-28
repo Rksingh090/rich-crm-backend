@@ -176,6 +176,314 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/groups": {
+            "get": {
+                "description": "Retrieve all groups",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "groups"
+                ],
+                "summary": "Get all groups",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.Group"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Create a new group with permissions",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "groups"
+                ],
+                "summary": "Create a new group",
+                "parameters": [
+                    {
+                        "description": "Group object",
+                        "name": "group",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.Group"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/models.Group"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/groups/{id}": {
+            "get": {
+                "description": "Retrieve a specific group",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "groups"
+                ],
+                "summary": "Get a group by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Group ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.Group"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Update group details and permissions",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "groups"
+                ],
+                "summary": "Update a group",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Group ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Group object",
+                        "name": "group",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.Group"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Delete a group by ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "groups"
+                ],
+                "summary": "Delete a group",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Group ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/groups/{id}/members": {
+            "post": {
+                "description": "Add a user to a group",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "groups"
+                ],
+                "summary": "Add member to group",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Group ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "User ID",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/groups/{id}/members/{userId}": {
+            "delete": {
+                "description": "Remove a user from a group",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "groups"
+                ],
+                "summary": "Remove member from group",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Group ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "User ID",
+                        "name": "userId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/reports": {
             "get": {
                 "produces": [
@@ -562,6 +870,188 @@ const docTemplate = `{
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/escalation-rules": {
+            "get": {
+                "description": "Get all escalation rules",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "escalation-rules"
+                ],
+                "summary": "List escalation rules",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.EscalationRule"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Create a new escalation rule",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "escalation-rules"
+                ],
+                "summary": "Create escalation rule",
+                "parameters": [
+                    {
+                        "description": "Escalation Rule Data",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.EscalationRule"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/escalation-rules/{id}": {
+            "get": {
+                "description": "Get an escalation rule by ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "escalation-rules"
+                ],
+                "summary": "Get escalation rule",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Rule ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.EscalationRule"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Update an escalation rule by ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "escalation-rules"
+                ],
+                "summary": "Update escalation rule",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Rule ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Update Data",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid input",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Delete an escalation rule by ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "escalation-rules"
+                ],
+                "summary": "Delete escalation rule",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Rule ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid input",
+                        "schema": {
+                            "type": "string"
                         }
                     }
                 }
@@ -1333,6 +1823,767 @@ const docTemplate = `{
                 }
             }
         },
+        "/settings/email": {
+            "get": {
+                "description": "Get current SMTP settings",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "settings"
+                ],
+                "summary": "Get Email Configuration",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.EmailConfig"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Update SMTP settings",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "settings"
+                ],
+                "summary": "Update Email Configuration",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/sla-policies": {
+            "get": {
+                "description": "Get all SLA policies",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sla-policies"
+                ],
+                "summary": "List SLA policies",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.SLAPolicy"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Create a new SLA policy",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sla-policies"
+                ],
+                "summary": "Create SLA policy",
+                "parameters": [
+                    {
+                        "description": "SLA Policy Data",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.SLAPolicy"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/sla-policies/{id}": {
+            "get": {
+                "description": "Get an SLA policy by ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sla-policies"
+                ],
+                "summary": "Get SLA policy",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Policy ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.SLAPolicy"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Update an SLA policy by ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sla-policies"
+                ],
+                "summary": "Update SLA policy",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Policy ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Update Data",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid input",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Delete an SLA policy by ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sla-policies"
+                ],
+                "summary": "Delete SLA policy",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Policy ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid input",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/tickets": {
+            "get": {
+                "description": "Get tickets with filtering and pagination",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tickets"
+                ],
+                "summary": "List tickets",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Page number (default 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Records per page (default 10)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by status",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by priority",
+                        "name": "priority",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by channel",
+                        "name": "channel",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search by ticket number, subject, or customer",
+                        "name": "search",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.Ticket"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid input",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Create a new support ticket",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tickets"
+                ],
+                "summary": "Create a new ticket",
+                "parameters": [
+                    {
+                        "description": "Ticket Data",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.Ticket"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/tickets/customer/{customerId}": {
+            "get": {
+                "description": "Get all tickets for a specific customer",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tickets"
+                ],
+                "summary": "Get customer tickets",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Customer ID",
+                        "name": "customerId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number (default 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Records per page (default 10)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.Ticket"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid input",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/tickets/my": {
+            "get": {
+                "description": "Get tickets assigned to the current user",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tickets"
+                ],
+                "summary": "Get my tickets",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Page number (default 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Records per page (default 10)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.Ticket"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid input",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/tickets/{id}": {
+            "get": {
+                "description": "Get a ticket by ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tickets"
+                ],
+                "summary": "Get a ticket",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Ticket ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.Ticket"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Update a ticket by ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tickets"
+                ],
+                "summary": "Update a ticket",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Ticket ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Update Data",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid input",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Delete a ticket by ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tickets"
+                ],
+                "summary": "Delete a ticket",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Ticket ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid input",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/tickets/{id}/assign": {
+            "patch": {
+                "description": "Assign a ticket to a user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tickets"
+                ],
+                "summary": "Assign ticket",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Ticket ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Assignment Data",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid input",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/tickets/{id}/comments": {
+            "get": {
+                "description": "Get all comments for a ticket",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tickets"
+                ],
+                "summary": "List ticket comments",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Ticket ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.TicketComment"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid input",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Add a comment or note to a ticket",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tickets"
+                ],
+                "summary": "Add comment to ticket",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Ticket ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Comment Data",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.TicketComment"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid input",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/tickets/{id}/status": {
+            "patch": {
+                "description": "Update the status of a ticket",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tickets"
+                ],
+                "summary": "Update ticket status",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Ticket ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Status Data",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid input",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/upload": {
             "post": {
                 "description": "Upload a file and get a URL (Metadata stored in DB)",
@@ -2002,6 +3253,9 @@ const docTemplate = `{
                 "phone": {
                     "type": "string"
                 },
+                "reports_to": {
+                    "type": "string"
+                },
                 "status": {
                     "type": "string"
                 },
@@ -2048,6 +3302,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "phone": {
+                    "type": "string"
+                },
+                "reports_to": {
                     "type": "string"
                 },
                 "status": {
@@ -2154,6 +3411,10 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string"
+                },
+                "priority": {
+                    "description": "Evaluation order (0 = highest)",
+                    "type": "integer"
                 },
                 "steps": {
                     "type": "array",
@@ -2269,6 +3530,143 @@ const docTemplate = `{
                 "old": {}
             }
         },
+        "models.EmailConfig": {
+            "type": "object",
+            "properties": {
+                "from_email": {
+                    "type": "string"
+                },
+                "from_name": {
+                    "type": "string"
+                },
+                "secure": {
+                    "description": "TLS/SSL",
+                    "type": "boolean"
+                },
+                "smtp_host": {
+                    "type": "string"
+                },
+                "smtp_password": {
+                    "type": "string"
+                },
+                "smtp_port": {
+                    "type": "integer"
+                },
+                "smtp_user": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.EscalationHistoryEntry": {
+            "description": "History entry for ticket escalations",
+            "type": "object",
+            "properties": {
+                "escalated_at": {
+                    "type": "string",
+                    "example": "2024-01-14T10:00:00Z"
+                },
+                "escalated_by": {
+                    "description": "System or User",
+                    "type": "string",
+                    "example": "507f1f77bcf86cd799439011"
+                },
+                "escalated_to": {
+                    "type": "string",
+                    "example": "507f1f77bcf86cd799439011"
+                },
+                "level": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "reason": {
+                    "type": "string",
+                    "example": "SLA breach detected"
+                },
+                "rule_id": {
+                    "type": "string",
+                    "example": "507f1f77bcf86cd799439011"
+                }
+            }
+        },
+        "models.EscalationRule": {
+            "description": "Rule for automatic ticket escalation based on conditions",
+            "type": "object",
+            "properties": {
+                "condition_type": {
+                    "description": "\"sla_breach\", \"no_response\", \"no_update\"",
+                    "type": "string",
+                    "example": "no_response"
+                },
+                "created_at": {
+                    "type": "string",
+                    "example": "2024-01-01T00:00:00Z"
+                },
+                "description": {
+                    "type": "string",
+                    "example": "Escalate high priority tickets with no response after 30 minutes"
+                },
+                "escalate_after": {
+                    "description": "Minutes after creation/last update",
+                    "type": "integer",
+                    "example": 30
+                },
+                "escalate_to": {
+                    "description": "Escalation Action",
+                    "type": "string",
+                    "example": "507f1f77bcf86cd799439011"
+                },
+                "escalate_to_type": {
+                    "description": "\"user\" or \"group\"",
+                    "type": "string",
+                    "example": "user"
+                },
+                "id": {
+                    "type": "string",
+                    "example": "507f1f77bcf86cd799439011"
+                },
+                "is_active": {
+                    "description": "Status",
+                    "type": "boolean",
+                    "example": true
+                },
+                "name": {
+                    "type": "string",
+                    "example": "High Priority No Response"
+                },
+                "notify_emails": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "example": [
+                        "manager@example.com",
+                        "support@example.com"
+                    ]
+                },
+                "priority": {
+                    "description": "Conditions",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.TicketPriority"
+                        }
+                    ],
+                    "example": "high"
+                },
+                "status": {
+                    "description": "Apply to specific status",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.TicketStatus"
+                        }
+                    ],
+                    "example": "open"
+                },
+                "updated_at": {
+                    "type": "string",
+                    "example": "2024-01-13T10:00:00Z"
+                }
+            }
+        },
         "models.FieldType": {
             "type": "string",
             "enum": [
@@ -2332,6 +3730,43 @@ const docTemplate = `{
                 },
                 "url": {
                     "description": "Public Web URL",
+                    "type": "string"
+                }
+            }
+        },
+        "models.Group": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_system": {
+                    "description": "Prevent deletion of system groups",
+                    "type": "boolean"
+                },
+                "members": {
+                    "description": "User IDs",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "module_permissions": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/definitions/models.ModulePermission"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                },
+                "updated_at": {
                     "type": "string"
                 }
             }
@@ -2525,6 +3960,66 @@ const docTemplate = `{
                 "value": {}
             }
         },
+        "models.SLAPolicy": {
+            "description": "SLA policy defining response and resolution time limits",
+            "type": "object",
+            "properties": {
+                "business_hours": {
+                    "description": "JSON config for business hours",
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "created_at": {
+                    "type": "string",
+                    "example": "2024-01-01T00:00:00Z"
+                },
+                "description": {
+                    "type": "string",
+                    "example": "SLA for high priority tickets"
+                },
+                "id": {
+                    "type": "string",
+                    "example": "507f1f77bcf86cd799439011"
+                },
+                "is_active": {
+                    "description": "Status",
+                    "type": "boolean",
+                    "example": true
+                },
+                "is_business_hours_only": {
+                    "description": "Business Hours",
+                    "type": "boolean",
+                    "example": true
+                },
+                "name": {
+                    "type": "string",
+                    "example": "High Priority SLA"
+                },
+                "priority": {
+                    "description": "Priority Mapping",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.TicketPriority"
+                        }
+                    ],
+                    "example": "high"
+                },
+                "resolution_time": {
+                    "description": "Resolution time in minutes",
+                    "type": "integer",
+                    "example": 240
+                },
+                "response_time": {
+                    "description": "Time Limits (in minutes)",
+                    "type": "integer",
+                    "example": 60
+                },
+                "updated_at": {
+                    "type": "string",
+                    "example": "2024-01-13T10:00:00Z"
+                }
+            }
+        },
         "models.SelectOptions": {
             "type": "object",
             "properties": {
@@ -2535,6 +4030,272 @@ const docTemplate = `{
                     "type": "string"
                 }
             }
+        },
+        "models.StatusHistoryEntry": {
+            "description": "History entry for ticket status changes",
+            "type": "object",
+            "properties": {
+                "changed_at": {
+                    "type": "string",
+                    "example": "2024-01-13T10:00:00Z"
+                },
+                "changed_by": {
+                    "type": "string",
+                    "example": "507f1f77bcf86cd799439011"
+                },
+                "comment": {
+                    "type": "string",
+                    "example": "Ticket opened for investigation"
+                },
+                "status": {
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.TicketStatus"
+                        }
+                    ],
+                    "example": "open"
+                }
+            }
+        },
+        "models.Ticket": {
+            "description": "Customer support ticket with multi-channel support, SLA tracking, and escalation",
+            "type": "object",
+            "properties": {
+                "assigned_group": {
+                    "description": "Team/Department",
+                    "type": "string",
+                    "example": "Support Team"
+                },
+                "assigned_to": {
+                    "description": "Assignment",
+                    "type": "string",
+                    "example": "507f1f77bcf86cd799439011"
+                },
+                "category": {
+                    "type": "string",
+                    "example": "Technical Support"
+                },
+                "channel": {
+                    "description": "Channel Information",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.TicketChannel"
+                        }
+                    ],
+                    "example": "email"
+                },
+                "channel_metadata": {
+                    "description": "Email ID, Chat session, etc.",
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "closed_at": {
+                    "type": "string",
+                    "example": "2024-01-15T09:00:00Z"
+                },
+                "created_at": {
+                    "description": "Timestamps",
+                    "type": "string",
+                    "example": "2024-01-13T10:00:00Z"
+                },
+                "customer_email": {
+                    "type": "string",
+                    "example": "customer@example.com"
+                },
+                "customer_id": {
+                    "description": "Customer Information",
+                    "type": "string",
+                    "example": "507f1f77bcf86cd799439011"
+                },
+                "customer_name": {
+                    "type": "string",
+                    "example": "John Doe"
+                },
+                "description": {
+                    "type": "string",
+                    "example": "Customer is experiencing login issues with their account"
+                },
+                "due_date": {
+                    "description": "Resolution due date",
+                    "type": "string",
+                    "example": "2024-01-15T10:00:00Z"
+                },
+                "escalated_to": {
+                    "type": "string",
+                    "example": "507f1f77bcf86cd799439011"
+                },
+                "escalation_history": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.EscalationHistoryEntry"
+                    }
+                },
+                "escalation_level": {
+                    "description": "Escalation",
+                    "type": "integer",
+                    "example": 0
+                },
+                "first_response_at": {
+                    "type": "string",
+                    "example": "2024-01-13T14:30:00Z"
+                },
+                "id": {
+                    "type": "string",
+                    "example": "507f1f77bcf86cd799439011"
+                },
+                "priority": {
+                    "description": "Priority \u0026 SLA",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.TicketPriority"
+                        }
+                    ],
+                    "example": "high"
+                },
+                "resolved_at": {
+                    "type": "string",
+                    "example": "2024-01-14T16:00:00Z"
+                },
+                "response_due_date": {
+                    "description": "First response due date",
+                    "type": "string",
+                    "example": "2024-01-14T10:00:00Z"
+                },
+                "sla_policy_id": {
+                    "type": "string",
+                    "example": "507f1f77bcf86cd799439011"
+                },
+                "status": {
+                    "description": "Status Workflow",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.TicketStatus"
+                        }
+                    ],
+                    "example": "open"
+                },
+                "status_history": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.StatusHistoryEntry"
+                    }
+                },
+                "subject": {
+                    "type": "string",
+                    "example": "Unable to login to account"
+                },
+                "tags": {
+                    "description": "Tags and Categories",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "example": [
+                        "bug",
+                        "urgent"
+                    ]
+                },
+                "ticket_number": {
+                    "description": "Auto-generated unique number",
+                    "type": "string",
+                    "example": "TKT-000001"
+                },
+                "updated_at": {
+                    "type": "string",
+                    "example": "2024-01-13T15:30:00Z"
+                }
+            }
+        },
+        "models.TicketChannel": {
+            "type": "string",
+            "enum": [
+                "email",
+                "chat",
+                "portal",
+                "phone"
+            ],
+            "x-enum-varnames": [
+                "TicketChannelEmail",
+                "TicketChannelChat",
+                "TicketChannelPortal",
+                "TicketChannelPhone"
+            ]
+        },
+        "models.TicketComment": {
+            "description": "Comment or internal note on a support ticket",
+            "type": "object",
+            "properties": {
+                "attachments": {
+                    "description": "Attachments",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "content": {
+                    "type": "string",
+                    "example": "Customer has been contacted via email"
+                },
+                "created_at": {
+                    "description": "Timestamps",
+                    "type": "string",
+                    "example": "2024-01-13T11:00:00Z"
+                },
+                "created_by": {
+                    "description": "Author",
+                    "type": "string",
+                    "example": "507f1f77bcf86cd799439011"
+                },
+                "id": {
+                    "type": "string",
+                    "example": "507f1f77bcf86cd799439011"
+                },
+                "is_internal": {
+                    "description": "Internal notes vs customer-visible comments",
+                    "type": "boolean",
+                    "example": false
+                },
+                "ticket_id": {
+                    "type": "string",
+                    "example": "507f1f77bcf86cd799439011"
+                },
+                "updated_at": {
+                    "type": "string",
+                    "example": "2024-01-13T11:00:00Z"
+                }
+            }
+        },
+        "models.TicketPriority": {
+            "type": "string",
+            "enum": [
+                "low",
+                "medium",
+                "high",
+                "urgent"
+            ],
+            "x-enum-varnames": [
+                "TicketPriorityLow",
+                "TicketPriorityMedium",
+                "TicketPriorityHigh",
+                "TicketPriorityUrgent"
+            ]
+        },
+        "models.TicketStatus": {
+            "type": "string",
+            "enum": [
+                "new",
+                "open",
+                "pending",
+                "resolved",
+                "closed"
+            ],
+            "x-enum-varnames": [
+                "TicketStatusNew",
+                "TicketStatusOpen",
+                "TicketStatusPending",
+                "TicketStatusResolved",
+                "TicketStatusClosed"
+            ]
         },
         "models.User": {
             "type": "object",
@@ -2558,6 +4319,10 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "phone": {
+                    "type": "string"
+                },
+                "reports_to": {
+                    "description": "Manager ID",
                     "type": "string"
                 },
                 "roles": {

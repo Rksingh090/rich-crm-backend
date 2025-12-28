@@ -17,6 +17,8 @@ definitions:
         type: string
       phone:
         type: string
+      reports_to:
+        type: string
       status:
         type: string
       username:
@@ -47,6 +49,8 @@ definitions:
       last_name:
         type: string
       phone:
+        type: string
+      reports_to:
         type: string
       status:
         type: string
@@ -121,6 +125,9 @@ definitions:
         type: string
       name:
         type: string
+      priority:
+        description: Evaluation order (0 = highest)
+        type: integer
       steps:
         items:
           $ref: '#/definitions/models.ApprovalStep'
@@ -202,6 +209,103 @@ definitions:
       new: {}
       old: {}
     type: object
+  models.EmailConfig:
+    properties:
+      from_email:
+        type: string
+      from_name:
+        type: string
+      secure:
+        description: TLS/SSL
+        type: boolean
+      smtp_host:
+        type: string
+      smtp_password:
+        type: string
+      smtp_port:
+        type: integer
+      smtp_user:
+        type: string
+    type: object
+  models.EscalationHistoryEntry:
+    description: History entry for ticket escalations
+    properties:
+      escalated_at:
+        example: "2024-01-14T10:00:00Z"
+        type: string
+      escalated_by:
+        description: System or User
+        example: 507f1f77bcf86cd799439011
+        type: string
+      escalated_to:
+        example: 507f1f77bcf86cd799439011
+        type: string
+      level:
+        example: 1
+        type: integer
+      reason:
+        example: SLA breach detected
+        type: string
+      rule_id:
+        example: 507f1f77bcf86cd799439011
+        type: string
+    type: object
+  models.EscalationRule:
+    description: Rule for automatic ticket escalation based on conditions
+    properties:
+      condition_type:
+        description: '"sla_breach", "no_response", "no_update"'
+        example: no_response
+        type: string
+      created_at:
+        example: "2024-01-01T00:00:00Z"
+        type: string
+      description:
+        example: Escalate high priority tickets with no response after 30 minutes
+        type: string
+      escalate_after:
+        description: Minutes after creation/last update
+        example: 30
+        type: integer
+      escalate_to:
+        description: Escalation Action
+        example: 507f1f77bcf86cd799439011
+        type: string
+      escalate_to_type:
+        description: '"user" or "group"'
+        example: user
+        type: string
+      id:
+        example: 507f1f77bcf86cd799439011
+        type: string
+      is_active:
+        description: Status
+        example: true
+        type: boolean
+      name:
+        example: High Priority No Response
+        type: string
+      notify_emails:
+        example:
+        - manager@example.com
+        - support@example.com
+        items:
+          type: string
+        type: array
+      priority:
+        allOf:
+        - $ref: '#/definitions/models.TicketPriority'
+        description: Conditions
+        example: high
+      status:
+        allOf:
+        - $ref: '#/definitions/models.TicketStatus'
+        description: Apply to specific status
+        example: open
+      updated_at:
+        example: "2024-01-13T10:00:00Z"
+        type: string
+    type: object
   models.FieldType:
     enum:
     - text
@@ -253,6 +357,31 @@ definitions:
         type: string
       url:
         description: Public Web URL
+        type: string
+    type: object
+  models.Group:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      is_system:
+        description: Prevent deletion of system groups
+        type: boolean
+      members:
+        description: User IDs
+        items:
+          type: string
+        type: array
+      module_permissions:
+        additionalProperties:
+          $ref: '#/definitions/models.ModulePermission'
+        type: object
+      name:
+        type: string
+      updated_at:
         type: string
     type: object
   models.LookupDef:
@@ -384,6 +513,50 @@ definitions:
         $ref: '#/definitions/models.ValidationOperator'
       value: {}
     type: object
+  models.SLAPolicy:
+    description: SLA policy defining response and resolution time limits
+    properties:
+      business_hours:
+        additionalProperties: true
+        description: JSON config for business hours
+        type: object
+      created_at:
+        example: "2024-01-01T00:00:00Z"
+        type: string
+      description:
+        example: SLA for high priority tickets
+        type: string
+      id:
+        example: 507f1f77bcf86cd799439011
+        type: string
+      is_active:
+        description: Status
+        example: true
+        type: boolean
+      is_business_hours_only:
+        description: Business Hours
+        example: true
+        type: boolean
+      name:
+        example: High Priority SLA
+        type: string
+      priority:
+        allOf:
+        - $ref: '#/definitions/models.TicketPriority'
+        description: Priority Mapping
+        example: high
+      resolution_time:
+        description: Resolution time in minutes
+        example: 240
+        type: integer
+      response_time:
+        description: Time Limits (in minutes)
+        example: 60
+        type: integer
+      updated_at:
+        example: "2024-01-13T10:00:00Z"
+        type: string
+    type: object
   models.SelectOptions:
     properties:
       label:
@@ -391,6 +564,202 @@ definitions:
       value:
         type: string
     type: object
+  models.StatusHistoryEntry:
+    description: History entry for ticket status changes
+    properties:
+      changed_at:
+        example: "2024-01-13T10:00:00Z"
+        type: string
+      changed_by:
+        example: 507f1f77bcf86cd799439011
+        type: string
+      comment:
+        example: Ticket opened for investigation
+        type: string
+      status:
+        allOf:
+        - $ref: '#/definitions/models.TicketStatus'
+        example: open
+    type: object
+  models.Ticket:
+    description: Customer support ticket with multi-channel support, SLA tracking,
+      and escalation
+    properties:
+      assigned_group:
+        description: Team/Department
+        example: Support Team
+        type: string
+      assigned_to:
+        description: Assignment
+        example: 507f1f77bcf86cd799439011
+        type: string
+      category:
+        example: Technical Support
+        type: string
+      channel:
+        allOf:
+        - $ref: '#/definitions/models.TicketChannel'
+        description: Channel Information
+        example: email
+      channel_metadata:
+        additionalProperties: true
+        description: Email ID, Chat session, etc.
+        type: object
+      closed_at:
+        example: "2024-01-15T09:00:00Z"
+        type: string
+      created_at:
+        description: Timestamps
+        example: "2024-01-13T10:00:00Z"
+        type: string
+      customer_email:
+        example: customer@example.com
+        type: string
+      customer_id:
+        description: Customer Information
+        example: 507f1f77bcf86cd799439011
+        type: string
+      customer_name:
+        example: John Doe
+        type: string
+      description:
+        example: Customer is experiencing login issues with their account
+        type: string
+      due_date:
+        description: Resolution due date
+        example: "2024-01-15T10:00:00Z"
+        type: string
+      escalated_to:
+        example: 507f1f77bcf86cd799439011
+        type: string
+      escalation_history:
+        items:
+          $ref: '#/definitions/models.EscalationHistoryEntry'
+        type: array
+      escalation_level:
+        description: Escalation
+        example: 0
+        type: integer
+      first_response_at:
+        example: "2024-01-13T14:30:00Z"
+        type: string
+      id:
+        example: 507f1f77bcf86cd799439011
+        type: string
+      priority:
+        allOf:
+        - $ref: '#/definitions/models.TicketPriority'
+        description: Priority & SLA
+        example: high
+      resolved_at:
+        example: "2024-01-14T16:00:00Z"
+        type: string
+      response_due_date:
+        description: First response due date
+        example: "2024-01-14T10:00:00Z"
+        type: string
+      sla_policy_id:
+        example: 507f1f77bcf86cd799439011
+        type: string
+      status:
+        allOf:
+        - $ref: '#/definitions/models.TicketStatus'
+        description: Status Workflow
+        example: open
+      status_history:
+        items:
+          $ref: '#/definitions/models.StatusHistoryEntry'
+        type: array
+      subject:
+        example: Unable to login to account
+        type: string
+      tags:
+        description: Tags and Categories
+        example:
+        - bug
+        - urgent
+        items:
+          type: string
+        type: array
+      ticket_number:
+        description: Auto-generated unique number
+        example: TKT-000001
+        type: string
+      updated_at:
+        example: "2024-01-13T15:30:00Z"
+        type: string
+    type: object
+  models.TicketChannel:
+    enum:
+    - email
+    - chat
+    - portal
+    - phone
+    type: string
+    x-enum-varnames:
+    - TicketChannelEmail
+    - TicketChannelChat
+    - TicketChannelPortal
+    - TicketChannelPhone
+  models.TicketComment:
+    description: Comment or internal note on a support ticket
+    properties:
+      attachments:
+        description: Attachments
+        items:
+          type: string
+        type: array
+      content:
+        example: Customer has been contacted via email
+        type: string
+      created_at:
+        description: Timestamps
+        example: "2024-01-13T11:00:00Z"
+        type: string
+      created_by:
+        description: Author
+        example: 507f1f77bcf86cd799439011
+        type: string
+      id:
+        example: 507f1f77bcf86cd799439011
+        type: string
+      is_internal:
+        description: Internal notes vs customer-visible comments
+        example: false
+        type: boolean
+      ticket_id:
+        example: 507f1f77bcf86cd799439011
+        type: string
+      updated_at:
+        example: "2024-01-13T11:00:00Z"
+        type: string
+    type: object
+  models.TicketPriority:
+    enum:
+    - low
+    - medium
+    - high
+    - urgent
+    type: string
+    x-enum-varnames:
+    - TicketPriorityLow
+    - TicketPriorityMedium
+    - TicketPriorityHigh
+    - TicketPriorityUrgent
+  models.TicketStatus:
+    enum:
+    - new
+    - open
+    - pending
+    - resolved
+    - closed
+    type: string
+    x-enum-varnames:
+    - TicketStatusNew
+    - TicketStatusOpen
+    - TicketStatusPending
+    - TicketStatusResolved
+    - TicketStatusClosed
   models.User:
     properties:
       created_at:
@@ -406,6 +775,9 @@ definitions:
       last_name:
         type: string
       phone:
+        type: string
+      reports_to:
+        description: Manager ID
         type: string
       roles:
         description: References to Role IDs
@@ -546,6 +918,210 @@ paths:
       summary: Update automation rule
       tags:
       - automation
+  /api/groups:
+    get:
+      description: Retrieve all groups
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Group'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get all groups
+      tags:
+      - groups
+    post:
+      consumes:
+      - application/json
+      description: Create a new group with permissions
+      parameters:
+      - description: Group object
+        in: body
+        name: group
+        required: true
+        schema:
+          $ref: '#/definitions/models.Group'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.Group'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create a new group
+      tags:
+      - groups
+  /api/groups/{id}:
+    delete:
+      description: Delete a group by ID
+      parameters:
+      - description: Group ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete a group
+      tags:
+      - groups
+    get:
+      description: Retrieve a specific group
+      parameters:
+      - description: Group ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Group'
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get a group by ID
+      tags:
+      - groups
+    put:
+      consumes:
+      - application/json
+      description: Update group details and permissions
+      parameters:
+      - description: Group ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Group object
+        in: body
+        name: group
+        required: true
+        schema:
+          $ref: '#/definitions/models.Group'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Update a group
+      tags:
+      - groups
+  /api/groups/{id}/members:
+    post:
+      consumes:
+      - application/json
+      description: Add a user to a group
+      parameters:
+      - description: Group ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: User ID
+        in: body
+        name: body
+        required: true
+        schema:
+          additionalProperties:
+            type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Add member to group
+      tags:
+      - groups
+  /api/groups/{id}/members/{userId}:
+    delete:
+      consumes:
+      - application/json
+      description: Remove a user from a group
+      parameters:
+      - description: Group ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Remove member from group
+      tags:
+      - groups
   /api/reports:
     get:
       produces:
@@ -802,6 +1378,127 @@ paths:
       summary: Get current user info
       tags:
       - debug
+  /escalation-rules:
+    get:
+      description: Get all escalation rules
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.EscalationRule'
+            type: array
+      summary: List escalation rules
+      tags:
+      - escalation-rules
+    post:
+      consumes:
+      - application/json
+      description: Create a new escalation rule
+      parameters:
+      - description: Escalation Rule Data
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/models.EscalationRule'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            type: string
+      summary: Create escalation rule
+      tags:
+      - escalation-rules
+  /escalation-rules/{id}:
+    delete:
+      description: Delete an escalation rule by ID
+      parameters:
+      - description: Rule ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid input
+          schema:
+            type: string
+      summary: Delete escalation rule
+      tags:
+      - escalation-rules
+    get:
+      description: Get an escalation rule by ID
+      parameters:
+      - description: Rule ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.EscalationRule'
+        "404":
+          description: Not Found
+          schema:
+            type: string
+      summary: Get escalation rule
+      tags:
+      - escalation-rules
+    put:
+      consumes:
+      - application/json
+      description: Update an escalation rule by ID
+      parameters:
+      - description: Rule ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update Data
+        in: body
+        name: input
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid input
+          schema:
+            type: string
+      summary: Update escalation rule
+      tags:
+      - escalation-rules
   /health:
     get:
       consumes:
@@ -1311,6 +2008,511 @@ paths:
       summary: Update a role
       tags:
       - roles
+  /settings/email:
+    get:
+      description: Get current SMTP settings
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.EmailConfig'
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get Email Configuration
+      tags:
+      - settings
+    put:
+      consumes:
+      - application/json
+      description: Update SMTP settings
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Update Email Configuration
+      tags:
+      - settings
+  /sla-policies:
+    get:
+      description: Get all SLA policies
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.SLAPolicy'
+            type: array
+      summary: List SLA policies
+      tags:
+      - sla-policies
+    post:
+      consumes:
+      - application/json
+      description: Create a new SLA policy
+      parameters:
+      - description: SLA Policy Data
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/models.SLAPolicy'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            type: string
+      summary: Create SLA policy
+      tags:
+      - sla-policies
+  /sla-policies/{id}:
+    delete:
+      description: Delete an SLA policy by ID
+      parameters:
+      - description: Policy ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid input
+          schema:
+            type: string
+      summary: Delete SLA policy
+      tags:
+      - sla-policies
+    get:
+      description: Get an SLA policy by ID
+      parameters:
+      - description: Policy ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.SLAPolicy'
+        "404":
+          description: Not Found
+          schema:
+            type: string
+      summary: Get SLA policy
+      tags:
+      - sla-policies
+    put:
+      consumes:
+      - application/json
+      description: Update an SLA policy by ID
+      parameters:
+      - description: Policy ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update Data
+        in: body
+        name: input
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid input
+          schema:
+            type: string
+      summary: Update SLA policy
+      tags:
+      - sla-policies
+  /tickets:
+    get:
+      consumes:
+      - application/json
+      description: Get tickets with filtering and pagination
+      parameters:
+      - description: Page number (default 1)
+        in: query
+        name: page
+        type: integer
+      - description: Records per page (default 10)
+        in: query
+        name: limit
+        type: integer
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      - description: Filter by priority
+        in: query
+        name: priority
+        type: string
+      - description: Filter by channel
+        in: query
+        name: channel
+        type: string
+      - description: Search by ticket number, subject, or customer
+        in: query
+        name: search
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Ticket'
+            type: array
+        "400":
+          description: Invalid input
+          schema:
+            type: string
+      summary: List tickets
+      tags:
+      - tickets
+    post:
+      consumes:
+      - application/json
+      description: Create a new support ticket
+      parameters:
+      - description: Ticket Data
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/models.Ticket'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            type: string
+      summary: Create a new ticket
+      tags:
+      - tickets
+  /tickets/{id}:
+    delete:
+      description: Delete a ticket by ID
+      parameters:
+      - description: Ticket ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid input
+          schema:
+            type: string
+      summary: Delete a ticket
+      tags:
+      - tickets
+    get:
+      description: Get a ticket by ID
+      parameters:
+      - description: Ticket ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Ticket'
+        "404":
+          description: Not Found
+          schema:
+            type: string
+      summary: Get a ticket
+      tags:
+      - tickets
+    put:
+      consumes:
+      - application/json
+      description: Update a ticket by ID
+      parameters:
+      - description: Ticket ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update Data
+        in: body
+        name: input
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid input
+          schema:
+            type: string
+      summary: Update a ticket
+      tags:
+      - tickets
+  /tickets/{id}/assign:
+    patch:
+      consumes:
+      - application/json
+      description: Assign a ticket to a user
+      parameters:
+      - description: Ticket ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Assignment Data
+        in: body
+        name: input
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid input
+          schema:
+            type: string
+      summary: Assign ticket
+      tags:
+      - tickets
+  /tickets/{id}/comments:
+    get:
+      description: Get all comments for a ticket
+      parameters:
+      - description: Ticket ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.TicketComment'
+            type: array
+        "400":
+          description: Invalid input
+          schema:
+            type: string
+      summary: List ticket comments
+      tags:
+      - tickets
+    post:
+      consumes:
+      - application/json
+      description: Add a comment or note to a ticket
+      parameters:
+      - description: Ticket ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Comment Data
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/models.TicketComment'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid input
+          schema:
+            type: string
+      summary: Add comment to ticket
+      tags:
+      - tickets
+  /tickets/{id}/status:
+    patch:
+      consumes:
+      - application/json
+      description: Update the status of a ticket
+      parameters:
+      - description: Ticket ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Status Data
+        in: body
+        name: input
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid input
+          schema:
+            type: string
+      summary: Update ticket status
+      tags:
+      - tickets
+  /tickets/customer/{customerId}:
+    get:
+      description: Get all tickets for a specific customer
+      parameters:
+      - description: Customer ID
+        in: path
+        name: customerId
+        required: true
+        type: string
+      - description: Page number (default 1)
+        in: query
+        name: page
+        type: integer
+      - description: Records per page (default 10)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Ticket'
+            type: array
+        "400":
+          description: Invalid input
+          schema:
+            type: string
+      summary: Get customer tickets
+      tags:
+      - tickets
+  /tickets/my:
+    get:
+      description: Get tickets assigned to the current user
+      parameters:
+      - description: Page number (default 1)
+        in: query
+        name: page
+        type: integer
+      - description: Records per page (default 10)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Ticket'
+            type: array
+        "400":
+          description: Invalid input
+          schema:
+            type: string
+      summary: Get my tickets
+      tags:
+      - tickets
   /upload:
     post:
       consumes:
