@@ -6,9 +6,12 @@ import (
 	"fmt"
 	"go-crm/internal/models"
 	"go-crm/internal/repository"
-	"net/http"
 	"strings"
+
+	"net/http"
 	"time"
+
+	"github.com/d5/tengo/v2"
 )
 
 type AutomationService interface {
@@ -250,7 +253,147 @@ func (s *AutomationServiceImpl) executeActions(ctx context.Context, actions []mo
 					"action": {New: fmt.Sprintf("Triggered Webhook: %s", url)},
 				})
 			}
+
+		case models.ActionRunScript:
+			scriptContent, _ := action.Config["script_content"].(string)
+			// Fallback for backward compatibility or if user used the old UI
+			if scriptContent == "" {
+				scriptContent, _ = action.Config["script"].(string)
+				// If it was a name (e.g. "deduct_inventory"), we strictly need content now.
+				// For this transition, we might fails if it's just a name
+				// unless we load it from DB?
+				// Let's assume the UI sends content now.
+			}
+
+			if scriptContent != "" {
+				if err := s.executeDynamicScript(ctx, scriptContent, moduleName, record); err != nil {
+					fmt.Printf("Error running dynamic script: %v\n", err)
+				} else {
+					if s.AuditService != nil {
+						recID := ""
+						if idRaw, ok := record["_id"]; ok {
+							idHex := fmt.Sprintf("%v", idRaw)
+							recID = strings.TrimPrefix(strings.TrimSuffix(idHex, ")"), "ObjectID(\"")
+						}
+						_ = s.AuditService.LogChange(ctx, models.AuditActionAutomation, moduleName, recID, map[string]models.Change{
+							"action": {New: "Ran Dynamic Script"},
+						})
+					}
+				}
+			}
 		}
 	}
 	return nil
+}
+
+func (s *AutomationServiceImpl) executeDynamicScript(ctx context.Context, scriptContent string, moduleName string, record map[string]interface{}) error {
+	script := tengo.NewScript([]byte(scriptContent))
+
+	// Define 'modules' object
+	modulesMap := map[string]tengo.Object{
+		"get": &tengo.UserFunction{
+			Name: "get",
+			Value: func(args ...tengo.Object) (tengo.Object, error) {
+				if len(args) != 2 {
+					return nil, tengo.ErrWrongNumArguments
+				}
+				mod, ok1 := tengo.ToString(args[0])
+				id, ok2 := tengo.ToString(args[1])
+				if !ok1 || !ok2 {
+					return nil, tengo.ErrInvalidArgumentType{
+						Name: "first and second arguments must be string",
+					}
+				}
+
+				res, err := s.RecordRepo.Get(ctx, mod, id)
+				if err != nil {
+					return tengo.UndefinedValue, nil // Return undefined on not found/error
+				}
+				return tengo.FromInterface(res)
+			},
+		},
+		"list": &tengo.UserFunction{
+			Name: "list",
+			Value: func(args ...tengo.Object) (tengo.Object, error) {
+				if len(args) != 2 {
+					return nil, tengo.ErrWrongNumArguments
+				}
+				mod, ok1 := tengo.ToString(args[0])
+				filterMap, ok2 := tengo.ToInterface(args[1]).(map[string]interface{})
+				if !ok1 || !ok2 {
+					// try converting filter directly?
+					// Tengo objects to interface map
+					// simpler: return error
+					return nil, tengo.ErrInvalidArgumentType{
+						Name: "arguments: module(string), filter(map)",
+					}
+				}
+
+				// Convert filter values
+				f := make(map[string]interface{})
+				for k, v := range filterMap {
+					f[k] = v
+				}
+
+				res, err := s.RecordRepo.List(ctx, mod, f, 100, 0, "created_at", -1)
+				if err != nil {
+					return &tengo.Array{}, nil
+				}
+				return tengo.FromInterface(res)
+			},
+		},
+		"update": &tengo.UserFunction{
+			Name: "update",
+			Value: func(args ...tengo.Object) (tengo.Object, error) {
+				if len(args) != 3 {
+					return nil, tengo.ErrWrongNumArguments
+				}
+				mod, ok1 := tengo.ToString(args[0])
+				id, ok2 := tengo.ToString(args[1])
+				dataMap, ok3 := tengo.ToInterface(args[2]).(map[string]interface{})
+
+				if !ok1 || !ok2 || !ok3 {
+					return nil, tengo.ErrInvalidArgumentType{
+						Name: "module(string), id(string), data(map)",
+					}
+				}
+
+				// Only allow updating non-system fields?
+				// For now allow all except _id
+				delete(dataMap, "_id")
+				delete(dataMap, "id")
+
+				err := s.RecordRepo.Update(ctx, mod, id, dataMap)
+				if err != nil {
+					return tengo.FalseValue, nil
+				}
+				return tengo.TrueValue, nil
+			},
+		},
+	}
+
+	script.Add("modules", &tengo.ImmutableMap{Value: modulesMap})
+
+	// Add 'record_id' and 'module_name' as context
+	if idRaw, ok := record["_id"]; ok {
+		idHex := fmt.Sprintf("%v", idRaw)
+		recID := strings.TrimPrefix(strings.TrimSuffix(idHex, ")"), "ObjectID(\"")
+		script.Add("record_id", recID)
+	}
+	script.Add("context_module", moduleName)
+
+	// Add simple logging
+	script.Add("log", &tengo.UserFunction{
+		Name: "log",
+		Value: func(args ...tengo.Object) (tengo.Object, error) {
+			for _, arg := range args {
+				fmt.Printf("[SCRIPT LOG] %v ", arg)
+			}
+			fmt.Println()
+			return tengo.UndefinedValue, nil
+		},
+	})
+
+	_, err := script.Run()
+	return err
 }

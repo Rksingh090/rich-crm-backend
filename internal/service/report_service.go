@@ -120,8 +120,6 @@ func (s *ReportServiceImpl) ExportReport(ctx context.Context, id string, format 
 	}
 
 	// Fetch Data (All)
-	// Fetch Data (All)
-	// Fetch Data (All)
 	records, _, err := s.RecordService.ListRecords(ctx, report.ModuleID, report.Filters, 1, 100000, "created_at", "desc", userID)
 	if err != nil {
 		return nil, "", err

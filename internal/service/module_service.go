@@ -172,10 +172,10 @@ func (s *ModuleServiceImpl) UpdateModule(ctx context.Context, module *models.Mod
 
 		for _, depMod := range dependentModules {
 			for _, f := range depMod.Fields {
-				if f.Type == "lookup" && f.Lookup != nil && f.Lookup.Module == module.Name {
+				if f.Type == "lookup" && f.Lookup != nil && f.Lookup.LookupModule == module.Name {
 					// Check if the display_field in the dependent module matches a removed field
 					for _, removed := range removedFields {
-						if f.Lookup.DisplayField == removed {
+						if f.Lookup.LookupLabel == removed {
 							return fmt.Errorf("cannot remove field '%s', it is used as display field in module '%s' (field: '%s')", removed, depMod.Name, f.Name)
 						}
 					}

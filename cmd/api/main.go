@@ -154,6 +154,7 @@ func main() {
 			repository.NewExtensionRepository,
 			repository.NewSyncSettingRepository,
 			repository.NewSyncLogRepository,
+			repository.NewChartRepository,
 
 			service.NewAuditService,
 			service.NewAuthService,
@@ -174,6 +175,9 @@ func main() {
 			service.NewWebhookService,
 			service.NewExtensionService,
 			service.NewSyncService,
+			service.NewSearchService,
+			service.NewChartService,
+			service.NewActivityService,
 
 			// Initialize Controller
 			controllers.NewAdminController,
@@ -195,6 +199,9 @@ func main() {
 			controllers.NewWebhookController,
 			controllers.NewExtensionController,
 			controllers.NewSyncController,
+			controllers.NewSearchController,
+			controllers.NewChartController,
+			controllers.NewActivityController,
 
 			// Initialize API Routes
 			AsRoute(api.NewAdminApi),
@@ -217,6 +224,9 @@ func main() {
 			AsRoute(api.NewWebhookApi),
 			AsRoute(api.NewExtensionApi),
 			AsRoute(api.NewSyncApi),
+			AsRoute(api.NewSearchApi),
+			AsRoute(api.NewChartApi),
+			AsRoute(api.NewActivityApi),
 		),
 		fx.WithLogger(func(log *zap.Logger) fxevent.Logger {
 			return &fxevent.ZapLogger{Logger: log}

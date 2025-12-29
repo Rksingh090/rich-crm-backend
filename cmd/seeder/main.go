@@ -150,7 +150,7 @@ func generateSampleData(mod models.Module, id primitive.ObjectID, moduleIDs map[
 			}
 		case models.FieldTypeLookup:
 			if field.Lookup != nil {
-				targetModule := field.Lookup.Module
+				targetModule := field.Lookup.LookupModule
 				if targetIDs, ok := moduleIDs[targetModule]; ok && len(targetIDs) > 0 {
 					// Pick random ID
 					targetID := targetIDs[rand.Intn(len(targetIDs))]

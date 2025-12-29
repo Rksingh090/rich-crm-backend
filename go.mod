@@ -3,6 +3,7 @@ module go-crm
 go 1.25.2
 
 require (
+	github.com/d5/tengo/v2 v2.17.0
 	github.com/gofiber/contrib/websocket v1.3.4
 	github.com/gofiber/fiber/v2 v2.52.6
 	github.com/gofiber/swagger v1.1.1

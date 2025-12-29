@@ -31,3 +31,17 @@ type WebhookPayload struct {
 	Data      map[string]interface{} `json:"data,omitempty"` // The record data or changes
 	Timestamp time.Time              `json:"timestamp"`
 }
+
+// WebhookLog represents a single execution of a webhook
+type WebhookLog struct {
+	ID         primitive.ObjectID `json:"id" bson:"_id,omitempty"`
+	WebhookID  primitive.ObjectID `json:"webhook_id" bson:"webhook_id"`
+	URL        string             `json:"url" bson:"url"`
+	Event      string             `json:"event" bson:"event"`
+	Request    WebhookPayload     `json:"request" bson:"request"`
+	Response   string             `json:"response,omitempty" bson:"response,omitempty"` // Body or error message
+	StatusCode int                `json:"status_code" bson:"status_code"`
+	Success    bool               `json:"success" bson:"success"`
+	Duration   int64              `json:"duration" bson:"duration"` // Duration in milliseconds
+	CreatedAt  time.Time          `json:"created_at" bson:"created_at"`
+}

@@ -40,9 +40,10 @@ func (s *AuthServiceImpl) Register(ctx context.Context, username, password, emai
 	userRole, err := s.RoleRepo.FindByName(ctx, "user")
 	var roleIDs []primitive.ObjectID
 
-	if err == nil {
+	switch err {
+	case nil:
 		roleIDs = append(roleIDs, userRole.ID)
-	} else if err == mongo.ErrNoDocuments {
+	case mongo.ErrNoDocuments:
 		// Create default role if not exists (Bootstrap)
 		newRole := models.Role{
 			ID:                primitive.NewObjectID(),
@@ -56,7 +57,7 @@ func (s *AuthServiceImpl) Register(ctx context.Context, username, password, emai
 		if err := s.RoleRepo.Create(ctx, &newRole); err == nil {
 			roleIDs = append(roleIDs, newRole.ID)
 		}
-	} else {
+	default:
 		return nil, err
 	}
 

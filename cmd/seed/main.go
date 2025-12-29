@@ -149,7 +149,7 @@ func Seed(
 							{Name: "last_name", Label: "Last Name", Type: models.FieldTypeText, Required: true},
 							{Name: "email", Label: "Email", Type: models.FieldTypeEmail, Required: true},
 							{Name: "phone", Label: "Phone", Type: models.FieldTypePhone, Required: false},
-							{Name: "account", Label: "Account", Type: models.FieldTypeLookup, Required: false, Lookup: &models.LookupDef{Module: "accounts", DisplayField: "name", ValueField: "_id"}},
+							{Name: "account", Label: "Account", Type: models.FieldTypeLookup, Required: false, Lookup: &models.LookupDef{LookupModule: "accounts", LookupLabel: "name", ValueField: "_id"}},
 							{Name: "title", Label: "Job Title", Type: models.FieldTypeText, Required: false},
 						},
 					},
@@ -175,7 +175,7 @@ func Seed(
 							{Name: "amount", Label: "Amount", Type: models.FieldTypeCurrency, Required: true},
 							{Name: "stage", Label: "Stage", Type: models.FieldTypeSelect, Required: true, Options: []models.SelectOptions{{Label: "Prospecting", Value: "Prospecting"}, {Label: "Negotiation", Value: "Negotiation"}, {Label: "Closed Won", Value: "Closed Won"}, {Label: "Closed Lost", Value: "Closed Lost"}}},
 							{Name: "close_date", Label: "Close Date", Type: models.FieldTypeDate, Required: true},
-							{Name: "account", Label: "Account", Type: models.FieldTypeLookup, Required: false, Lookup: &models.LookupDef{Module: "accounts", DisplayField: "name", ValueField: "_id"}},
+							{Name: "account", Label: "Account", Type: models.FieldTypeLookup, Required: false, Lookup: &models.LookupDef{LookupModule: "accounts", LookupLabel: "name", ValueField: "_id"}},
 						},
 					},
 					{
@@ -196,7 +196,7 @@ func Seed(
 						IsSystem: true,
 						Fields: []models.ModuleField{
 							{Name: "order_number", Label: "Order Number", Type: models.FieldTypeText, Required: true},
-							{Name: "account", Label: "Customer", Type: models.FieldTypeLookup, Required: true, Lookup: &models.LookupDef{Module: "accounts", DisplayField: "name", ValueField: "_id"}},
+							{Name: "account", Label: "Customer", Type: models.FieldTypeLookup, Required: true, Lookup: &models.LookupDef{LookupModule: "accounts", LookupLabel: "name", ValueField: "_id"}},
 							{Name: "amount", Label: "Total Amount", Type: models.FieldTypeCurrency, Required: true},
 							{Name: "order_date", Label: "Order Date", Type: models.FieldTypeDate, Required: true},
 							{Name: "status", Label: "Status", Type: models.FieldTypeSelect, Required: true, Options: []models.SelectOptions{{Label: "Pending", Value: "Pending"}, {Label: "Completed", Value: "Completed"}, {Label: "Cancelled", Value: "Cancelled"}}},

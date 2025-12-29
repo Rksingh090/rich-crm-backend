@@ -213,9 +213,10 @@ func (s *RoleServiceImpl) GetFieldPermissions(ctx context.Context, userID primit
 						// Least Restrictive logic:
 						// If any role says read_write, it's read_write.
 						// If any role says read_only (and no read_write), it's read_only.
-						if p == models.FieldPermReadWrite {
+						switch p {
+						case models.FieldPermReadWrite:
 							finalPerms[field] = models.FieldPermReadWrite
-						} else if p == models.FieldPermReadOnly {
+						case models.FieldPermReadOnly:
 							if current == models.FieldPermNone {
 								finalPerms[field] = models.FieldPermReadOnly
 							}

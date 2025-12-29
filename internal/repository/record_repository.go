@@ -18,6 +18,7 @@ type RecordRepository interface {
 	Count(ctx context.Context, moduleName string, filter map[string]any) (int64, error)
 	Update(ctx context.Context, moduleName, id string, data map[string]any) error
 	Delete(ctx context.Context, moduleName, id string) error
+	Aggregate(ctx context.Context, moduleName string, pipeline mongo.Pipeline) ([]map[string]any, error)
 }
 
 type RecordRepositoryImpl struct {
@@ -109,4 +110,19 @@ func (r *RecordRepositoryImpl) Count(ctx context.Context, moduleName string, fil
 		return 0, err
 	}
 	return count, nil
+}
+
+func (r *RecordRepositoryImpl) Aggregate(ctx context.Context, moduleName string, pipeline mongo.Pipeline) ([]map[string]any, error) {
+	collectionName := fmt.Sprintf("module_%s", moduleName)
+	cursor, err := r.DB.Collection(collectionName).Aggregate(ctx, pipeline)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var results []map[string]any
+	if err := cursor.All(ctx, &results); err != nil {
+		return nil, err
+	}
+	return results, nil
 }

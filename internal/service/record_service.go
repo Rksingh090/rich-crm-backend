@@ -531,12 +531,12 @@ func (s *RecordServiceImpl) populateLookups(ctx context.Context, fields []models
 
 				if idStr != "" {
 					// Fetch Referenced Record
-					refRecord, err := s.RecordRepo.Get(ctx, field.Lookup.Module, idStr)
+					refRecord, err := s.RecordRepo.Get(ctx, field.Lookup.LookupModule, idStr)
 					if err == nil {
 						// Determine Display Field
 						displayField := "name" // Default
-						if field.Lookup.DisplayField != "" {
-							displayField = field.Lookup.DisplayField
+						if field.Lookup.LookupLabel != "" {
+							displayField = field.Lookup.LookupLabel
 						}
 
 						displayValue, _ := refRecord[displayField]
@@ -622,13 +622,13 @@ func (s *RecordServiceImpl) validateAndConvert(ctx context.Context, field models
 		}
 
 		// Integrity Check
-		if field.Lookup != nil && field.Lookup.Module != "" {
+		if field.Lookup != nil && field.Lookup.LookupModule != "" {
 			// Check if referenced record exists
 			// We use Get from RecordRepo. Ideally, we might want a simpler "Exists" method, but Get works.
-			_, err := s.RecordRepo.Get(ctx, field.Lookup.Module, strVal)
+			_, err := s.RecordRepo.Get(ctx, field.Lookup.LookupModule, strVal)
 			if err != nil {
 				if err == mongo.ErrNoDocuments {
-					return nil, fmt.Errorf("referenced record in module '%s' not found", field.Lookup.Module)
+					return nil, fmt.Errorf("referenced record in module '%s' not found", field.Lookup.LookupModule)
 				}
 				// If other error, we might log it but assume it's okay or fail?
 				// Let's be strict: if we can't verify, we assume invalid to maintain integrity.
@@ -699,9 +699,10 @@ func (s *RecordServiceImpl) getFieldPermissions(ctx context.Context, userID prim
 						// if p == models.FieldPermReadOnly && current == models.FieldPermNone { finalPerms[field] = models.FieldPermReadOnly }
 
 						// Let's stick to simple "Least Restrictive"
-						if p == models.FieldPermReadWrite {
+						switch p {
+						case models.FieldPermReadWrite:
 							finalPerms[field] = models.FieldPermReadWrite
-						} else if p == models.FieldPermReadOnly {
+						case models.FieldPermReadOnly:
 							if current == models.FieldPermNone {
 								finalPerms[field] = models.FieldPermReadOnly
 							}

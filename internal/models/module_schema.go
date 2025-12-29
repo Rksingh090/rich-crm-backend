@@ -40,8 +40,8 @@ type ModuleField struct {
 }
 
 type LookupDef struct {
-	Module       string `json:"module" bson:"module"`               // Target Module Name
-	DisplayField string `json:"display_field" bson:"display_field"` // Target Field to display in UI
+	LookupModule string `json:"lookup_module" bson:"lookup_module"` // Target Module Name
+	LookupLabel  string `json:"lookup_label" bson:"lookup_label"`   // Target Field to display in UI (e.g. name)
 	ValueField   string `json:"value_field" bson:"value_field"`     // Target Field to store (usually _id)
 }
 
