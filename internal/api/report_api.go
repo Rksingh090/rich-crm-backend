@@ -33,4 +33,9 @@ func (api *ReportApi) Setup(app *fiber.App) {
 	group.Delete("/:id", middleware.RequirePermission(api.RoleService, "reports", "delete"), api.ReportController.Delete)
 	group.Get("/:id/run", middleware.RequirePermission(api.RoleService, "reports", "read"), api.ReportController.Run)
 	group.Get("/:id/export", middleware.RequirePermission(api.RoleService, "reports", "read"), api.ReportController.Export)
+
+	// Advanced reporting endpoints
+	group.Post("/pivot", middleware.RequirePermission(api.RoleService, "reports", "read"), api.ReportController.RunPivot)
+	group.Post("/cross-module", middleware.RequirePermission(api.RoleService, "reports", "read"), api.ReportController.RunCrossModule)
+	group.Post("/export-excel", middleware.RequirePermission(api.RoleService, "reports", "read"), api.ReportController.ExportExcel)
 }

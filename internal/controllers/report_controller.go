@@ -163,3 +163,112 @@ func (c *ReportController) Export(ctx *fiber.Ctx) error {
 	ctx.Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", filename))
 	return ctx.Send(data)
 }
+
+// RunPivotReport godoc
+// @Summary Run a pivot table report
+// @Tags Reports
+// @Accept json
+// @Produce json
+// @Param request body models.PivotConfig true "Pivot Configuration"
+// @Param module query string true "Module Name"
+// @Success 200 {object} object
+// @Router /api/reports/pivot [post]
+func (c *ReportController) RunPivot(ctx *fiber.Ctx) error {
+	var config models.PivotConfig
+	if err := ctx.BodyParser(&config); err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request body"})
+	}
+
+	moduleName := ctx.Query("module")
+	if moduleName == "" {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "module query parameter is required"})
+	}
+
+	// Get user ID from context
+	userIDStr, ok := ctx.Locals("userID").(string)
+	if !ok {
+		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "User ID not found"})
+	}
+	userID, err := primitive.ObjectIDFromHex(userIDStr)
+	if err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid user ID"})
+	}
+
+	// Parse filters from query
+	filters := make(map[string]any)
+
+	result, err := c.ReportService.RunPivotReport(ctx.Context(), &config, moduleName, filters, userID)
+	if err != nil {
+		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	return ctx.JSON(result)
+}
+
+// RunCrossModuleReport godoc
+// @Summary Run a cross-module report
+// @Tags Reports
+// @Accept json
+// @Produce json
+// @Param request body models.CrossModuleConfig true "Cross Module Configuration"
+// @Success 200 {array} object
+// @Router /api/reports/cross-module [post]
+func (c *ReportController) RunCrossModule(ctx *fiber.Ctx) error {
+	var config models.CrossModuleConfig
+	if err := ctx.BodyParser(&config); err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request body"})
+	}
+
+	// Get user ID from context
+	userIDStr, ok := ctx.Locals("userID").(string)
+	if !ok {
+		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "User ID not found"})
+	}
+	userID, err := primitive.ObjectIDFromHex(userIDStr)
+	if err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid user ID"})
+	}
+
+	// Parse filters from query
+	filters := make(map[string]any)
+
+	result, err := c.ReportService.RunCrossModuleReport(ctx.Context(), &config, filters, userID)
+	if err != nil {
+		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	return ctx.JSON(result)
+}
+
+// ExportToExcel godoc
+// @Summary Export data to Excel
+// @Tags Reports
+// @Accept json
+// @Produce application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+// @Param request body object true "Export Request"
+// @Success 200 {file} file
+// @Router /api/reports/export-excel [post]
+func (c *ReportController) ExportExcel(ctx *fiber.Ctx) error {
+	var request struct {
+		Data     []map[string]any `json:"data"`
+		Columns  []string         `json:"columns"`
+		Filename string           `json:"filename"`
+	}
+
+	if err := ctx.BodyParser(&request); err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request body"})
+	}
+
+	if request.Filename == "" {
+		request.Filename = fmt.Sprintf("export_%d", int64(primitive.NewObjectID().Timestamp().Unix()))
+	}
+
+	data, filename, err := c.ReportService.ExportToExcel(ctx.Context(), request.Data, request.Columns, request.Filename)
+	if err != nil {
+		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	ctx.Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+	ctx.Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", filename))
+	return ctx.Send(data)
+}

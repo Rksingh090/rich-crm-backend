@@ -9,14 +9,16 @@ import (
 )
 
 type TicketApi struct {
-	controller *controllers.TicketController
-	config     *config.Config
+	controller        *controllers.TicketController
+	metricsController *controllers.SLAMetricsController
+	config            *config.Config
 }
 
-func NewTicketApi(controller *controllers.TicketController, config *config.Config) *TicketApi {
+func NewTicketApi(controller *controllers.TicketController, metricsController *controllers.SLAMetricsController, config *config.Config) *TicketApi {
 	return &TicketApi{
-		controller: controller,
-		config:     config,
+		controller:        controller,
+		metricsController: metricsController,
+		config:            config,
 	}
 }
 
@@ -38,6 +40,9 @@ func (h *TicketApi) Setup(app *fiber.App) {
 	tickets.Patch("/:id/status", h.controller.UpdateStatus)
 	tickets.Patch("/:id/assign", h.controller.AssignTicket)
 
+	// Ticket SLA status
+	tickets.Get("/:id/sla-status", h.metricsController.GetTicketSLAStatus)
+
 	// Comments
 	tickets.Post("/:id/comments", h.controller.AddComment)
 	tickets.Get("/:id/comments", h.controller.ListComments)
@@ -49,6 +54,12 @@ func (h *TicketApi) Setup(app *fiber.App) {
 	slaPolicies.Get("/:id", h.controller.GetSLAPolicy)
 	slaPolicies.Put("/:id", h.controller.UpdateSLAPolicy)
 	slaPolicies.Delete("/:id", h.controller.DeleteSLAPolicy)
+
+	// SLA Metrics routes
+	slaMetrics := app.Group("/api/sla-metrics", middleware.AuthMiddleware(h.config.SkipAuth))
+	slaMetrics.Get("/overview", h.metricsController.GetOverview)
+	slaMetrics.Get("/violations", h.metricsController.GetViolations)
+	slaMetrics.Get("/trends", h.metricsController.GetTrends)
 
 	// Escalation Rule routes
 	escalationRules := app.Group("/api/escalation-rules", middleware.AuthMiddleware(h.config.SkipAuth))
