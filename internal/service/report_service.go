@@ -31,13 +31,15 @@ type ReportServiceImpl struct {
 	ReportRepo    repository.ReportRepository
 	RecordService RecordService
 	ModuleService ModuleService
+	AuditService  AuditService
 }
 
-func NewReportService(reportRepo repository.ReportRepository, recordService RecordService, moduleService ModuleService) ReportService {
+func NewReportService(reportRepo repository.ReportRepository, recordService RecordService, moduleService ModuleService, auditService AuditService) ReportService {
 	return &ReportServiceImpl{
 		ReportRepo:    reportRepo,
 		RecordService: recordService,
 		ModuleService: moduleService,
+		AuditService:  auditService,
 	}
 }
 
@@ -45,7 +47,13 @@ func (s *ReportServiceImpl) CreateReport(ctx context.Context, report *models.Rep
 	if report.ID.IsZero() {
 		report.ID = primitive.NewObjectID()
 	}
-	return s.ReportRepo.Create(ctx, report)
+	err := s.ReportRepo.Create(ctx, report)
+	if err == nil {
+		s.AuditService.LogChange(ctx, models.AuditActionReport, "reports", report.ID.Hex(), map[string]models.Change{
+			"report": {New: report},
+		})
+	}
+	return err
 }
 
 func (s *ReportServiceImpl) GetReport(ctx context.Context, id string) (*models.Report, error) {
@@ -57,11 +65,33 @@ func (s *ReportServiceImpl) ListReports(ctx context.Context) ([]models.Report, e
 }
 
 func (s *ReportServiceImpl) UpdateReport(ctx context.Context, id string, report *models.Report) error {
-	return s.ReportRepo.Update(ctx, id, report)
+	// Get old report for audit
+	oldReport, _ := s.GetReport(ctx, id)
+
+	err := s.ReportRepo.Update(ctx, id, report)
+	if err == nil {
+		s.AuditService.LogChange(ctx, models.AuditActionReport, "reports", id, map[string]models.Change{
+			"report": {Old: oldReport, New: report},
+		})
+	}
+	return err
 }
 
 func (s *ReportServiceImpl) DeleteReport(ctx context.Context, id string) error {
-	return s.ReportRepo.Delete(ctx, id)
+	// Get old report for audit
+	oldReport, _ := s.GetReport(ctx, id)
+
+	err := s.ReportRepo.Delete(ctx, id)
+	if err == nil {
+		name := id
+		if oldReport != nil {
+			name = oldReport.Name
+		}
+		s.AuditService.LogChange(ctx, models.AuditActionReport, "reports", name, map[string]models.Change{
+			"report": {Old: oldReport, New: "DELETED"},
+		})
+	}
+	return err
 }
 
 func (s *ReportServiceImpl) RunReport(ctx context.Context, id string, userID primitive.ObjectID) ([]map[string]any, error) {

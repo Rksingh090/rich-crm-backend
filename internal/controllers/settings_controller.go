@@ -81,15 +81,67 @@ func (c *SettingsController) GetGeneralConfig(ctx *fiber.Ctx) error {
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /settings/general [put]
-func (c *SettingsController) UpdateGeneralConfig(ctx *fiber.Ctx) error {
+func (ctrl *SettingsController) UpdateGeneralConfig(c *fiber.Ctx) error {
 	var config models.GeneralConfig
-	if err := ctx.BodyParser(&config); err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request body"})
+	if err := c.BodyParser(&config); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid request body",
+		})
 	}
 
-	if err := c.Service.UpdateGeneralConfig(ctx.Context(), config); err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+	if err := ctrl.Service.UpdateGeneralConfig(c.Context(), config); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Error updating general settings",
+		})
 	}
 
-	return ctx.JSON(fiber.Map{"message": "Settings updated successfully"})
+	return c.JSON(fiber.Map{
+		"message": "General settings updated successfully",
+	})
+}
+
+// GetFileSharingConfig godoc
+// @Summary      Get file sharing configuration
+// @Description  Get current file sharing settings
+// @Tags         settings
+// @Produce      json
+// @Success      200 {object} models.FileSharingConfig
+// @Router       /settings/file-sharing [get]
+func (ctrl *SettingsController) GetFileSharingConfig(c *fiber.Ctx) error {
+	config, err := ctrl.Service.GetFileSharingConfig(c.Context())
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Error retrieving file sharing settings",
+		})
+	}
+
+	return c.JSON(config)
+}
+
+// UpdateFileSharingConfig godoc
+// @Summary      Update file sharing configuration
+// @Description  Update file sharing settings (admin only)
+// @Tags         settings
+// @Accept       json
+// @Produce      json
+// @Param        config body models.FileSharingConfig true "File Sharing Configuration"
+// @Success      200 {object} map[string]string
+// @Router       /settings/file-sharing [put]
+func (ctrl *SettingsController) UpdateFileSharingConfig(c *fiber.Ctx) error {
+	var config models.FileSharingConfig
+	if err := c.BodyParser(&config); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid request body",
+		})
+	}
+
+	if err := ctrl.Service.UpdateFileSharingConfig(c.Context(), config); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Error updating file sharing settings",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"message": "File sharing settings updated successfully",
+	})
 }

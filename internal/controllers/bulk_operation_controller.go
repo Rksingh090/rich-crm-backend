@@ -19,15 +19,15 @@ func NewBulkOperationController(bulkService service.BulkOperationService) *BulkO
 	}
 }
 
-// PreviewBulkUpdate godoc
-// @Summary Preview bulk update
+// PreviewBulkOperation godoc
+// @Summary Preview bulk operation
 // @Tags Bulk Operations
 // @Accept json
 // @Produce json
 // @Param request body map[string]interface{} true "Preview request"
 // @Success 200 {object} map[string]interface{}
 // @Router /api/bulk/preview [post]
-func (c *BulkOperationController) PreviewBulkUpdate(ctx *fiber.Ctx) error {
+func (c *BulkOperationController) PreviewBulkOperation(ctx *fiber.Ctx) error {
 	var req struct {
 		ModuleName string                 `json:"module_name"`
 		Filters    map[string]interface{} `json:"filters"`
@@ -43,7 +43,7 @@ func (c *BulkOperationController) PreviewBulkUpdate(ctx *fiber.Ctx) error {
 	}
 	userID, _ := primitive.ObjectIDFromHex(userIDStr)
 
-	records, total, err := c.BulkService.PreviewBulkUpdate(ctx.Context(), req.ModuleName, req.Filters, userID)
+	records, total, err := c.BulkService.PreviewBulkOperation(ctx.Context(), req.ModuleName, req.Filters, userID)
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
@@ -75,6 +75,14 @@ func (c *BulkOperationController) CreateBulkOperation(ctx *fiber.Ctx) error {
 	userID, _ := primitive.ObjectIDFromHex(userIDStr)
 	op.UserID = userID
 
+	// Validate Type
+	if op.Type == "" {
+		op.Type = models.BulkTypeUpdate // Default
+	}
+	if op.Type != models.BulkTypeUpdate && op.Type != models.BulkTypeDelete {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid operation type"})
+	}
+
 	if err := c.BulkService.CreateBulkOperation(ctx.Context(), &op); err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
@@ -82,13 +90,13 @@ func (c *BulkOperationController) CreateBulkOperation(ctx *fiber.Ctx) error {
 	return ctx.Status(fiber.StatusCreated).JSON(op)
 }
 
-// ExecuteBulkUpdate godoc
+// ExecuteBulkOperation godoc
 // @Summary Execute bulk operation
 // @Tags Bulk Operations
 // @Param id path string true "Operation ID"
 // @Success 200 {object} map[string]interface{}
 // @Router /api/bulk/operations/{id}/execute [post]
-func (c *BulkOperationController) ExecuteBulkUpdate(ctx *fiber.Ctx) error {
+func (c *BulkOperationController) ExecuteBulkOperation(ctx *fiber.Ctx) error {
 	opID := ctx.Params("id")
 
 	userIDStr, ok := ctx.Locals("userID").(string)
@@ -100,7 +108,7 @@ func (c *BulkOperationController) ExecuteBulkUpdate(ctx *fiber.Ctx) error {
 	// Execute in background
 	go func() {
 		bgCtx := context.Background()
-		c.BulkService.ExecuteBulkUpdate(bgCtx, opID, userID)
+		c.BulkService.ExecuteBulkOperation(bgCtx, opID, userID)
 	}()
 
 	return ctx.JSON(fiber.Map{"message": "Bulk operation started"})

@@ -25,6 +25,7 @@ type DashboardServiceImpl struct {
 	RecordService RecordService
 	ModuleRepo    repository.ModuleRepository
 	ChartService  ChartService
+	AuditService  AuditService
 }
 
 func NewDashboardService(
@@ -32,12 +33,14 @@ func NewDashboardService(
 	recordService RecordService,
 	moduleRepo repository.ModuleRepository,
 	chartService ChartService,
+	auditService AuditService,
 ) DashboardService {
 	return &DashboardServiceImpl{
 		DashboardRepo: dashboardRepo,
 		RecordService: recordService,
 		ModuleRepo:    moduleRepo,
 		ChartService:  chartService,
+		AuditService:  auditService,
 	}
 }
 
@@ -49,7 +52,13 @@ func (s *DashboardServiceImpl) CreateDashboard(ctx context.Context, dashboard *m
 		return err
 	}
 
-	return s.DashboardRepo.Create(ctx, dashboard)
+	err := s.DashboardRepo.Create(ctx, dashboard)
+	if err == nil {
+		s.AuditService.LogChange(ctx, models.AuditActionDashboard, "dashboards", dashboard.ID.Hex(), map[string]models.Change{
+			"dashboard": {New: dashboard},
+		})
+	}
+	return err
 }
 
 func (s *DashboardServiceImpl) GetDashboard(ctx context.Context, id string, userID primitive.ObjectID) (*models.DashboardConfig, error) {
@@ -86,7 +95,13 @@ func (s *DashboardServiceImpl) UpdateDashboard(ctx context.Context, id string, d
 		return err
 	}
 
-	return s.DashboardRepo.Update(ctx, id, dashboard)
+	err = s.DashboardRepo.Update(ctx, id, dashboard)
+	if err == nil {
+		s.AuditService.LogChange(ctx, models.AuditActionDashboard, "dashboards", id, map[string]models.Change{
+			"dashboard": {Old: existing, New: dashboard},
+		})
+	}
+	return err
 }
 
 func (s *DashboardServiceImpl) DeleteDashboard(ctx context.Context, id string, userID primitive.ObjectID) error {
@@ -100,7 +115,13 @@ func (s *DashboardServiceImpl) DeleteDashboard(ctx context.Context, id string, u
 		return errors.New("access denied: you can only delete your own dashboards")
 	}
 
-	return s.DashboardRepo.Delete(ctx, id)
+	err = s.DashboardRepo.Delete(ctx, id)
+	if err == nil {
+		s.AuditService.LogChange(ctx, models.AuditActionDashboard, "dashboards", existing.Name, map[string]models.Change{
+			"dashboard": {Old: existing, New: "DELETED"},
+		})
+	}
+	return err
 }
 
 func (s *DashboardServiceImpl) SetDefaultDashboard(ctx context.Context, dashboardID string, userID primitive.ObjectID) error {

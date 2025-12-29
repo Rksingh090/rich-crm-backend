@@ -11,7 +11,6 @@ import (
 	"go-crm/internal/repository"
 	"go-crm/internal/service"
 	"log"
-	"time"
 
 	_ "go-crm/docs" // Import swagger docs
 
@@ -159,16 +158,20 @@ func main() {
 			repository.NewImportRepository,
 			repository.NewBulkOperationRepository,
 			repository.NewSavedFilterRepository,
+			repository.NewCronRepository,
+			repository.NewEmailTemplateRepository,
 			service.NewAuditService,
 			service.NewAuthService,
 			service.NewRoleService,
 			service.NewModuleService,
 			service.NewRecordService,
 			service.NewUserService,
+			service.NewFileService,
 			service.NewApprovalService,
 			service.NewReportService,
 			service.NewSettingsService,
 			service.NewEmailService,
+			service.NewActionExecutor,
 			service.NewAutomationService,
 			service.NewTicketService,
 			service.NewSLAService,
@@ -185,6 +188,8 @@ func main() {
 			service.NewImportService,
 			service.NewBulkOperationService,
 			service.NewSavedFilterService,
+			service.NewCronService,
+			service.NewEmailTemplateService,
 
 			// Initialize Controller
 			controllers.NewAdminController,
@@ -214,6 +219,8 @@ func main() {
 			controllers.NewImportController,
 			controllers.NewBulkOperationController,
 			controllers.NewSavedFilterController,
+			controllers.NewCronController,
+			controllers.NewEmailTemplateController,
 
 			// Initialize API Routes
 			AsRoute(api.NewAdminApi),
@@ -243,6 +250,8 @@ func main() {
 			AsRoute(api.NewImportApi),
 			AsRoute(api.NewBulkOperationApi),
 			AsRoute(api.NewSavedFilterApi),
+			AsRoute(api.NewCronApi),
+			AsRoute(api.NewEmailTemplateApi),
 		),
 		fx.WithLogger(func(log *zap.Logger) fxevent.Logger {
 			return &fxevent.ZapLogger{Logger: log}
@@ -252,25 +261,13 @@ func main() {
 			RegisterSwagger,
 			RegisterAllRoutesWithAnnotation,
 			StartServer,
-			func(lc fx.Lifecycle, syncService service.SyncService) {
-				ticker := time.NewTicker(1 * time.Minute)
+			func(lc fx.Lifecycle, cronService service.CronService) {
 				lc.Append(fx.Hook{
 					OnStart: func(ctx context.Context) error {
-						go func() {
-							for {
-								select {
-								case <-ticker.C:
-									syncService.ProcessScheduledSyncs(context.Background())
-								case <-ctx.Done():
-									return
-								}
-							}
-						}()
-						return nil
+						return cronService.InitializeScheduler(ctx)
 					},
 					OnStop: func(ctx context.Context) error {
-						ticker.Stop()
-						return nil
+						return cronService.StopScheduler()
 					},
 				})
 			},

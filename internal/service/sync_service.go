@@ -24,7 +24,6 @@ type SyncService interface {
 	DeleteSetting(ctx context.Context, id string) error
 	RunSync(ctx context.Context, id string) error
 	ListLogs(ctx context.Context, settingID string, limit int64) ([]models.SyncLog, error)
-	ProcessScheduledSyncs(ctx context.Context)
 }
 
 type SyncServiceImpl struct {
@@ -46,35 +45,59 @@ func NewSyncService(syncRepo repository.SyncSettingRepository, logRepo repositor
 }
 
 func (s *SyncServiceImpl) CreateSetting(ctx context.Context, setting *models.SyncSetting) error {
-	return s.SyncRepo.Create(ctx, setting)
+	err := s.SyncRepo.Create(ctx, setting)
+	if err == nil {
+		s.AuditService.LogChange(ctx, models.AuditActionSettings, "data_sync", setting.Name, map[string]models.Change{
+			"sync_setting": {
+				New: setting,
+			},
+		})
+	}
+	return err
 }
 
 func (s *SyncServiceImpl) GetSetting(ctx context.Context, id string) (*models.SyncSetting, error) {
-	setting, err := s.SyncRepo.Get(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-	s.CalculateNextSync(setting)
-	return setting, nil
+	return s.SyncRepo.Get(ctx, id)
 }
 
 func (s *SyncServiceImpl) ListSettings(ctx context.Context) ([]models.SyncSetting, error) {
-	settings, err := s.SyncRepo.List(ctx)
-	if err != nil {
-		return nil, err
-	}
-	for i := range settings {
-		s.CalculateNextSync(&settings[i])
-	}
-	return settings, nil
+	return s.SyncRepo.List(ctx)
 }
 
 func (s *SyncServiceImpl) UpdateSetting(ctx context.Context, id string, updates map[string]interface{}) error {
-	return s.SyncRepo.Update(ctx, id, updates)
+	// Get old setting for audit
+	oldSetting, _ := s.GetSetting(ctx, id)
+
+	err := s.SyncRepo.Update(ctx, id, updates)
+	if err == nil {
+		s.AuditService.LogChange(ctx, models.AuditActionSettings, "data_sync", id, map[string]models.Change{
+			"sync_setting": {
+				Old: oldSetting,
+				New: updates,
+			},
+		})
+	}
+	return err
 }
 
 func (s *SyncServiceImpl) DeleteSetting(ctx context.Context, id string) error {
-	return s.SyncRepo.Delete(ctx, id)
+	// Get old setting for audit
+	oldSetting, _ := s.GetSetting(ctx, id)
+
+	err := s.SyncRepo.Delete(ctx, id)
+	if err == nil {
+		name := id
+		if oldSetting != nil {
+			name = oldSetting.Name
+		}
+		s.AuditService.LogChange(ctx, models.AuditActionSettings, "data_sync", name, map[string]models.Change{
+			"sync_setting": {
+				Old: oldSetting,
+				New: "DELETED",
+			},
+		})
+	}
+	return err
 }
 
 func (s *SyncServiceImpl) ListLogs(ctx context.Context, settingID string, limit int64) ([]models.SyncLog, error) {
@@ -93,61 +116,6 @@ func (s *SyncServiceImpl) RunSync(ctx context.Context, id string) error {
 	return s.executeSync(setting)
 }
 
-func (s *SyncServiceImpl) ProcessScheduledSyncs(ctx context.Context) {
-	settings, err := s.SyncRepo.ListActive(ctx)
-	if err != nil {
-		fmt.Printf("Error listing active sync settings: %v\n", err)
-		return
-	}
-
-	for _, setting := range settings {
-		if s.shouldRun(setting) {
-			go func(set models.SyncSetting) {
-				_ = s.executeSync(&set)
-			}(setting)
-		}
-	}
-}
-
-func (s *SyncServiceImpl) shouldRun(setting models.SyncSetting) bool {
-	if !setting.IsActive {
-		return false
-	}
-
-	now := time.Now()
-	switch setting.Frequency {
-	case "hourly":
-		return now.Sub(setting.LastSyncAt) >= time.Hour
-	case "daily":
-		return now.Sub(setting.LastSyncAt) >= 24*time.Hour
-	default:
-		return false
-	}
-}
-
-func (s *SyncServiceImpl) CalculateNextSync(setting *models.SyncSetting) {
-	if !setting.IsActive {
-		return
-	}
-
-	var next time.Time
-	switch setting.Frequency {
-	case "hourly":
-		next = setting.LastSyncAt.Add(time.Hour)
-	case "daily":
-		next = setting.LastSyncAt.Add(24 * time.Hour)
-	default:
-		return
-	}
-
-	if next.IsZero() {
-		// If LastSyncAt is zero (never run), default to Now
-		next = time.Now()
-	}
-
-	setting.NextSyncAt = &next
-}
-
 func (s *SyncServiceImpl) executeSync(setting *models.SyncSetting) error {
 	ctx := context.Background()
 
@@ -157,6 +125,11 @@ func (s *SyncServiceImpl) executeSync(setting *models.SyncSetting) error {
 		Status:        "in_progress",
 	}
 	_ = s.LogRepo.Create(ctx, log)
+
+	// Audit Log Start
+	s.AuditService.LogChange(ctx, models.AuditActionSync, "data_sync", setting.Name, map[string]models.Change{
+		"status": {New: "started"},
+	})
 
 	var totalProcessed int
 	var syncError error
@@ -176,6 +149,17 @@ func (s *SyncServiceImpl) executeSync(setting *models.SyncSetting) error {
 		}
 		_ = s.SyncRepo.Update(ctx, setting.ID.Hex(), updates)
 		_ = s.LogRepo.Update(ctx, log)
+
+		// Audit Log End
+		auditStatus := "success"
+		if syncError != nil {
+			auditStatus = "failed"
+		}
+		s.AuditService.LogChange(ctx, models.AuditActionSync, "data_sync", setting.Name, map[string]models.Change{
+			"status":    {New: auditStatus},
+			"processed": {New: totalProcessed},
+			"error":     {New: log.Error},
+		})
 	}()
 
 	for _, moduleConfig := range setting.Modules {
@@ -204,23 +188,45 @@ func (s *SyncServiceImpl) syncModule(ctx context.Context, setting *models.SyncSe
 		"updated_at": bson.M{"$gt": setting.LastSyncAt},
 	}
 
-	records, err := s.RecordRepo.List(ctx, config.ModuleName, filters, 1000, 0, "updated_at", 1)
-	if err != nil {
-		return 0, fmt.Errorf("failed to fetch records for %s: %v", config.ModuleName, err)
-	}
+	totalSynced := 0
+	page := int64(1)
+	limit := int64(1000)
 
-	if len(records) == 0 {
-		return 0, nil
-	}
+	for {
+		offset := (page - 1) * limit
+		records, err := s.RecordRepo.List(ctx, config.ModuleName, filters, limit, offset, "updated_at", 1)
+		if err != nil {
+			return totalSynced, fmt.Errorf("failed to fetch records for %s on page %d: %v", config.ModuleName, page, err)
+		}
 
-	switch setting.TargetDBType {
-	case "postgres":
-		return s.syncToPostgres(records, setting.TargetDBConfig, config)
-	case "mongodb":
-		return s.syncToMongoDB(records, setting.TargetDBConfig, config)
-	default:
-		return 0, fmt.Errorf("unsupported target DB type: %s", setting.TargetDBType)
+		if len(records) == 0 {
+			break
+		}
+
+		batchCount := 0
+		var batchErr error
+
+		switch setting.TargetDBType {
+		case "postgres":
+			batchCount, batchErr = s.syncToPostgres(records, setting.TargetDBConfig, config)
+		case "mongodb":
+			batchCount, batchErr = s.syncToMongoDB(records, setting.TargetDBConfig, config)
+		default:
+			return totalSynced, fmt.Errorf("unsupported target DB type: %s", setting.TargetDBType)
+		}
+
+		if batchErr != nil {
+			return totalSynced, batchErr
+		}
+
+		totalSynced += batchCount
+
+		if len(records) < int(limit) {
+			break
+		}
+		page++
 	}
+	return totalSynced, nil
 }
 
 func (s *SyncServiceImpl) syncDeletions(ctx context.Context, setting *models.SyncSetting, config models.ModuleSyncConfig) (int, error) {
@@ -230,28 +236,53 @@ func (s *SyncServiceImpl) syncDeletions(ctx context.Context, setting *models.Syn
 		"timestamp": map[string]interface{}{"$gt": setting.LastSyncAt},
 	}
 
-	logs, err := s.AuditService.ListLogs(ctx, filters, 1, 1000)
-	if err != nil {
-		return 0, fmt.Errorf("failed to fetch delete logs for %s: %v", config.ModuleName, err)
-	}
+	totalDeleted := 0
+	page := int64(1)
+	limit := int64(1000)
 
-	if len(logs) == 0 {
-		return 0, nil
-	}
+	for {
+		// Note: Pagination on audit logs might require careful offset handling if logs are being added concurrently,
+		// but for sync which is sequential (based on timestamp > last_synced), simple pagination is okayish
+		// as long as we don't miss any.
+		// Ideally we should cursor based on ID, but offset works for now.
+		logs, err := s.AuditService.ListLogs(ctx, filters, page, limit)
+		if err != nil {
+			return totalDeleted, fmt.Errorf("failed to fetch delete logs for %s on page %d: %v", config.ModuleName, page, err)
+		}
 
-	var deletedIDs []string
-	for _, log := range logs {
-		deletedIDs = append(deletedIDs, log.RecordID)
-	}
+		if len(logs) == 0 {
+			break
+		}
 
-	switch setting.TargetDBType {
-	case "postgres":
-		return s.syncToPostgresDelete(deletedIDs, setting.TargetDBConfig, config)
-	case "mongodb":
-		return s.syncToMongoDBDelete(deletedIDs, setting.TargetDBConfig, config)
-	default:
-		return 0, fmt.Errorf("unsupported target DB type for deletion: %s", setting.TargetDBType)
+		var deletedIDs []string
+		for _, log := range logs {
+			deletedIDs = append(deletedIDs, log.RecordID)
+		}
+
+		batchCount := 0
+		var batchErr error
+
+		switch setting.TargetDBType {
+		case "postgres":
+			batchCount, batchErr = s.syncToPostgresDelete(deletedIDs, setting.TargetDBConfig, config)
+		case "mongodb":
+			batchCount, batchErr = s.syncToMongoDBDelete(deletedIDs, setting.TargetDBConfig, config)
+		default:
+			return totalDeleted, fmt.Errorf("unsupported target DB type for deletion: %s", setting.TargetDBType)
+		}
+
+		if batchErr != nil {
+			return totalDeleted, batchErr
+		}
+
+		totalDeleted += batchCount
+
+		if len(logs) < int(limit) {
+			break
+		}
+		page++
 	}
+	return totalDeleted, nil
 }
 
 func (s *SyncServiceImpl) syncToPostgres(records []map[string]any, dbConfig map[string]string, moduleConfig models.ModuleSyncConfig) (int, error) {

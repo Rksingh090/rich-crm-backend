@@ -9,8 +9,9 @@ import (
 type SettingsType string
 
 const (
-	SettingsTypeEmail   SettingsType = "email"
-	SettingsTypeGeneral SettingsType = "general"
+	SettingsTypeEmail       SettingsType = "email"
+	SettingsTypeGeneral     SettingsType = "general"
+	SettingsTypeFileSharing SettingsType = "file_sharing"
 )
 
 type EmailConfig struct {
@@ -32,11 +33,21 @@ type GeneralConfig struct {
 	LandingPageTitle string `json:"landing_page_title" bson:"landing_page_title"`
 }
 
+type FileSharingConfig struct {
+	Enabled              bool     `json:"enabled" bson:"enabled"`
+	MaxFileSizeMB        int      `json:"max_file_size_mb" bson:"max_file_size_mb"`
+	AllowedFileTypes     []string `json:"allowed_file_types" bson:"allowed_file_types"`
+	MaxFilesPerRecord    int      `json:"max_files_per_record" bson:"max_files_per_record"`
+	EnabledModules       []string `json:"enabled_modules" bson:"enabled_modules"` // Empty = all modules
+	AllowSharedDocuments bool     `json:"allow_shared_documents" bson:"allow_shared_documents"`
+}
+
 type Settings struct {
-	ID        primitive.ObjectID `json:"id" bson:"_id,omitempty"`
-	Type      SettingsType       `json:"type" bson:"type"` // Unique index on type
-	Email     *EmailConfig       `json:"email,omitempty" bson:"email,omitempty"`
-	General   *GeneralConfig     `json:"general,omitempty" bson:"general,omitempty"`
-	CreatedAt time.Time          `json:"created_at" bson:"created_at"`
-	UpdatedAt time.Time          `json:"updated_at" bson:"updated_at"`
+	ID          primitive.ObjectID `json:"id" bson:"_id,omitempty"`
+	Type        SettingsType       `json:"type" bson:"type"` // Unique index on type
+	Email       *EmailConfig       `json:"email,omitempty" bson:"email,omitempty"`
+	General     *GeneralConfig     `json:"general,omitempty" bson:"general,omitempty"`
+	FileSharing *FileSharingConfig `json:"file_sharing,omitempty" bson:"file_sharing,omitempty"`
+	CreatedAt   time.Time          `json:"created_at" bson:"created_at"`
+	UpdatedAt   time.Time          `json:"updated_at" bson:"updated_at"`
 }

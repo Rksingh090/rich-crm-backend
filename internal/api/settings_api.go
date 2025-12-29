@@ -30,4 +30,8 @@ func (a *SettingsApi) Setup(app *fiber.App) {
 	group.Put("/email", middleware.RequirePermission(a.RoleService, "settings", "update"), a.Controller.UpdateEmailConfig)
 	group.Get("/general", middleware.RequirePermission(a.RoleService, "settings", "read"), a.Controller.GetGeneralConfig)
 	group.Put("/general", middleware.RequirePermission(a.RoleService, "settings", "update"), a.Controller.UpdateGeneralConfig)
+
+	// File Sharing Settings
+	group.Get("/file-sharing", middleware.RequirePermission(a.RoleService, "settings", "read"), a.Controller.GetFileSharingConfig)
+	group.Put("/file-sharing", middleware.RequirePermission(a.RoleService, "settings", "update"), a.Controller.UpdateFileSharingConfig)
 }

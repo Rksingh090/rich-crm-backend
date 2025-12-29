@@ -26,9 +26,9 @@ func NewBulkOperationApi(bulkController *controllers.BulkOperationController, co
 func (api *BulkOperationApi) Setup(app *fiber.App) {
 	group := app.Group("/api/bulk", middleware.AuthMiddleware(api.Config.SkipAuth))
 
-	group.Post("/preview", api.BulkController.PreviewBulkUpdate)
+	group.Post("/preview", api.BulkController.PreviewBulkOperation)
 	group.Post("/operations", api.BulkController.CreateBulkOperation)
 	group.Get("/operations", api.BulkController.ListBulkOperations)
 	group.Get("/operations/:id", api.BulkController.GetBulkOperation)
-	group.Post("/operations/:id/execute", api.BulkController.ExecuteBulkUpdate)
+	group.Post("/operations/:id/execute", api.BulkController.ExecuteBulkOperation)
 }

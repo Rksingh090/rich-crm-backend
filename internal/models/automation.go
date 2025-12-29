@@ -20,11 +20,15 @@ const (
 type ActionType string
 
 const (
-	ActionSendEmail   ActionType = "send_email"
-	ActionCreateTask  ActionType = "create_task" // Creates a record in "tasks" module
-	ActionUpdateField ActionType = "update_field"
-	ActionWebhook     ActionType = "webhook"    // Custom HTTP trigger
-	ActionRunScript   ActionType = "run_script" // Runs a registered Go script
+	ActionSendEmail        ActionType = "send_email"
+	ActionCreateTask       ActionType = "create_task" // Creates a record in "tasks" module
+	ActionUpdateField      ActionType = "update_field"
+	ActionWebhook          ActionType = "webhook"           // Custom HTTP trigger
+	ActionRunScript        ActionType = "run_script"        // Runs a registered Go script
+	ActionSendNotification ActionType = "send_notification" // In-app notification
+	ActionSendSMS          ActionType = "send_sms"          // Send SMS message
+	ActionGeneratePDF      ActionType = "generate_pdf"      // Generate PDF document
+	ActionDataSync         ActionType = "data_sync"         // Trigger data synchronization
 )
 
 type RuleCondition struct {

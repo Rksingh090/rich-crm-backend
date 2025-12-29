@@ -25,13 +25,15 @@ type WebhookService interface {
 }
 
 type WebhookServiceImpl struct {
-	Repo       repository.WebhookRepository
-	HttpClient *http.Client
+	Repo         repository.WebhookRepository
+	AuditService AuditService
+	HttpClient   *http.Client
 }
 
-func NewWebhookService(repo repository.WebhookRepository) WebhookService {
+func NewWebhookService(repo repository.WebhookRepository, auditService AuditService) WebhookService {
 	return &WebhookServiceImpl{
-		Repo: repo,
+		Repo:         repo,
+		AuditService: auditService,
 		HttpClient: &http.Client{
 			Timeout: 10 * time.Second,
 		},
@@ -39,7 +41,13 @@ func NewWebhookService(repo repository.WebhookRepository) WebhookService {
 }
 
 func (s *WebhookServiceImpl) CreateWebhook(ctx context.Context, webhook *models.Webhook) error {
-	return s.Repo.Create(ctx, webhook)
+	err := s.Repo.Create(ctx, webhook)
+	if err == nil {
+		s.AuditService.LogChange(ctx, models.AuditActionWebhook, "webhooks", webhook.ID.Hex(), map[string]models.Change{
+			"webhook": {New: webhook},
+		})
+	}
+	return err
 }
 
 func (s *WebhookServiceImpl) ListWebhooks(ctx context.Context) ([]models.Webhook, error) {
@@ -51,11 +59,33 @@ func (s *WebhookServiceImpl) GetWebhook(ctx context.Context, id string) (*models
 }
 
 func (s *WebhookServiceImpl) UpdateWebhook(ctx context.Context, id string, updates map[string]interface{}) error {
-	return s.Repo.Update(ctx, id, updates)
+	// Get old webhook for audit
+	oldWebhook, _ := s.GetWebhook(ctx, id)
+
+	err := s.Repo.Update(ctx, id, updates)
+	if err == nil {
+		s.AuditService.LogChange(ctx, models.AuditActionWebhook, "webhooks", id, map[string]models.Change{
+			"webhook": {Old: oldWebhook, New: updates},
+		})
+	}
+	return err
 }
 
 func (s *WebhookServiceImpl) DeleteWebhook(ctx context.Context, id string) error {
-	return s.Repo.Delete(ctx, id)
+	// Get old webhook for audit
+	oldWebhook, _ := s.GetWebhook(ctx, id)
+
+	err := s.Repo.Delete(ctx, id)
+	if err == nil {
+		name := id
+		if oldWebhook != nil {
+			name = oldWebhook.URL
+		}
+		s.AuditService.LogChange(ctx, models.AuditActionWebhook, "webhooks", name, map[string]models.Change{
+			"webhook": {Old: oldWebhook, New: "DELETED"},
+		})
+	}
+	return err
 }
 
 func (s *WebhookServiceImpl) Trigger(ctx context.Context, event string, payload models.WebhookPayload) {

@@ -64,5 +64,13 @@ type File struct {
 	Group            string             `json:"group,omitempty" bson:"group,omitempty"`
 	Size             int64              `json:"size" bson:"size"`
 	MIMEType         string             `json:"mime_type" bson:"mime_type"`
-	CreatedAt        time.Time          `json:"created_at" bson:"created_at"`
+
+	// File sharing fields
+	ModuleName  string             `json:"module_name,omitempty" bson:"module_name,omitempty"`
+	RecordID    string             `json:"record_id,omitempty" bson:"record_id,omitempty"`
+	UploadedBy  primitive.ObjectID `json:"uploaded_by" bson:"uploaded_by"`
+	IsShared    bool               `json:"is_shared" bson:"is_shared"`
+	Description string             `json:"description,omitempty" bson:"description,omitempty"`
+
+	CreatedAt time.Time `json:"created_at" bson:"created_at"`
 }

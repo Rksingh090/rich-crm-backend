@@ -15,11 +15,19 @@ const (
 	BulkStatusFailed     BulkOperationStatus = "failed"
 )
 
+type BulkOperationType string
+
+const (
+	BulkTypeUpdate BulkOperationType = "update"
+	BulkTypeDelete BulkOperationType = "delete"
+)
+
 // BulkOperation represents a bulk update operation
 type BulkOperation struct {
 	ID             primitive.ObjectID     `json:"id" bson:"_id,omitempty"`
 	UserID         primitive.ObjectID     `json:"user_id" bson:"user_id"`
 	ModuleName     string                 `json:"module_name" bson:"module_name"`
+	Type           BulkOperationType      `json:"type" bson:"type"` // "update" or "delete"
 	Filters        map[string]interface{} `json:"filters" bson:"filters"`
 	Updates        map[string]interface{} `json:"updates" bson:"updates"`
 	Status         BulkOperationStatus    `json:"status" bson:"status"`

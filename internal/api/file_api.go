@@ -25,6 +25,12 @@ func (h *FileApi) Setup(app *fiber.App) {
 	// File upload route (protected)
 	app.Post("/api/upload", middleware.AuthMiddleware(h.config.SkipAuth), h.controller.UploadFile)
 
+	// File management routes (protected)
+	app.Get("/api/files/:module/:recordId", middleware.AuthMiddleware(h.config.SkipAuth), h.controller.GetFilesByRecord)
+	app.Get("/api/files/shared", middleware.AuthMiddleware(h.config.SkipAuth), h.controller.GetSharedFiles)
+	app.Get("/api/files/:id/download", middleware.AuthMiddleware(h.config.SkipAuth), h.controller.DownloadFile)
+	app.Delete("/api/files/:id", middleware.AuthMiddleware(h.config.SkipAuth), h.controller.DeleteFile)
+
 	// Static file serving
 	app.Static("/uploads", "./uploads")
 }

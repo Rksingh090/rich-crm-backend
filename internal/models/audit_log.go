@@ -15,6 +15,15 @@ const (
 	AuditActionLogin      AuditAction = "LOGIN"
 	AuditActionAutomation AuditAction = "AUTOMATION"
 	AuditActionWorkflow   AuditAction = "WORKFLOW"
+	AuditActionSync       AuditAction = "SYNC"
+	AuditActionCron       AuditAction = "CRON"
+	AuditActionSettings   AuditAction = "SETTINGS"
+	AuditActionTemplate   AuditAction = "TEMPLATE"
+	AuditActionWebhook    AuditAction = "WEBHOOK"
+	AuditActionGroup      AuditAction = "GROUP"
+	AuditActionReport     AuditAction = "REPORT"
+	AuditActionChart      AuditAction = "CHART"
+	AuditActionDashboard  AuditAction = "DASHBOARD"
 )
 
 type Change struct {

@@ -21,23 +21,32 @@ type ChartService interface {
 }
 
 type ChartServiceImpl struct {
-	ChartRepo  repository.ChartRepository
-	RecordRepo repository.RecordRepository
-	ModuleRepo repository.ModuleRepository
+	ChartRepo    repository.ChartRepository
+	RecordRepo   repository.RecordRepository
+	ModuleRepo   repository.ModuleRepository
+	AuditService AuditService
 }
 
-func NewChartService(chartRepo repository.ChartRepository, recordRepo repository.RecordRepository, moduleRepo repository.ModuleRepository) ChartService {
+func NewChartService(chartRepo repository.ChartRepository, recordRepo repository.RecordRepository, moduleRepo repository.ModuleRepository, auditService AuditService) ChartService {
 	return &ChartServiceImpl{
-		ChartRepo:  chartRepo,
-		RecordRepo: recordRepo,
-		ModuleRepo: moduleRepo,
+		ChartRepo:    chartRepo,
+		RecordRepo:   recordRepo,
+		ModuleRepo:   moduleRepo,
+		AuditService: auditService,
 	}
 }
 
 func (s *ChartServiceImpl) CreateChart(ctx context.Context, chart *models.Chart) error {
 	chart.CreatedAt = time.Now()
 	chart.UpdatedAt = time.Now()
-	return s.ChartRepo.Create(ctx, chart)
+	chart.UpdatedAt = time.Now()
+	err := s.ChartRepo.Create(ctx, chart)
+	if err == nil {
+		s.AuditService.LogChange(ctx, models.AuditActionChart, "charts", chart.ID.Hex(), map[string]models.Change{
+			"chart": {New: chart},
+		})
+	}
+	return err
 }
 
 func (s *ChartServiceImpl) GetChart(ctx context.Context, id string) (*models.Chart, error) {
@@ -49,12 +58,34 @@ func (s *ChartServiceImpl) ListCharts(ctx context.Context) ([]models.Chart, erro
 }
 
 func (s *ChartServiceImpl) UpdateChart(ctx context.Context, id string, chart *models.Chart) error {
+	// Get old chart for audit
+	oldChart, _ := s.GetChart(ctx, id)
+
 	chart.UpdatedAt = time.Now()
-	return s.ChartRepo.Update(ctx, id, chart)
+	err := s.ChartRepo.Update(ctx, id, chart)
+	if err == nil {
+		s.AuditService.LogChange(ctx, models.AuditActionChart, "charts", id, map[string]models.Change{
+			"chart": {Old: oldChart, New: chart},
+		})
+	}
+	return err
 }
 
 func (s *ChartServiceImpl) DeleteChart(ctx context.Context, id string) error {
-	return s.ChartRepo.Delete(ctx, id)
+	// Get old chart for audit
+	oldChart, _ := s.GetChart(ctx, id)
+
+	err := s.ChartRepo.Delete(ctx, id)
+	if err == nil {
+		name := id
+		if oldChart != nil {
+			name = oldChart.Name
+		}
+		s.AuditService.LogChange(ctx, models.AuditActionChart, "charts", name, map[string]models.Change{
+			"chart": {Old: oldChart, New: "DELETED"},
+		})
+	}
+	return err
 }
 
 func (s *ChartServiceImpl) GetChartData(ctx context.Context, id string) ([]map[string]interface{}, error) {
