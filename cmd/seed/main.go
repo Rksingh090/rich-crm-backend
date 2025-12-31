@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"log"
+	"os"
 	"time"
 
 	"go-crm/internal/config"
@@ -35,35 +37,26 @@ func Seed(
 					}
 				}()
 
-				logger.Info("🌱 Starting Database Seeding...")
+				logger.Info("🌱 Starting Database Seeding from JSON...")
+
+				// Helper to read JSON
+				readJSON := func(path string, v interface{}) error {
+					b, err := os.ReadFile(path)
+					if err != nil {
+						return err
+					}
+					return json.Unmarshal(b, v)
+				}
+
+				// Data Paths (Assuming running from backend root)
+				rolesPath := "cmd/seed/data/roles.json"
+				usersPath := "cmd/seed/data/users.json"
+				modulesPath := "cmd/seed/data/modules.json"
 
 				// 1. Seed Roles
-				roles := []models.Role{
-					{
-						Name:        "admin",
-						Description: "Administrator with full access",
-						IsSystem:    true,
-						ModulePermissions: map[string]models.ModulePermission{
-							"*": {Create: true, Read: true, Update: true, Delete: true}, // Wildcard
-						},
-					},
-					{
-						Name:        "manager",
-						Description: "Manager with access to most modules",
-						IsSystem:    true,
-						ModulePermissions: map[string]models.ModulePermission{
-							"users":   {Create: true, Read: true, Update: true, Delete: false},
-							"reports": {Create: true, Read: true, Update: true, Delete: true},
-						},
-					},
-					{
-						Name:        "user",
-						Description: "Standard user",
-						IsSystem:    true,
-						ModulePermissions: map[string]models.ModulePermission{
-							"profile": {Create: false, Read: true, Update: true, Delete: false},
-						},
-					},
+				var roles []models.Role
+				if err := readJSON(rolesPath, &roles); err != nil {
+					logger.Fatal("Failed to read roles.json", zap.Error(err))
 				}
 
 				createdRoles := make(map[string]primitive.ObjectID)
@@ -88,134 +81,97 @@ func Seed(
 					createdRoles[role.Name] = role.ID
 				}
 
-				// 2. Seed Admin User
-				adminUsername := "admin"
-				_, err := userRepo.FindByUsername(ctx, adminUsername)
-				if err == nil {
-					logger.Info("Admin user exists, skipping")
+				// 2. Seed Users
+				var usersData []struct {
+					Username  string   `json:"username"`
+					Password  string   `json:"password"`
+					Email     string   `json:"email"`
+					FirstName string   `json:"first_name"`
+					LastName  string   `json:"last_name"`
+					Status    string   `json:"status"`
+					RoleNames []string `json:"roles"`
+				}
+				if err := readJSON(usersPath, &usersData); err != nil {
+					logger.Error("Failed to read users.json", zap.Error(err))
+					// Don't fatal, maybe we can seed modules
 				} else {
-					adminRoleID, ok := createdRoles["admin"]
-					if !ok {
-						// Fallback check if it was skipped
-						existing, err := roleRepo.FindByName(ctx, "admin")
+					for _, uData := range usersData {
+						_, err := userRepo.FindByUsername(ctx, uData.Username)
 						if err == nil {
-							adminRoleID = existing.ID
+							logger.Info("User exists, skipping", zap.String("username", uData.Username))
+							continue
+						}
+
+						// Map role names to IDs
+						var roleIDs []primitive.ObjectID
+						for _, rName := range uData.RoleNames {
+							if rID, ok := createdRoles[rName]; ok {
+								roleIDs = append(roleIDs, rID)
+							} else {
+								// Try finding it
+								r, err := roleRepo.FindByName(ctx, rName)
+								if err == nil {
+									roleIDs = append(roleIDs, r.ID)
+								} else {
+									logger.Warn("Role found in user definition but not in DB", zap.String("role", rName))
+								}
+							}
+						}
+
+						newUser := models.User{
+							ID:        primitive.NewObjectID(),
+							Username:  uData.Username,
+							Password:  uData.Password, // Ideally hash this if AuthServiceImpl expects hashed, but current seeding used plaintext?
+							Email:     uData.Email,
+							FirstName: uData.FirstName,
+							LastName:  uData.LastName,
+							Status:    uData.Status,
+							Roles:     roleIDs,
+							CreatedAt: time.Now(),
+							UpdatedAt: time.Now(),
+						}
+
+						if err := userRepo.Create(ctx, &newUser); err != nil {
+							logger.Error("Failed to create user", zap.String("username", uData.Username), zap.Error(err))
 						} else {
-							logger.Error("Admin role not found, cannot create admin user")
-							return
+							logger.Info("User created", zap.String("username", uData.Username))
 						}
 					}
-
-					adminUser := models.User{
-						ID:        primitive.NewObjectID(),
-						Username:  adminUsername,
-						Password:  "Rishu@090", // Plaintext for now as per current AuthServiceImpl
-						Email:     "root@gocrm.com",
-						FirstName: "System",
-						LastName:  "Admin",
-						Status:    "active",
-						Roles:     []primitive.ObjectID{adminRoleID},
-						CreatedAt: time.Now(),
-						UpdatedAt: time.Now(),
-					}
-
-					if err := userRepo.Create(ctx, &adminUser); err != nil {
-						logger.Error("Failed to create admin user", zap.Error(err))
-					} else {
-						logger.Info("Admin user created", zap.String("username", adminUsername), zap.String("password", "admin123"))
-					}
 				}
 
-				// 3. Seed System Modules
-				systemModules := []models.Module{
-					{
-						Name:     "accounts",
-						Label:    "Accounts",
-						IsSystem: true,
-						Fields: []models.ModuleField{
-							{Name: "name", Label: "Account Name", Type: models.FieldTypeText, Required: true},
-							{Name: "industry", Label: "Industry", Type: models.FieldTypeSelect, Required: false, Options: []models.SelectOptions{{Label: "Tech", Value: "Tech"}, {Label: "Finance", Value: "Finance"}, {Label: "Retail", Value: "Retail"}, {Label: "Manufacturing", Value: "Manufacturing"}, {Label: "Healthcare", Value: "Healthcare"}}},
-							{Name: "website", Label: "Website", Type: models.FieldTypeURL, Required: false},
-							{Name: "phone", Label: "Phone", Type: models.FieldTypePhone, Required: false},
-							{Name: "type", Label: "Type", Type: models.FieldTypeSelect, Required: false, Options: []models.SelectOptions{{Label: "Customer", Value: "Customer"}, {Label: "Partner", Value: "Partner"}, {Label: "Vendor", Value: "Vendor"}}},
-						},
-					},
-					{
-						Name:     "contacts",
-						Label:    "Contacts",
-						IsSystem: true,
-						Fields: []models.ModuleField{
-							{Name: "first_name", Label: "First Name", Type: models.FieldTypeText, Required: true},
-							{Name: "last_name", Label: "Last Name", Type: models.FieldTypeText, Required: true},
-							{Name: "email", Label: "Email", Type: models.FieldTypeEmail, Required: true},
-							{Name: "phone", Label: "Phone", Type: models.FieldTypePhone, Required: false},
-							{Name: "account", Label: "Account", Type: models.FieldTypeLookup, Required: false, Lookup: &models.LookupDef{LookupModule: "accounts", LookupLabel: "name", ValueField: "_id"}},
-							{Name: "title", Label: "Job Title", Type: models.FieldTypeText, Required: false},
-						},
-					},
-					{
-						Name:     "leads",
-						Label:    "Leads",
-						IsSystem: true,
-						Fields: []models.ModuleField{
-							{Name: "name", Label: "Full Name", Type: models.FieldTypeText, Required: true},
-							{Name: "email", Label: "Email", Type: models.FieldTypeEmail, Required: true},
-							{Name: "phone", Label: "Phone", Type: models.FieldTypePhone, Required: false},
-							{Name: "company", Label: "Company", Type: models.FieldTypeText, Required: false},
-							{Name: "status", Label: "Status", Type: models.FieldTypeSelect, Required: true, Options: []models.SelectOptions{{Label: "New", Value: "New"}, {Label: "Contacted", Value: "Contacted"}, {Label: "Qualified", Value: "Qualified"}, {Label: "Lost", Value: "Lost"}}},
-							{Name: "source", Label: "Source", Type: models.FieldTypeSelect, Required: false, Options: []models.SelectOptions{{Label: "Web", Value: "Web"}, {Label: "Referral", Value: "Referral"}, {Label: "Event", Value: "Event"}}},
-						},
-					},
-					{
-						Name:     "opportunities",
-						Label:    "Opportunities",
-						IsSystem: true,
-						Fields: []models.ModuleField{
-							{Name: "name", Label: "Opportunity Name", Type: models.FieldTypeText, Required: true},
-							{Name: "amount", Label: "Amount", Type: models.FieldTypeCurrency, Required: true},
-							{Name: "stage", Label: "Stage", Type: models.FieldTypeSelect, Required: true, Options: []models.SelectOptions{{Label: "Prospecting", Value: "Prospecting"}, {Label: "Negotiation", Value: "Negotiation"}, {Label: "Closed Won", Value: "Closed Won"}, {Label: "Closed Lost", Value: "Closed Lost"}}},
-							{Name: "close_date", Label: "Close Date", Type: models.FieldTypeDate, Required: true},
-							{Name: "account", Label: "Account", Type: models.FieldTypeLookup, Required: false, Lookup: &models.LookupDef{LookupModule: "accounts", LookupLabel: "name", ValueField: "_id"}},
-						},
-					},
-					{
-						Name:     "products",
-						Label:    "Products",
-						IsSystem: true,
-						Fields: []models.ModuleField{
-							{Name: "name", Label: "Product Name", Type: models.FieldTypeText, Required: true},
-							{Name: "code", Label: "Product Code", Type: models.FieldTypeText, Required: true},
-							{Name: "price", Label: "Price", Type: models.FieldTypeCurrency, Required: true},
-							{Name: "description", Label: "Description", Type: models.FieldTypeTextArea, Required: false},
-							{Name: "category", Label: "Category", Type: models.FieldTypeSelect, Required: false, Options: []models.SelectOptions{{Label: "Software", Value: "Software"}, {Label: "Hardware", Value: "Hardware"}, {Label: "Service", Value: "Service"}}},
-						},
-					},
-					{
-						Name:     "sales",
-						Label:    "Sales Orders",
-						IsSystem: true,
-						Fields: []models.ModuleField{
-							{Name: "order_number", Label: "Order Number", Type: models.FieldTypeText, Required: true},
-							{Name: "account", Label: "Customer", Type: models.FieldTypeLookup, Required: true, Lookup: &models.LookupDef{LookupModule: "accounts", LookupLabel: "name", ValueField: "_id"}},
-							{Name: "amount", Label: "Total Amount", Type: models.FieldTypeCurrency, Required: true},
-							{Name: "order_date", Label: "Order Date", Type: models.FieldTypeDate, Required: true},
-							{Name: "status", Label: "Status", Type: models.FieldTypeSelect, Required: true, Options: []models.SelectOptions{{Label: "Pending", Value: "Pending"}, {Label: "Completed", Value: "Completed"}, {Label: "Cancelled", Value: "Cancelled"}}},
-						},
-					},
+				// 3. Seed Modules
+				var modules []models.Module
+				if err := readJSON(modulesPath, &modules); err != nil {
+					logger.Fatal("Failed to read modules.json", zap.Error(err))
 				}
 
-				for _, module := range systemModules {
+				for _, module := range modules {
 					existing, err := moduleRepo.FindByName(ctx, module.Name)
 					if err == nil {
-						logger.Info("Module exists, skipping", zap.String("module", module.Name))
-						// Determine if we should update System flag if it was manually created?
-						// For now, respect existing. But if it exists without IsSystem, maybe we should set it?
-						// Let's safe-play: just skip. User might have created custom 'leads' module.
-						// Or, force update IsSystem=true if names match standard?
-						if !existing.IsSystem {
-							existing.IsSystem = true
-							_ = moduleRepo.Update(ctx, existing)
-							logger.Info("Marked existing module as system", zap.String("module", module.Name))
+						logger.Info("Module exists, checking for field updates", zap.String("module", module.Name))
+
+						// Merge fields
+						updated := false
+						existingFieldMap := make(map[string]bool)
+						for _, f := range existing.Fields {
+							existingFieldMap[f.Name] = true
+						}
+
+						for _, newField := range module.Fields {
+							if !existingFieldMap[newField.Name] {
+								existing.Fields = append(existing.Fields, newField)
+								logger.Info("Adding new field to module", zap.String("module", module.Name), zap.String("field", newField.Name))
+								updated = true
+							}
+						}
+
+						if updated {
+							existing.UpdatedAt = time.Now()
+							if err := moduleRepo.Update(ctx, existing); err != nil {
+								logger.Error("Failed to update module", zap.String("module", module.Name), zap.Error(err))
+							} else {
+								logger.Info("Module updated", zap.String("module", module.Name))
+							}
 						}
 						continue
 					}
@@ -225,9 +181,9 @@ func Seed(
 					module.UpdatedAt = time.Now()
 
 					if err := moduleRepo.Create(ctx, &module); err != nil {
-						logger.Error("Failed to create system module", zap.String("module", module.Name), zap.Error(err))
+						logger.Error("Failed to create module", zap.String("module", module.Name), zap.Error(err))
 					} else {
-						logger.Info("System module created", zap.String("module", module.Name))
+						logger.Info("Module created", zap.String("module", module.Name))
 					}
 				}
 

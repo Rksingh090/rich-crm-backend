@@ -1,0 +1,13 @@
+[
+    {
+        "username": "root",
+        "password": "Root@090",
+        "email": "root@gocrm.com",
+        "first_name": "System",
+        "last_name": "Admin",
+        "status": "active",
+        "roles": [
+            "admin"
+        ]
+    }
+]

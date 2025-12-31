@@ -22,6 +22,7 @@ const (
 	FieldTypeSelect      FieldType = "select"
 	FieldTypeMultiSelect FieldType = "multiselect"
 	FieldTypeCurrency    FieldType = "currency"
+	FieldTypeImage       FieldType = "image"
 )
 
 type SelectOptions struct {

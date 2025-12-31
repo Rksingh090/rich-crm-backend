@@ -1,0 +1,886 @@
+[
+    {
+        "name": "accounts",
+        "label": "Accounts",
+        "is_system": true,
+        "fields": [
+            {
+                "name": "name",
+                "label": "Account Name",
+                "type": "text",
+                "required": true
+            },
+            {
+                "name": "industry",
+                "label": "Industry",
+                "type": "select",
+                "required": false,
+                "options": [
+                    {
+                        "label": "Tech",
+                        "value": "Tech"
+                    },
+                    {
+                        "label": "Finance",
+                        "value": "Finance"
+                    },
+                    {
+                        "label": "Retail",
+                        "value": "Retail"
+                    },
+                    {
+                        "label": "Manufacturing",
+                        "value": "Manufacturing"
+                    },
+                    {
+                        "label": "Healthcare",
+                        "value": "Healthcare"
+                    }
+                ]
+            },
+            {
+                "name": "website",
+                "label": "Website",
+                "type": "url",
+                "required": false
+            },
+            {
+                "name": "phone",
+                "label": "Phone",
+                "type": "phone",
+                "required": false
+            },
+            {
+                "name": "type",
+                "label": "Type",
+                "type": "select",
+                "required": false,
+                "options": [
+                    {
+                        "label": "Customer",
+                        "value": "Customer"
+                    },
+                    {
+                        "label": "Partner",
+                        "value": "Partner"
+                    },
+                    {
+                        "label": "Vendor",
+                        "value": "Vendor"
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "name": "contacts",
+        "label": "Contacts",
+        "is_system": true,
+        "fields": [
+            {
+                "name": "first_name",
+                "label": "First Name",
+                "type": "text",
+                "required": true
+            },
+            {
+                "name": "last_name",
+                "label": "Last Name",
+                "type": "text",
+                "required": true
+            },
+            {
+                "name": "email",
+                "label": "Email",
+                "type": "email",
+                "required": true
+            },
+            {
+                "name": "phone",
+                "label": "Phone",
+                "type": "phone",
+                "required": false
+            },
+            {
+                "name": "account",
+                "label": "Account",
+                "type": "lookup",
+                "required": false,
+                "lookup": {
+                    "lookup_module": "accounts",
+                    "lookup_label": "name",
+                    "value_field": "_id"
+                }
+            },
+            {
+                "name": "title",
+                "label": "Job Title",
+                "type": "text",
+                "required": false
+            }
+        ]
+    },
+    {
+        "name": "leads",
+        "label": "Leads",
+        "is_system": true,
+        "fields": [
+            {
+                "name": "name",
+                "label": "Full Name",
+                "type": "text",
+                "required": true
+            },
+            {
+                "name": "email",
+                "label": "Email",
+                "type": "email",
+                "required": true
+            },
+            {
+                "name": "phone",
+                "label": "Phone",
+                "type": "phone",
+                "required": false
+            },
+            {
+                "name": "company",
+                "label": "Company",
+                "type": "text",
+                "required": false
+            },
+            {
+                "name": "status",
+                "label": "Status",
+                "type": "select",
+                "required": true,
+                "options": [
+                    {
+                        "label": "New",
+                        "value": "New"
+                    },
+                    {
+                        "label": "Contacted",
+                        "value": "Contacted"
+                    },
+                    {
+                        "label": "Qualified",
+                        "value": "Qualified"
+                    },
+                    {
+                        "label": "Lost",
+                        "value": "Lost"
+                    }
+                ]
+            },
+            {
+                "name": "source",
+                "label": "Source",
+                "type": "select",
+                "required": false,
+                "options": [
+                    {
+                        "label": "Web",
+                        "value": "Web"
+                    },
+                    {
+                        "label": "Referral",
+                        "value": "Referral"
+                    },
+                    {
+                        "label": "Event",
+                        "value": "Event"
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "name": "opportunities",
+        "label": "Opportunities",
+        "is_system": true,
+        "fields": [
+            {
+                "name": "name",
+                "label": "Opportunity Name",
+                "type": "text",
+                "required": true
+            },
+            {
+                "name": "amount",
+                "label": "Amount",
+                "type": "currency",
+                "required": true
+            },
+            {
+                "name": "stage",
+                "label": "Stage",
+                "type": "select",
+                "required": true,
+                "options": [
+                    {
+                        "label": "Prospecting",
+                        "value": "Prospecting"
+                    },
+                    {
+                        "label": "Negotiation",
+                        "value": "Negotiation"
+                    },
+                    {
+                        "label": "Closed Won",
+                        "value": "Closed Won"
+                    },
+                    {
+                        "label": "Closed Lost",
+                        "value": "Closed Lost"
+                    }
+                ]
+            },
+            {
+                "name": "close_date",
+                "label": "Close Date",
+                "type": "date",
+                "required": true
+            },
+            {
+                "name": "account",
+                "label": "Account",
+                "type": "lookup",
+                "required": false,
+                "lookup": {
+                    "lookup_module": "accounts",
+                    "lookup_label": "name",
+                    "value_field": "_id"
+                }
+            }
+        ]
+    },
+    {
+        "name": "categories",
+        "label": "Categories",
+        "is_system": true,
+        "fields": [
+            {
+                "name": "name",
+                "label": "Category Name",
+                "type": "text",
+                "required": true
+            },
+            {
+                "name": "description",
+                "label": "Description",
+                "type": "textarea",
+                "required": false
+            }
+        ]
+    },
+    {
+        "name": "brands",
+        "label": "Brands",
+        "is_system": true,
+        "fields": [
+            {
+                "name": "name",
+                "label": "Brand Name",
+                "type": "text",
+                "required": true
+            },
+            {
+                "name": "description",
+                "label": "Description",
+                "type": "textarea",
+                "required": false
+            }
+        ]
+    },
+    {
+        "name": "products",
+        "label": "Products",
+        "is_system": true,
+        "fields": [
+            {
+                "name": "sku",
+                "label": "SKU",
+                "type": "text",
+                "required": true
+            },
+            {
+                "name": "name",
+                "label": "Product Name",
+                "type": "text",
+                "required": true
+            },
+            {
+                "name": "description",
+                "label": "Description",
+                "type": "textarea",
+                "required": false
+            },
+            {
+                "name": "hsn_code",
+                "label": "HSN Code",
+                "type": "text",
+                "required": false
+            },
+            {
+                "name": "unit_of_measure",
+                "label": "Unit of Measure",
+                "type": "select",
+                "required": true,
+                "options": [
+                    {
+                        "label": "PCS",
+                        "value": "PCS"
+                    },
+                    {
+                        "label": "KG",
+                        "value": "KG"
+                    },
+                    {
+                        "label": "LTR",
+                        "value": "LTR"
+                    }
+                ]
+            },
+            {
+                "name": "category_id",
+                "label": "Category",
+                "type": "lookup",
+                "required": false,
+                "lookup": {
+                    "lookup_module": "categories",
+                    "lookup_label": "name",
+                    "value_field": "_id"
+                }
+            },
+            {
+                "name": "brand_id",
+                "label": "Brand",
+                "type": "lookup",
+                "required": false,
+                "lookup": {
+                    "lookup_module": "brands",
+                    "lookup_label": "name",
+                    "value_field": "_id"
+                }
+            },
+            {
+                "name": "standard_price",
+                "label": "Standard Price",
+                "type": "number",
+                "required": true
+            },
+            {
+                "name": "purchase_cost",
+                "label": "Purchase Cost",
+                "type": "number",
+                "required": false
+            },
+            {
+                "name": "mrp",
+                "label": "MRP",
+                "type": "number",
+                "required": false
+            },
+            {
+                "name": "is_active",
+                "label": "Active",
+                "type": "boolean",
+                "required": true
+            },
+            {
+                "name": "gst_rate",
+                "label": "GST Rate (%)",
+                "type": "number",
+                "required": false
+            },
+            {
+                "name": "product_image",
+                "label": "Product Image",
+                "type": "image",
+                "required": false
+            },
+            {
+                "name": "brochure",
+                "label": "Brochure",
+                "type": "file",
+                "required": false
+            }
+        ]
+    },
+    {
+        "name": "tax_rates",
+        "label": "Tax Rates",
+        "is_system": true,
+        "fields": [
+            {
+                "name": "hsn_code",
+                "label": "HSN Code",
+                "type": "text",
+                "required": true
+            },
+            {
+                "name": "cgst_rate",
+                "label": "CGST Rate (%)",
+                "type": "number",
+                "required": true
+            },
+            {
+                "name": "sgst_rate",
+                "label": "SGST Rate (%)",
+                "type": "number",
+                "required": true
+            },
+            {
+                "name": "igst_rate",
+                "label": "IGST Rate (%)",
+                "type": "number",
+                "required": true
+            },
+            {
+                "name": "cess_amount",
+                "label": "CESS Amount",
+                "type": "number",
+                "required": false
+            }
+        ]
+    },
+    {
+        "name": "price_lists",
+        "label": "Price Lists",
+        "is_system": true,
+        "fields": [
+            {
+                "name": "name",
+                "label": "Price List Name",
+                "type": "text",
+                "required": true
+            },
+            {
+                "name": "valid_from",
+                "label": "Valid From",
+                "type": "date",
+                "required": true
+            },
+            {
+                "name": "valid_to",
+                "label": "Valid To",
+                "type": "date",
+                "required": false
+            }
+        ]
+    },
+    {
+        "name": "price_list_items",
+        "label": "Price List Items",
+        "is_system": true,
+        "fields": [
+            {
+                "name": "price_list_id",
+                "label": "Price List",
+                "type": "lookup",
+                "required": true,
+                "lookup": {
+                    "lookup_module": "price_lists",
+                    "lookup_label": "name",
+                    "value_field": "_id"
+                }
+            },
+            {
+                "name": "item_id",
+                "label": "Product",
+                "type": "lookup",
+                "required": true,
+                "lookup": {
+                    "lookup_module": "products",
+                    "lookup_label": "name",
+                    "value_field": "_id"
+                }
+            },
+            {
+                "name": "sale_price",
+                "label": "Sale Price",
+                "type": "number",
+                "required": true
+            },
+            {
+                "name": "discount_percent",
+                "label": "Discount (%)",
+                "type": "number",
+                "required": false
+            },
+            {
+                "name": "markup_percent",
+                "label": "Markup (%)",
+                "type": "number",
+                "required": false
+            }
+        ]
+    },
+    {
+        "name": "customers",
+        "label": "Customers",
+        "is_system": true,
+        "fields": [
+            {
+                "name": "name",
+                "label": "Customer Name",
+                "type": "text",
+                "required": true
+            },
+            {
+                "name": "gstin",
+                "label": "GSTIN",
+                "type": "text",
+                "required": false
+            },
+            {
+                "name": "billing_address",
+                "label": "Billing Address",
+                "type": "textarea",
+                "required": false
+            },
+            {
+                "name": "shipping_address",
+                "label": "Shipping Address",
+                "type": "textarea",
+                "required": false
+            },
+            {
+                "name": "state",
+                "label": "State",
+                "type": "select",
+                "required": true,
+                "options": [
+                    {
+                        "label": "Karnataka",
+                        "value": "Karnataka"
+                    },
+                    {
+                        "label": "Maharashtra",
+                        "value": "Maharashtra"
+                    },
+                    {
+                        "label": "Delhi",
+                        "value": "Delhi"
+                    },
+                    {
+                        "label": "Tamil Nadu",
+                        "value": "Tamil Nadu"
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "name": "vendors",
+        "label": "Vendors",
+        "is_system": true,
+        "fields": [
+            {
+                "name": "name",
+                "label": "Vendor Name",
+                "type": "text",
+                "required": true
+            },
+            {
+                "name": "gstin",
+                "label": "GSTIN",
+                "type": "text",
+                "required": false
+            },
+            {
+                "name": "address",
+                "label": "Address",
+                "type": "textarea",
+                "required": false
+            },
+            {
+                "name": "state",
+                "label": "State",
+                "type": "select",
+                "required": true,
+                "options": [
+                    {
+                        "label": "Karnataka",
+                        "value": "Karnataka"
+                    },
+                    {
+                        "label": "Maharashtra",
+                        "value": "Maharashtra"
+                    },
+                    {
+                        "label": "Delhi",
+                        "value": "Delhi"
+                    },
+                    {
+                        "label": "Tamil Nadu",
+                        "value": "Tamil Nadu"
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "name": "invoices",
+        "label": "Sales Invoices",
+        "is_system": true,
+        "fields": [
+            {
+                "name": "invoice_number",
+                "label": "Invoice Number",
+                "type": "text",
+                "required": true
+            },
+            {
+                "name": "date",
+                "label": "Invoice Date",
+                "type": "date",
+                "required": true
+            },
+            {
+                "name": "customer_id",
+                "label": "Customer",
+                "type": "lookup",
+                "required": true,
+                "lookup": {
+                    "lookup_module": "customers",
+                    "lookup_label": "name",
+                    "value_field": "_id"
+                }
+            },
+            {
+                "name": "state",
+                "label": "Place of Supply",
+                "type": "select",
+                "required": true,
+                "options": [
+                    {
+                        "label": "Karnataka",
+                        "value": "Karnataka"
+                    },
+                    {
+                        "label": "Maharashtra",
+                        "value": "Maharashtra"
+                    },
+                    {
+                        "label": "Delhi",
+                        "value": "Delhi"
+                    },
+                    {
+                        "label": "Tamil Nadu",
+                        "value": "Tamil Nadu"
+                    }
+                ]
+            },
+            {
+                "name": "total_value",
+                "label": "Total Value (Pre-tax)",
+                "type": "currency",
+                "required": true
+            },
+            {
+                "name": "total_tax",
+                "label": "Total Tax",
+                "type": "currency",
+                "required": true
+            },
+            {
+                "name": "net_amount",
+                "label": "Net Amount",
+                "type": "currency",
+                "required": true
+            }
+        ]
+    },
+    {
+        "name": "invoice_items",
+        "label": "Invoice Items",
+        "is_system": true,
+        "fields": [
+            {
+                "name": "invoice_id",
+                "label": "Invoice",
+                "type": "lookup",
+                "required": true,
+                "lookup": {
+                    "lookup_module": "invoices",
+                    "lookup_label": "invoice_number",
+                    "value_field": "_id"
+                }
+            },
+            {
+                "name": "item_id",
+                "label": "Product",
+                "type": "lookup",
+                "required": true,
+                "lookup": {
+                    "lookup_module": "products",
+                    "lookup_label": "name",
+                    "value_field": "_id"
+                }
+            },
+            {
+                "name": "qty",
+                "label": "Quantity",
+                "type": "number",
+                "required": true
+            },
+            {
+                "name": "unit_price",
+                "label": "Unit Price",
+                "type": "number",
+                "required": true
+            },
+            {
+                "name": "discount",
+                "label": "Discount",
+                "type": "number",
+                "required": false
+            },
+            {
+                "name": "taxable_value",
+                "label": "Taxable Value",
+                "type": "currency",
+                "required": true
+            },
+            {
+                "name": "cgst_amount",
+                "label": "CGST Amount",
+                "type": "currency",
+                "required": false
+            },
+            {
+                "name": "sgst_amount",
+                "label": "SGST Amount",
+                "type": "currency",
+                "required": false
+            },
+            {
+                "name": "igst_amount",
+                "label": "IGST Amount",
+                "type": "currency",
+                "required": false
+            },
+            {
+                "name": "total_line_amount",
+                "label": "Total Line Amount",
+                "type": "currency",
+                "required": true
+            }
+        ]
+    },
+    {
+        "name": "purchase_invoices",
+        "label": "Purchase Invoices",
+        "is_system": true,
+        "fields": [
+            {
+                "name": "invoice_number",
+                "label": "Invoice Number",
+                "type": "text",
+                "required": true
+            },
+            {
+                "name": "date",
+                "label": "Invoice Date",
+                "type": "date",
+                "required": true
+            },
+            {
+                "name": "vendor_id",
+                "label": "Vendor",
+                "type": "lookup",
+                "required": true,
+                "lookup": {
+                    "lookup_module": "vendors",
+                    "lookup_label": "name",
+                    "value_field": "_id"
+                }
+            },
+            {
+                "name": "total_value",
+                "label": "Total Value (Pre-tax)",
+                "type": "currency",
+                "required": true
+            },
+            {
+                "name": "total_tax",
+                "label": "Total Tax",
+                "type": "currency",
+                "required": true
+            },
+            {
+                "name": "net_amount",
+                "label": "Net Amount",
+                "type": "currency",
+                "required": true
+            }
+        ]
+    },
+    {
+        "name": "purchase_invoice_items",
+        "label": "Purchase Invoice Items",
+        "is_system": true,
+        "fields": [
+            {
+                "name": "purchase_invoice_id",
+                "label": "Purchase Invoice",
+                "type": "lookup",
+                "required": true,
+                "lookup": {
+                    "lookup_module": "purchase_invoices",
+                    "lookup_label": "invoice_number",
+                    "value_field": "_id"
+                }
+            },
+            {
+                "name": "item_id",
+                "label": "Product",
+                "type": "lookup",
+                "required": true,
+                "lookup": {
+                    "lookup_module": "products",
+                    "lookup_label": "name",
+                    "value_field": "_id"
+                }
+            },
+            {
+                "name": "qty",
+                "label": "Quantity",
+                "type": "number",
+                "required": true
+            },
+            {
+                "name": "unit_price",
+                "label": "Cost Price",
+                "type": "number",
+                "required": true
+            },
+            {
+                "name": "taxable_value",
+                "label": "Taxable Value",
+                "type": "currency",
+                "required": true
+            },
+            {
+                "name": "igst_paid",
+                "label": "IGST Paid",
+                "type": "currency",
+                "required": false
+            },
+            {
+                "name": "input_credit",
+                "label": "Input Credit Claimed",
+                "type": "boolean",
+                "required": false
+            },
+            {
+                "name": "total_line_amount",
+                "label": "Total Line Amount",
+                "type": "currency",
+                "required": true
+            }
+        ]
+    }
+]

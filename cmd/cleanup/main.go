@@ -29,7 +29,7 @@ func main() {
 	}
 	defer client.Disconnect(ctx)
 
-	dbName := "crm_db" // Assuming default
+	dbName := "go_crm" // Assuming default
 	// If URI contains db name, parse it? Or just assume crm_db based on previous knowledge?
 	// Let's try to list databases or default to 'crm_db' which is common.
 	// Actually, let's verify DB name from another file if possible?

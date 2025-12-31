@@ -1,0 +1,47 @@
+[
+    {
+        "name": "admin",
+        "description": "Administrator with full access",
+        "is_system": true,
+        "module_permissions": {
+            "*": {
+                "create": true,
+                "read": true,
+                "update": true,
+                "delete": true
+            }
+        }
+    },
+    {
+        "name": "manager",
+        "description": "Manager with access to most modules",
+        "is_system": true,
+        "module_permissions": {
+            "users": {
+                "create": true,
+                "read": true,
+                "update": true,
+                "delete": false
+            },
+            "reports": {
+                "create": true,
+                "read": true,
+                "update": true,
+                "delete": true
+            }
+        }
+    },
+    {
+        "name": "user",
+        "description": "Standard user",
+        "is_system": true,
+        "module_permissions": {
+            "profile": {
+                "create": false,
+                "read": true,
+                "update": true,
+                "delete": false
+            }
+        }
+    }
+]
