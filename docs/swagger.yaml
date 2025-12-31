@@ -75,20 +75,58 @@ definitions:
     - create_task
     - update_field
     - webhook
+    - run_script
+    - send_notification
+    - send_sms
+    - generate_pdf
+    - data_sync
+    - send_report
     type: string
     x-enum-comments:
       ActionCreateTask: Creates a record in "tasks" module
+      ActionDataSync: Trigger data synchronization
+      ActionGeneratePDF: Generate PDF document
+      ActionRunScript: Runs a registered Go script
+      ActionSendNotification: In-app notification
+      ActionSendReport: Send internal report via email
+      ActionSendSMS: Send SMS message
       ActionWebhook: Custom HTTP trigger
     x-enum-descriptions:
     - ""
     - Creates a record in "tasks" module
     - ""
     - Custom HTTP trigger
+    - Runs a registered Go script
+    - In-app notification
+    - Send SMS message
+    - Generate PDF document
+    - Trigger data synchronization
+    - Send internal report via email
     x-enum-varnames:
     - ActionSendEmail
     - ActionCreateTask
     - ActionUpdateField
     - ActionWebhook
+    - ActionRunScript
+    - ActionSendNotification
+    - ActionSendSMS
+    - ActionGeneratePDF
+    - ActionDataSync
+    - ActionSendReport
+  models.AggregationType:
+    enum:
+    - count
+    - sum
+    - avg
+    - min
+    - max
+    type: string
+    x-enum-varnames:
+    - AggregationTypeCount
+    - AggregationTypeSum
+    - AggregationTypeAvg
+    - AggregationTypeMin
+    - AggregationTypeMax
   models.ApprovalStep:
     properties:
       approver_roles:
@@ -147,6 +185,15 @@ definitions:
     - LOGIN
     - AUTOMATION
     - WORKFLOW
+    - SYNC
+    - CRON
+    - SETTINGS
+    - TEMPLATE
+    - WEBHOOK
+    - GROUP
+    - REPORT
+    - CHART
+    - DASHBOARD
     type: string
     x-enum-varnames:
     - AuditActionCreate
@@ -155,6 +202,15 @@ definitions:
     - AuditActionLogin
     - AuditActionAutomation
     - AuditActionWorkflow
+    - AuditActionSync
+    - AuditActionCron
+    - AuditActionSettings
+    - AuditActionTemplate
+    - AuditActionWebhook
+    - AuditActionGroup
+    - AuditActionReport
+    - AuditActionChart
+    - AuditActionDashboard
   models.AuditLog:
     properties:
       action:
@@ -208,10 +264,270 @@ definitions:
       updated_at:
         type: string
     type: object
+  models.BulkError:
+    properties:
+      message:
+        type: string
+      record_id:
+        type: string
+    type: object
+  models.BulkOperation:
+    properties:
+      completed_at:
+        type: string
+      created_at:
+        type: string
+      error_count:
+        type: integer
+      errors:
+        items:
+          $ref: '#/definitions/models.BulkError'
+        type: array
+      filters:
+        additionalProperties: true
+        type: object
+      id:
+        type: string
+      module_name:
+        type: string
+      processed_count:
+        type: integer
+      status:
+        $ref: '#/definitions/models.BulkOperationStatus'
+      success_count:
+        type: integer
+      total_records:
+        type: integer
+      type:
+        allOf:
+        - $ref: '#/definitions/models.BulkOperationType'
+        description: '"update" or "delete"'
+      updated_at:
+        type: string
+      updates:
+        additionalProperties: true
+        type: object
+      user_id:
+        type: string
+    type: object
+  models.BulkOperationStatus:
+    enum:
+    - pending
+    - processing
+    - completed
+    - failed
+    type: string
+    x-enum-varnames:
+    - BulkStatusPending
+    - BulkStatusProcessing
+    - BulkStatusCompleted
+    - BulkStatusFailed
+  models.BulkOperationType:
+    enum:
+    - update
+    - delete
+    type: string
+    x-enum-varnames:
+    - BulkTypeUpdate
+    - BulkTypeDelete
   models.Change:
     properties:
       new: {}
       old: {}
+    type: object
+  models.Chart:
+    properties:
+      aggregation_type:
+        allOf:
+        - $ref: '#/definitions/models.AggregationType'
+        description: count, sum, avg, etc.
+      chart_type:
+        $ref: '#/definitions/models.ChartType'
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      module_id:
+        description: The module to query
+        type: string
+      name:
+        type: string
+      updated_at:
+        type: string
+      x_axis_field:
+        description: Field to group by
+        type: string
+      y_axis_field:
+        description: Field to aggregate (optional for count)
+        type: string
+    type: object
+  models.ChartType:
+    enum:
+    - bar
+    - line
+    - pie
+    - donut
+    - area
+    - funnel
+    - scatter
+    - radar
+    - stacked_bar
+    - stacked_area
+    type: string
+    x-enum-varnames:
+    - ChartTypeBar
+    - ChartTypeLine
+    - ChartTypePie
+    - ChartTypeDonut
+    - ChartTypeArea
+    - ChartTypeFunnel
+    - ChartTypeScatter
+    - ChartTypeRadar
+    - ChartTypeStackedBar
+    - ChartTypeStackedArea
+  models.CronJob:
+    description: Cron job configuration for scheduled automation
+    properties:
+      actions:
+        description: Actions to execute (reusing automation action types)
+        items:
+          $ref: '#/definitions/models.RuleAction'
+        type: array
+      active:
+        description: Whether the job is active
+        example: true
+        type: boolean
+      conditions:
+        description: Conditions to filter records (optional, for record-based jobs)
+        items:
+          $ref: '#/definitions/models.RuleCondition'
+        type: array
+      created_at:
+        type: string
+      created_by:
+        description: Audit fields
+        example: 507f1f77bcf86cd799439011
+        type: string
+      description:
+        example: Send daily reminder for uncontacted leads
+        type: string
+      id:
+        example: 507f1f77bcf86cd799439011
+        type: string
+      last_run:
+        description: Execution tracking
+        type: string
+      module_id:
+        description: Optional module to target for record-based operations
+        example: leads
+        type: string
+      name:
+        example: Daily Lead Reminder
+        type: string
+      next_run:
+        type: string
+      schedule:
+        description: Cron expression (e.g., "0 0 * * *" for daily at midnight)
+        example: 0 0 * * *
+        type: string
+      updated_at:
+        type: string
+    type: object
+  models.CronJobLog:
+    description: Execution log for a cron job
+    properties:
+      created_at:
+        type: string
+      cron_job_id:
+        type: string
+      cron_job_name:
+        description: Denormalized for easier querying
+        type: string
+      end_time:
+        type: string
+      error:
+        description: Error and output details
+        type: string
+      id:
+        type: string
+      output:
+        description: JSON or text output
+        type: string
+      records_affected:
+        type: integer
+      records_processed:
+        type: integer
+      start_time:
+        description: Execution timing
+        type: string
+      status:
+        description: Execution results
+        type: string
+    type: object
+  models.CrossModuleConfig:
+    properties:
+      base_module:
+        description: Primary module
+        type: string
+      joins:
+        description: Related modules to join
+        items:
+          $ref: '#/definitions/models.ModuleJoin'
+        type: array
+    type: object
+  models.DashboardConfig:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      is_default:
+        description: Default dashboard for user
+        type: boolean
+      is_shared:
+        description: Shared with other users
+        type: boolean
+      layout:
+        description: grid, vertical, etc.
+        type: string
+      name:
+        type: string
+      updated_at:
+        type: string
+      user_id:
+        type: string
+      widgets:
+        description: Widget configurations
+        items:
+          $ref: '#/definitions/models.DashboardWidget'
+        type: array
+    type: object
+  models.DashboardWidget:
+    properties:
+      config:
+        additionalProperties: true
+        description: Widget-specific config
+        type: object
+      id:
+        description: Unique widget ID
+        type: string
+      module_name:
+        description: Source module
+        type: string
+      position:
+        allOf:
+        - $ref: '#/definitions/models.WidgetPosition'
+        description: Grid position
+      title:
+        description: Widget title
+        type: string
+      type:
+        description: metric, chart, table, etc.
+        type: string
     type: object
   models.EmailConfig:
     properties:
@@ -419,23 +735,93 @@ definitions:
     properties:
       created_at:
         type: string
+      description:
+        type: string
       group:
         type: string
       id:
         type: string
+      is_shared:
+        type: boolean
       mime_type:
+        type: string
+      module_name:
+        description: File sharing fields
         type: string
       original_filename:
         type: string
       path:
         description: Server file path
         type: string
+      record_id:
+        type: string
       size:
         type: integer
       unique_filename:
         type: string
+      uploaded_by:
+        type: string
       url:
         description: Public Web URL
+        type: string
+    type: object
+  models.FileSharingConfig:
+    properties:
+      allow_shared_documents:
+        type: boolean
+      allowed_file_types:
+        items:
+          type: string
+        type: array
+      enabled:
+        type: boolean
+      enabled_modules:
+        description: Empty = all modules
+        items:
+          type: string
+        type: array
+      max_file_size_mb:
+        type: integer
+      max_files_per_record:
+        type: integer
+    type: object
+  models.FilterCondition:
+    properties:
+      field:
+        type: string
+      operator:
+        description: eq, ne, gt, lt, gte, lte, contains, in, etc.
+        type: string
+      value: {}
+    type: object
+  models.FilterCriteria:
+    properties:
+      conditions:
+        items:
+          $ref: '#/definitions/models.FilterCondition'
+        type: array
+      groups:
+        description: Nested groups
+        items:
+          $ref: '#/definitions/models.FilterCriteria'
+        type: array
+      logic:
+        description: '"AND" or "OR"'
+        type: string
+    type: object
+  models.GeneralConfig:
+    properties:
+      app_name:
+        type: string
+      app_url:
+        type: string
+      description:
+        type: string
+      landing_page_title:
+        type: string
+      logo_url:
+        type: string
+      support_email:
         type: string
     type: object
   models.Group:
@@ -463,12 +849,89 @@ definitions:
       updated_at:
         type: string
     type: object
+  models.ImportError:
+    properties:
+      field:
+        type: string
+      message:
+        type: string
+      row:
+        type: integer
+    type: object
+  models.ImportJob:
+    properties:
+      column_mapping:
+        additionalProperties:
+          type: string
+        description: CSV column -> field mapping
+        type: object
+      completed_at:
+        type: string
+      created_at:
+        type: string
+      error_count:
+        type: integer
+      errors:
+        items:
+          $ref: '#/definitions/models.ImportError'
+        type: array
+      file_name:
+        type: string
+      file_path:
+        type: string
+      id:
+        type: string
+      module_name:
+        type: string
+      processed_records:
+        type: integer
+      status:
+        $ref: '#/definitions/models.ImportStatus'
+      success_count:
+        type: integer
+      total_records:
+        type: integer
+      updated_at:
+        type: string
+      user_id:
+        type: string
+    type: object
+  models.ImportPreview:
+    properties:
+      headers:
+        items:
+          type: string
+        type: array
+      module_fields:
+        items:
+          $ref: '#/definitions/models.ModuleField'
+        type: array
+      sample_data:
+        items:
+          additionalProperties: true
+          type: object
+        type: array
+      total_rows:
+        type: integer
+    type: object
+  models.ImportStatus:
+    enum:
+    - pending
+    - processing
+    - completed
+    - failed
+    type: string
+    x-enum-varnames:
+    - ImportStatusPending
+    - ImportStatusProcessing
+    - ImportStatusCompleted
+    - ImportStatusFailed
   models.LookupDef:
     properties:
-      display_field:
-        description: Target Field to display in UI
+      lookup_label:
+        description: Target Field to display in UI (e.g. name)
         type: string
-      module:
+      lookup_module:
         description: Target Module Name
         type: string
       value_field:
@@ -516,6 +979,20 @@ definitions:
       type:
         $ref: '#/definitions/models.FieldType'
     type: object
+  models.ModuleJoin:
+    properties:
+      fields:
+        description: Fields to include from this module
+        items:
+          type: string
+        type: array
+      lookup_field:
+        description: Field in base module that references this module
+        type: string
+      module_name:
+        description: Related module name
+        type: string
+    type: object
   models.ModulePermission:
     properties:
       create:
@@ -527,8 +1004,42 @@ definitions:
       update:
         type: boolean
     type: object
+  models.ModuleSyncConfig:
+    properties:
+      mapping:
+        additionalProperties:
+          type: string
+        description: CRM Field -> Target DB Column
+        type: object
+      module_name:
+        type: string
+      sync_deletes:
+        type: boolean
+    type: object
+  models.PivotConfig:
+    properties:
+      aggregation:
+        description: count, sum, avg, min, max
+        type: string
+      column_fields:
+        description: Fields to group by for columns
+        items:
+          type: string
+        type: array
+      row_fields:
+        description: Fields to group by for rows
+        items:
+          type: string
+        type: array
+      value_field:
+        description: Field to aggregate
+        type: string
+    type: object
   models.Report:
     properties:
+      chart_type:
+        description: bar, line, pie, table
+        type: string
       columns:
         description: List of field names to display
         items:
@@ -538,6 +1049,8 @@ definitions:
         type: string
       created_by:
         type: string
+      cross_module_config:
+        $ref: '#/definitions/models.CrossModuleConfig'
       description:
         type: string
       filters:
@@ -551,17 +1064,40 @@ definitions:
         type: string
       name:
         type: string
+      pivot_config:
+        $ref: '#/definitions/models.PivotConfig'
+      report_type:
+        allOf:
+        - $ref: '#/definitions/models.ReportType'
+        description: standard, pivot, cross_module
       updated_at:
         type: string
       updated_by:
         type: string
     type: object
+  models.ReportType:
+    enum:
+    - standard
+    - pivot
+    - cross_module
+    type: string
+    x-enum-varnames:
+    - ReportTypeStandard
+    - ReportTypePivot
+    - ReportTypeCrossModule
   models.Role:
     properties:
       created_at:
         type: string
       description:
         type: string
+      field_permissions:
+        additionalProperties:
+          additionalProperties:
+            type: string
+          type: object
+        description: Module -> Field -> "read_write" | "read_only" | "none"
+        type: object
       id:
         type: string
       is_system:
@@ -638,6 +1174,29 @@ definitions:
         example: "2024-01-13T10:00:00Z"
         type: string
     type: object
+  models.SavedFilter:
+    properties:
+      created_at:
+        type: string
+      criteria:
+        $ref: '#/definitions/models.FilterCriteria'
+      description:
+        type: string
+      id:
+        type: string
+      is_default:
+        type: boolean
+      is_public:
+        type: boolean
+      module_name:
+        type: string
+      name:
+        type: string
+      updated_at:
+        type: string
+      user_id:
+        type: string
+    type: object
   models.SelectOptions:
     properties:
       label:
@@ -661,6 +1220,50 @@ definitions:
         allOf:
         - $ref: '#/definitions/models.TicketStatus'
         example: open
+    type: object
+  models.SyncLog:
+    properties:
+      end_time:
+        type: string
+      error:
+        type: string
+      id:
+        type: string
+      processed_count:
+        type: integer
+      start_time:
+        type: string
+      status:
+        description: '"success", "failed", "in_progress"'
+        type: string
+      sync_setting_id:
+        type: string
+    type: object
+  models.SyncSetting:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: string
+      is_active:
+        type: boolean
+      last_sync_at:
+        type: string
+      modules:
+        items:
+          $ref: '#/definitions/models.ModuleSyncConfig'
+        type: array
+      name:
+        type: string
+      target_db_config:
+        additionalProperties:
+          type: string
+        type: object
+      target_db_type:
+        description: '"postgres", "mysql", "sqlserver", "mongodb"'
+        type: string
+      updated_at:
+        type: string
     type: object
   models.Ticket:
     description: Customer support ticket with multi-channel support, SLA tracking,
@@ -930,6 +1533,37 @@ definitions:
         example: https://example.com/webhook
         type: string
     type: object
+  models.WidgetPosition:
+    properties:
+      height:
+        description: Height in grid units
+        type: integer
+      width:
+        description: Width in grid units
+        type: integer
+      x:
+        description: X position
+        type: integer
+      "y":
+        description: Y position
+        type: integer
+    type: object
+  service.SearchResult:
+    properties:
+      description:
+        type: string
+      icon:
+        type: string
+      link:
+        type: string
+      name:
+        type: string
+      title:
+        type: string
+      type:
+        description: '"module", "record", "page", "user"'
+        type: string
+    type: object
 host: localhost:8000
 info:
   contact:
@@ -943,6 +1577,35 @@ info:
   title: Microservice Demo API
   version: "1.0"
 paths:
+  /api/activities/calendar:
+    get:
+      consumes:
+      - application/json
+      description: Fetch events within a date range
+      parameters:
+      - description: Start Date (YYYY-MM-DD)
+        in: query
+        name: start
+        required: true
+        type: string
+      - description: End Date (YYYY-MM-DD)
+        in: query
+        name: end
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+      summary: Get calendar events (tasks, calls, meetings)
+      tags:
+      - activities
   /api/admin:
     get:
       consumes:
@@ -1079,6 +1742,484 @@ paths:
       summary: Update automation rule
       tags:
       - automation
+  /api/bulk/operations:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.BulkOperation'
+            type: array
+      summary: List user's bulk operations
+      tags:
+      - Bulk Operations
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Bulk Operation
+        in: body
+        name: operation
+        required: true
+        schema:
+          $ref: '#/definitions/models.BulkOperation'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.BulkOperation'
+      summary: Create bulk operation
+      tags:
+      - Bulk Operations
+  /api/bulk/operations/{id}:
+    get:
+      parameters:
+      - description: Operation ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.BulkOperation'
+      summary: Get bulk operation status
+      tags:
+      - Bulk Operations
+  /api/bulk/operations/{id}/execute:
+    post:
+      parameters:
+      - description: Operation ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Execute bulk operation
+      tags:
+      - Bulk Operations
+  /api/bulk/preview:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Preview request
+        in: body
+        name: request
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Preview bulk operation
+      tags:
+      - Bulk Operations
+  /api/charts:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Chart'
+            type: array
+      summary: List all charts
+      tags:
+      - Charts
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Chart Definition
+        in: body
+        name: chart
+        required: true
+        schema:
+          $ref: '#/definitions/models.Chart'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.Chart'
+      summary: Create a new chart
+      tags:
+      - Charts
+  /api/charts/{id}:
+    delete:
+      parameters:
+      - description: Chart ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+      summary: Delete a chart
+      tags:
+      - Charts
+    get:
+      parameters:
+      - description: Chart ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Chart'
+      summary: Get a chart by ID
+      tags:
+      - Charts
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Chart ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Chart Update
+        in: body
+        name: chart
+        required: true
+        schema:
+          $ref: '#/definitions/models.Chart'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Chart'
+      summary: Update a chart
+      tags:
+      - Charts
+  /api/charts/{id}/data:
+    get:
+      parameters:
+      - description: Chart ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              type: object
+            type: array
+      summary: Get chart data
+      tags:
+      - Charts
+  /api/cron-jobs:
+    get:
+      parameters:
+      - description: Filter by active status
+        in: query
+        name: active
+        type: boolean
+      - description: Filter by module ID
+        in: query
+        name: module_id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.CronJob'
+            type: array
+      summary: List cron jobs
+      tags:
+      - cron
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Cron Job
+        in: body
+        name: cronJob
+        required: true
+        schema:
+          $ref: '#/definitions/models.CronJob'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.CronJob'
+      summary: Create a new cron job
+      tags:
+      - cron
+  /api/cron-jobs/{id}:
+    delete:
+      parameters:
+      - description: Cron Job ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+      summary: Delete cron job
+      tags:
+      - cron
+    get:
+      parameters:
+      - description: Cron Job ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.CronJob'
+        "404":
+          description: Cron job not found
+          schema:
+            type: string
+      summary: Get cron job by ID
+      tags:
+      - cron
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Cron Job ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Cron Job Update
+        in: body
+        name: cronJob
+        required: true
+        schema:
+          $ref: '#/definitions/models.CronJob'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.CronJob'
+      summary: Update cron job
+      tags:
+      - cron
+  /api/cron-jobs/{id}/execute:
+    post:
+      parameters:
+      - description: Cron Job ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Manually execute a cron job
+      tags:
+      - cron
+  /api/cron-jobs/{id}/logs:
+    get:
+      parameters:
+      - description: Cron Job ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - default: 50
+        description: Limit number of logs
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.CronJobLog'
+            type: array
+      summary: Get execution logs for a cron job
+      tags:
+      - cron
+  /api/dashboards:
+    get:
+      description: Get all dashboards for the current user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.DashboardConfig'
+            type: array
+      summary: List dashboards
+      tags:
+      - dashboards
+    post:
+      consumes:
+      - application/json
+      description: Create a new custom dashboard configuration
+      parameters:
+      - description: Dashboard configuration
+        in: body
+        name: dashboard
+        required: true
+        schema:
+          $ref: '#/definitions/models.DashboardConfig'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.DashboardConfig'
+      summary: Create dashboard
+      tags:
+      - dashboards
+  /api/dashboards/{id}:
+    delete:
+      description: Delete a dashboard by ID
+      parameters:
+      - description: Dashboard ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+      summary: Delete dashboard
+      tags:
+      - dashboards
+    get:
+      description: Get dashboard configuration by ID
+      parameters:
+      - description: Dashboard ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.DashboardConfig'
+      summary: Get dashboard
+      tags:
+      - dashboards
+    put:
+      consumes:
+      - application/json
+      description: Update dashboard configuration
+      parameters:
+      - description: Dashboard ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Dashboard configuration
+        in: body
+        name: dashboard
+        required: true
+        schema:
+          $ref: '#/definitions/models.DashboardConfig'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.DashboardConfig'
+      summary: Update dashboard
+      tags:
+      - dashboards
+  /api/dashboards/{id}/data:
+    get:
+      description: Fetch data for all widgets in a dashboard
+      parameters:
+      - description: Dashboard ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get dashboard data
+      tags:
+      - dashboards
+  /api/dashboards/{id}/set-default:
+    post:
+      description: Set a dashboard as the default dashboard for the current user
+      parameters:
+      - description: Dashboard ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+      summary: Set default dashboard
+      tags:
+      - dashboards
   /api/escalation-rules:
     get:
       description: Get all escalation rules
@@ -1310,6 +2451,122 @@ paths:
       summary: Uninstall Extension
       tags:
       - extensions
+  /api/filters:
+    get:
+      parameters:
+      - description: Module name
+        in: query
+        name: module
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.SavedFilter'
+            type: array
+      summary: List user's saved filters
+      tags:
+      - Saved Filters
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Saved Filter
+        in: body
+        name: filter
+        required: true
+        schema:
+          $ref: '#/definitions/models.SavedFilter'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.SavedFilter'
+      summary: Create saved filter
+      tags:
+      - Saved Filters
+  /api/filters/{id}:
+    delete:
+      parameters:
+      - description: Filter ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+      summary: Delete saved filter
+      tags:
+      - Saved Filters
+    get:
+      parameters:
+      - description: Filter ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.SavedFilter'
+      summary: Get saved filter
+      tags:
+      - Saved Filters
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Filter ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Saved Filter
+        in: body
+        name: filter
+        required: true
+        schema:
+          $ref: '#/definitions/models.SavedFilter'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.SavedFilter'
+      summary: Update saved filter
+      tags:
+      - Saved Filters
+  /api/filters/public:
+    get:
+      parameters:
+      - description: Module name
+        in: query
+        name: module
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.SavedFilter'
+            type: array
+      summary: List public filters
+      tags:
+      - Saved Filters
   /api/groups:
     get:
       description: Retrieve all groups
@@ -1514,6 +2771,136 @@ paths:
       summary: Remove member from group
       tags:
       - groups
+  /api/import/jobs:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.ImportJob'
+            type: array
+      summary: List user's import jobs
+      tags:
+      - Import
+    post:
+      consumes:
+      - multipart/form-data
+      parameters:
+      - description: File to import
+        in: formData
+        name: file
+        required: true
+        type: file
+      - description: Module name
+        in: formData
+        name: module
+        required: true
+        type: string
+      - description: Column mapping JSON
+        in: formData
+        name: mapping
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.ImportJob'
+      summary: Create import job with file upload
+      tags:
+      - Import
+  /api/import/jobs/{id}:
+    get:
+      parameters:
+      - description: Job ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ImportJob'
+      summary: Get import job status
+      tags:
+      - Import
+  /api/import/jobs/{id}/execute:
+    post:
+      parameters:
+      - description: Job ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+      summary: Execute import job
+      tags:
+      - Import
+  /api/import/preview:
+    post:
+      consumes:
+      - multipart/form-data
+      parameters:
+      - description: File to import (CSV or Excel)
+        in: formData
+        name: file
+        required: true
+        type: file
+      - description: Module name
+        in: formData
+        name: module
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ImportPreview'
+      summary: Upload file and preview import data
+      tags:
+      - Import
+  /api/login:
+    post:
+      consumes:
+      - application/json
+      description: Login with username and password
+      parameters:
+      - description: Login Input
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controllers.AuthResponse'
+        "400":
+          description: Invalid request body
+          schema:
+            type: string
+        "401":
+          description: Invalid credentials
+          schema:
+            type: string
+      summary: Login
+      tags:
+      - auth
   /api/modules:
     get:
       description: Get a list of all defined modules
@@ -2067,6 +3454,175 @@ paths:
       summary: Run a report and return JSON data
       tags:
       - Reports
+  /api/reports/cross-module:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Cross Module Configuration
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.CrossModuleConfig'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              type: object
+            type: array
+      summary: Run a cross-module report
+      tags:
+      - Reports
+  /api/reports/export-excel:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Export Request
+        in: body
+        name: request
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: file
+      summary: Export data to Excel
+      tags:
+      - Reports
+  /api/reports/pivot:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Pivot Configuration
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.PivotConfig'
+      - description: Module Name
+        in: query
+        name: module
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: object
+      summary: Run a pivot table report
+      tags:
+      - Reports
+  /api/search:
+    get:
+      consumes:
+      - application/json
+      description: Search across modules, pages, and records
+      parameters:
+      - description: Search Query
+        in: query
+        name: q
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/service.SearchResult'
+            type: array
+      summary: Global Search
+      tags:
+      - search
+  /api/sla-metrics/overview:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve aggregated SLA performance metrics including compliance
+        rate, averages, etc.
+      parameters:
+      - default: 30
+        description: Number of days to analyze
+        in: query
+        name: days
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get SLA overview metrics
+      tags:
+      - SLA Metrics
+  /api/sla-metrics/trends:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve historical SLA performance data for trend analysis
+      parameters:
+      - default: 30
+        description: Number of days to analyze
+        in: query
+        name: days
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get SLA performance trends
+      tags:
+      - SLA Metrics
+  /api/sla-metrics/violations:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve list of all tickets currently in SLA breach status
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get active SLA violations
+      tags:
+      - SLA Metrics
   /api/sla-policies:
     get:
       description: Get all SLA policies
@@ -2188,6 +3744,153 @@ paths:
       summary: Update SLA policy
       tags:
       - sla-policies
+  /api/sync/settings:
+    get:
+      description: Get a list of all data sync settings
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.SyncSetting'
+            type: array
+      summary: List all sync settings
+      tags:
+      - sync
+    post:
+      consumes:
+      - application/json
+      description: Register a new external DB sync setting
+      parameters:
+      - description: Sync Setting Data
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/models.SyncSetting'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create a new sync setting
+      tags:
+      - sync
+  /api/sync/settings/{id}:
+    delete:
+      description: Delete a sync setting by ID
+      parameters:
+      - description: Sync Setting ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete a sync setting
+      tags:
+      - sync
+    get:
+      description: Get a sync setting by ID
+      parameters:
+      - description: Sync Setting ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.SyncSetting'
+      summary: Get a sync setting
+      tags:
+      - sync
+    put:
+      consumes:
+      - application/json
+      description: Update a sync setting by ID
+      parameters:
+      - description: Sync Setting ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update Data
+        in: body
+        name: input
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Update a sync setting
+      tags:
+      - sync
+  /api/sync/settings/{id}/logs:
+    get:
+      description: Get history of sync jobs for a setting
+      parameters:
+      - description: Sync Setting ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.SyncLog'
+            type: array
+      summary: List sync logs
+      tags:
+      - sync
+  /api/sync/settings/{id}/run:
+    post:
+      description: Trigger a sync job manually for a setting
+      parameters:
+      - description: Sync Setting ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Run sync manually
+      tags:
+      - sync
   /api/tickets:
     get:
       consumes:
@@ -2430,6 +4133,43 @@ paths:
       summary: Add comment to ticket
       tags:
       - tickets
+  /api/tickets/{id}/sla-status:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve detailed SLA status information for a specific ticket
+      parameters:
+      - description: Ticket ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get ticket SLA status
+      tags:
+      - SLA Metrics
   /api/tickets/{id}/status:
     patch:
       consumes:
@@ -2770,6 +4510,83 @@ paths:
       summary: Get current user info
       tags:
       - debug
+  /files/{id}:
+    delete:
+      description: Delete a file by ID
+      parameters:
+      - description: File ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete a file
+      tags:
+      - files
+  /files/{id}/download:
+    get:
+      description: Download a file by ID
+      parameters:
+      - description: File ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/octet-stream
+      responses:
+        "200":
+          description: OK
+      summary: Download a file
+      tags:
+      - files
+  /files/{module}/{recordId}:
+    get:
+      description: Get all files attached to a specific record
+      parameters:
+      - description: Module name
+        in: path
+        name: module
+        required: true
+        type: string
+      - description: Record ID
+        in: path
+        name: recordId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.File'
+            type: array
+      summary: Get files by record
+      tags:
+      - files
+  /files/shared:
+    get:
+      description: Get all organization-wide shared documents
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.File'
+            type: array
+      summary: Get shared files
+      tags:
+      - files
   /health:
     get:
       description: Check if the server is up
@@ -2783,36 +4600,6 @@ paths:
       summary: Health Check
       tags:
       - health
-  /login:
-    post:
-      consumes:
-      - application/json
-      description: Login with username and password
-      parameters:
-      - description: Login Input
-        in: body
-        name: input
-        required: true
-        schema:
-          $ref: '#/definitions/controllers.LoginRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/controllers.AuthResponse'
-        "400":
-          description: Invalid request body
-          schema:
-            type: string
-        "401":
-          description: Invalid credentials
-          schema:
-            type: string
-      summary: Login
-      tags:
-      - auth
   /register:
     post:
       consumes:
@@ -3031,6 +4818,89 @@ paths:
       summary: Update Email Configuration
       tags:
       - settings
+  /settings/file-sharing:
+    get:
+      description: Get current file sharing settings
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.FileSharingConfig'
+      summary: Get file sharing configuration
+      tags:
+      - settings
+    put:
+      consumes:
+      - application/json
+      description: Update file sharing settings (admin only)
+      parameters:
+      - description: File Sharing Configuration
+        in: body
+        name: config
+        required: true
+        schema:
+          $ref: '#/definitions/models.FileSharingConfig'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Update file sharing configuration
+      tags:
+      - settings
+  /settings/general:
+    get:
+      description: Get system general settings
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.GeneralConfig'
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get General Configuration
+      tags:
+      - settings
+    put:
+      consumes:
+      - application/json
+      description: Update system general settings
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Update General Configuration
+      tags:
+      - settings
   /upload:
     post:
       consumes:
@@ -3042,9 +4912,21 @@ paths:
         name: file
         required: true
         type: file
-      - description: Group (optional)
+      - description: Module name (optional)
         in: formData
-        name: group
+        name: module_name
+        type: string
+      - description: Record ID (optional)
+        in: formData
+        name: record_id
+        type: string
+      - description: Is shared document (optional)
+        in: formData
+        name: is_shared
+        type: boolean
+      - description: File description (optional)
+        in: formData
+        name: description
         type: string
       produces:
       - application/json

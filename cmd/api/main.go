@@ -8,6 +8,7 @@ import (
 	"go-crm/internal/controllers"
 	"go-crm/internal/database"
 	"go-crm/internal/logger"
+	"go-crm/internal/middleware"
 	"go-crm/internal/repository"
 	"go-crm/internal/service"
 	"log"
@@ -36,19 +37,8 @@ func NewFiberServer() *fiber.App {
 		},
 	})
 
-	// CORS middleware - allow frontend at localhost:3000
-	app.Use(func(c *fiber.Ctx) error {
-		c.Set("Access-Control-Allow-Origin", "http://localhost:3000")
-		c.Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS")
-		c.Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-		c.Set("Access-Control-Allow-Credentials", "true")
-
-		if c.Method() == "OPTIONS" {
-			return c.SendStatus(fiber.StatusNoContent)
-		}
-
-		return c.Next()
-	})
+	// Use custom CORS middleware
+	app.Use(middleware.CORSMiddleware())
 
 	return app
 }
@@ -168,9 +158,9 @@ func main() {
 			service.NewUserService,
 			service.NewFileService,
 			service.NewApprovalService,
-			service.NewReportService,
 			service.NewSettingsService,
 			service.NewEmailService,
+			service.NewReportService,
 			service.NewActionExecutor,
 			service.NewAutomationService,
 			service.NewTicketService,

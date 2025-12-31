@@ -10,7 +10,10 @@ import (
 	"sync"
 	"time"
 
+	"strings"
+
 	"github.com/robfig/cron/v3"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type CronService interface {
@@ -40,6 +43,8 @@ type CronServiceImpl struct {
 	actionExecutor ActionExecutor
 	auditService   AuditService
 	syncService    SyncService
+	reportService  ReportService
+	emailService   EmailService
 
 	scheduler  *cron.Cron
 	jobEntries map[string]cron.EntryID // Maps cronJob ID to cron entry ID
@@ -52,6 +57,8 @@ func NewCronService(
 	actionExecutor ActionExecutor,
 	auditService AuditService,
 	syncService SyncService,
+	reportService ReportService,
+	emailService EmailService,
 ) CronService {
 	return &CronServiceImpl{
 		repo:           repo,
@@ -59,6 +66,8 @@ func NewCronService(
 		actionExecutor: actionExecutor,
 		auditService:   auditService,
 		syncService:    syncService,
+		reportService:  reportService,
+		emailService:   emailService,
 		jobEntries:     make(map[string]cron.EntryID),
 	}
 }
@@ -321,6 +330,13 @@ func (s *CronServiceImpl) executeNonRecordBasedJob(ctx context.Context, cronJob 
 			}
 			recordsAffected++
 
+		case models.ActionSendReport:
+			// Send automated report using local implementation to avoid cycle
+			if err := s.executeSendReport(ctx, action.Config); err != nil {
+				return recordsAffected, err
+			}
+			recordsAffected++
+
 		default:
 			log.Printf("Action type %s not supported for non-record based jobs", action.Type)
 		}
@@ -463,4 +479,64 @@ func formatCronJobOutput(data interface{}) string {
 		return fmt.Sprintf("%v", data)
 	}
 	return string(bytes)
+}
+
+// executeSendReport generates a report and emails it as an attachment
+func (s *CronServiceImpl) executeSendReport(ctx context.Context, config map[string]interface{}) error {
+	reportID, _ := config["report_id"].(string)
+	format, _ := config["format"].(string)
+	recipientsStr, _ := config["recipients"].(string)
+	subject, _ := config["subject"].(string)
+	body, _ := config["body"].(string)
+
+	if reportID == "" {
+		return fmt.Errorf("report_id is required for send_report action")
+	}
+
+	if format == "" {
+		format = "csv"
+	}
+
+	var recipients []string
+	if recipientsStr != "" {
+		// Expecting comma-separated emails
+		for _, email := range strings.Split(recipientsStr, ",") {
+			email = strings.TrimSpace(email)
+			if email != "" {
+				recipients = append(recipients, email)
+			}
+		}
+	}
+
+	if len(recipients) == 0 {
+		return fmt.Errorf("at least one recipient is required for send_report action")
+	}
+
+	if subject == "" {
+		subject = "Scheduled Report"
+	}
+	if body == "" {
+		body = "Please find the attached report."
+	}
+
+	// 1. Export Report
+	userID := primitive.NilObjectID
+	if creatorIDStr, ok := config["created_by"].(string); ok {
+		if oid, err := primitive.ObjectIDFromHex(creatorIDStr); err == nil {
+			userID = oid
+		}
+	}
+
+	data, filename, err := s.reportService.ExportReport(ctx, reportID, format, userID)
+	if err != nil {
+		return fmt.Errorf("failed to export report: %w", err)
+	}
+
+	// 2. Send Email
+	if err := s.emailService.SendEmailWithAttachment(ctx, recipients, subject, body, filename, data); err != nil {
+		return fmt.Errorf("failed to send report email: %w", err)
+	}
+
+	log.Printf("Successfully sent report %s to %v", reportID, recipients)
+	return nil
 }

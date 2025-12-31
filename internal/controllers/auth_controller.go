@@ -72,7 +72,7 @@ func (ctrl *AuthController) Register(c *fiber.Ctx) error {
 // @Success      200  {object} AuthResponse
 // @Failure      400  {string} string "Invalid request body"
 // @Failure      401  {string} string "Invalid credentials"
-// @Router       /login [post]
+// @Router       /api/login [post]
 func (ctrl *AuthController) Login(c *fiber.Ctx) error {
 	var req LoginRequest
 	if err := c.BodyParser(&req); err != nil {

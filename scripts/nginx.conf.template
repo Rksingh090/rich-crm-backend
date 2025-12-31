@@ -1,0 +1,30 @@
+server {
+    listen 49111;
+    server_name 93.127.172.45; # Or your IP
+
+    # Frontend
+    location / {
+        proxy_pass http://localhost:42110; # Port from go-crm-ui service
+        # or root /var/www/go-crm/ui/out; try_files $uri $uri.html /index.html;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+
+    # Backend API
+    location /api/ {
+        proxy_pass http://localhost:42111/; # Port from go-crm service
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+
+    # Swagger Documentation
+    location /swagger/ {
+        proxy_pass http://localhost:42111/swagger/;
+    }
+}

@@ -29,6 +29,7 @@ const (
 	ActionSendSMS          ActionType = "send_sms"          // Send SMS message
 	ActionGeneratePDF      ActionType = "generate_pdf"      // Generate PDF document
 	ActionDataSync         ActionType = "data_sync"         // Trigger data synchronization
+	ActionSendReport       ActionType = "send_report"       // Send internal report via email
 )
 
 type RuleCondition struct {

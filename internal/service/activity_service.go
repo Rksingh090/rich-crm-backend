@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type ActivityService interface {
@@ -29,11 +30,12 @@ func (s *ActivityServiceImpl) GetCalendarEvents(ctx context.Context, start, end 
 	}, 1000, 0, "due_date", 1)
 	if err == nil {
 		for _, t := range tasks {
+			dueDate := toTime(t["due_date"])
 			events = append(events, map[string]interface{}{
 				"id":    t["_id"],
 				"title": t["subject"],
-				"start": t["due_date"],
-				"end":   t["due_date"],
+				"start": dueDate,
+				"end":   dueDate,
 				"type":  "task",
 				"color": "#3b82f6", // Blue
 			})
@@ -46,7 +48,7 @@ func (s *ActivityServiceImpl) GetCalendarEvents(ctx context.Context, start, end 
 	}, 1000, 0, "start_time", 1)
 	if err == nil {
 		for _, c := range calls {
-			startT := c["start_time"].(time.Time)
+			startT := toTime(c["start_time"])
 			// Default duration 30 mins if missing
 			duration := 30
 			if d, ok := c["duration"].(int32); ok {
@@ -76,13 +78,8 @@ func (s *ActivityServiceImpl) GetCalendarEvents(ctx context.Context, start, end 
 	}, 1000, 0, "start_time", 1)
 	if err == nil {
 		for _, m := range meetings {
-			var startT, endT time.Time
-			if t, ok := m["start_time"].(time.Time); ok {
-				startT = t
-			}
-			if t, ok := m["end_time"].(time.Time); ok {
-				endT = t
-			}
+			startT := toTime(m["start_time"])
+			endT := toTime(m["end_time"])
 
 			events = append(events, map[string]interface{}{
 				"id":    m["_id"],
@@ -96,4 +93,17 @@ func (s *ActivityServiceImpl) GetCalendarEvents(ctx context.Context, start, end 
 	}
 
 	return events, nil
+}
+
+func toTime(v interface{}) time.Time {
+	if v == nil {
+		return time.Time{}
+	}
+	if t, ok := v.(time.Time); ok {
+		return t
+	}
+	if dt, ok := v.(primitive.DateTime); ok {
+		return dt.Time()
+	}
+	return time.Time{}
 }

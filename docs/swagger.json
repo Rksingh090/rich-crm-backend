@@ -17,6 +17,49 @@
     "host": "localhost:8000",
     "basePath": "/",
     "paths": {
+        "/api/activities/calendar": {
+            "get": {
+                "description": "Fetch events within a date range",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "activities"
+                ],
+                "summary": "Get calendar events (tasks, calls, meetings)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Start Date (YYYY-MM-DD)",
+                        "name": "start",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "End Date (YYYY-MM-DD)",
+                        "name": "end",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "additionalProperties": true
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/admin": {
             "get": {
                 "description": "Simple welcome message for admin",
@@ -223,6 +266,740 @@
                 "responses": {
                     "204": {
                         "description": "No Content"
+                    }
+                }
+            }
+        },
+        "/api/bulk/operations": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Bulk Operations"
+                ],
+                "summary": "List user's bulk operations",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.BulkOperation"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Bulk Operations"
+                ],
+                "summary": "Create bulk operation",
+                "parameters": [
+                    {
+                        "description": "Bulk Operation",
+                        "name": "operation",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.BulkOperation"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/models.BulkOperation"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/bulk/operations/{id}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Bulk Operations"
+                ],
+                "summary": "Get bulk operation status",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Operation ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.BulkOperation"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/bulk/operations/{id}/execute": {
+            "post": {
+                "tags": [
+                    "Bulk Operations"
+                ],
+                "summary": "Execute bulk operation",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Operation ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/bulk/preview": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Bulk Operations"
+                ],
+                "summary": "Preview bulk operation",
+                "parameters": [
+                    {
+                        "description": "Preview request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/charts": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Charts"
+                ],
+                "summary": "List all charts",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.Chart"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Charts"
+                ],
+                "summary": "Create a new chart",
+                "parameters": [
+                    {
+                        "description": "Chart Definition",
+                        "name": "chart",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.Chart"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/models.Chart"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/charts/{id}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Charts"
+                ],
+                "summary": "Get a chart by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Chart ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.Chart"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Charts"
+                ],
+                "summary": "Update a chart",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Chart ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Chart Update",
+                        "name": "chart",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.Chart"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.Chart"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Charts"
+                ],
+                "summary": "Delete a chart",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Chart ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    }
+                }
+            }
+        },
+        "/api/charts/{id}/data": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Charts"
+                ],
+                "summary": "Get chart data",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Chart ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "object"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/cron-jobs": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cron"
+                ],
+                "summary": "List cron jobs",
+                "parameters": [
+                    {
+                        "type": "boolean",
+                        "description": "Filter by active status",
+                        "name": "active",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by module ID",
+                        "name": "module_id",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.CronJob"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cron"
+                ],
+                "summary": "Create a new cron job",
+                "parameters": [
+                    {
+                        "description": "Cron Job",
+                        "name": "cronJob",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.CronJob"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/models.CronJob"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/cron-jobs/{id}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cron"
+                ],
+                "summary": "Get cron job by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Cron Job ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.CronJob"
+                        }
+                    },
+                    "404": {
+                        "description": "Cron job not found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cron"
+                ],
+                "summary": "Update cron job",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Cron Job ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Cron Job Update",
+                        "name": "cronJob",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.CronJob"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.CronJob"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "cron"
+                ],
+                "summary": "Delete cron job",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Cron Job ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    }
+                }
+            }
+        },
+        "/api/cron-jobs/{id}/execute": {
+            "post": {
+                "tags": [
+                    "cron"
+                ],
+                "summary": "Manually execute a cron job",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Cron Job ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/cron-jobs/{id}/logs": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cron"
+                ],
+                "summary": "Get execution logs for a cron job",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Cron Job ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "default": 50,
+                        "description": "Limit number of logs",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.CronJobLog"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/dashboards": {
+            "get": {
+                "description": "Get all dashboards for the current user",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "dashboards"
+                ],
+                "summary": "List dashboards",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.DashboardConfig"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Create a new custom dashboard configuration",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "dashboards"
+                ],
+                "summary": "Create dashboard",
+                "parameters": [
+                    {
+                        "description": "Dashboard configuration",
+                        "name": "dashboard",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.DashboardConfig"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/models.DashboardConfig"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/dashboards/{id}": {
+            "get": {
+                "description": "Get dashboard configuration by ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "dashboards"
+                ],
+                "summary": "Get dashboard",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Dashboard ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.DashboardConfig"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Update dashboard configuration",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "dashboards"
+                ],
+                "summary": "Update dashboard",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Dashboard ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Dashboard configuration",
+                        "name": "dashboard",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.DashboardConfig"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.DashboardConfig"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Delete a dashboard by ID",
+                "tags": [
+                    "dashboards"
+                ],
+                "summary": "Delete dashboard",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Dashboard ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    }
+                }
+            }
+        },
+        "/api/dashboards/{id}/data": {
+            "get": {
+                "description": "Fetch data for all widgets in a dashboard",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "dashboards"
+                ],
+                "summary": "Get dashboard data",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Dashboard ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/dashboards/{id}/set-default": {
+            "post": {
+                "description": "Set a dashboard as the default dashboard for the current user",
+                "tags": [
+                    "dashboards"
+                ],
+                "summary": "Set default dashboard",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Dashboard ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
                     }
                 }
             }
@@ -577,6 +1354,185 @@
                 }
             }
         },
+        "/api/filters": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Saved Filters"
+                ],
+                "summary": "List user's saved filters",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Module name",
+                        "name": "module",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.SavedFilter"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Saved Filters"
+                ],
+                "summary": "Create saved filter",
+                "parameters": [
+                    {
+                        "description": "Saved Filter",
+                        "name": "filter",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.SavedFilter"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/models.SavedFilter"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/filters/public": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Saved Filters"
+                ],
+                "summary": "List public filters",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Module name",
+                        "name": "module",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.SavedFilter"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/filters/{id}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Saved Filters"
+                ],
+                "summary": "Get saved filter",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.SavedFilter"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Saved Filters"
+                ],
+                "summary": "Update saved filter",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Saved Filter",
+                        "name": "filter",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.SavedFilter"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.SavedFilter"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Saved Filters"
+                ],
+                "summary": "Delete saved filter",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    }
+                }
+            }
+        },
         "/api/groups": {
             "get": {
                 "description": "Retrieve all groups",
@@ -880,6 +1836,205 @@
                             "additionalProperties": {
                                 "type": "string"
                             }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/import/jobs": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Import"
+                ],
+                "summary": "List user's import jobs",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.ImportJob"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Import"
+                ],
+                "summary": "Create import job with file upload",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "File to import",
+                        "name": "file",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Module name",
+                        "name": "module",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Column mapping JSON",
+                        "name": "mapping",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/models.ImportJob"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/import/jobs/{id}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Import"
+                ],
+                "summary": "Get import job status",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Job ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.ImportJob"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/import/jobs/{id}/execute": {
+            "post": {
+                "tags": [
+                    "Import"
+                ],
+                "summary": "Execute import job",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Job ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/api/import/preview": {
+            "post": {
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Import"
+                ],
+                "summary": "Upload file and preview import data",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "File to import (CSV or Excel)",
+                        "name": "file",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Module name",
+                        "name": "module",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.ImportPreview"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/login": {
+            "post": {
+                "description": "Login with username and password",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Login",
+                "parameters": [
+                    {
+                        "description": "Login Input",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/controllers.LoginRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/controllers.AuthResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Invalid credentials",
+                        "schema": {
+                            "type": "string"
                         }
                     }
                 }
@@ -1570,6 +2725,115 @@
                 }
             }
         },
+        "/api/reports/cross-module": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Reports"
+                ],
+                "summary": "Run a cross-module report",
+                "parameters": [
+                    {
+                        "description": "Cross Module Configuration",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.CrossModuleConfig"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "object"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/reports/export-excel": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                ],
+                "tags": [
+                    "Reports"
+                ],
+                "summary": "Export data to Excel",
+                "parameters": [
+                    {
+                        "description": "Export Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "file"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/reports/pivot": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Reports"
+                ],
+                "summary": "Run a pivot table report",
+                "parameters": [
+                    {
+                        "description": "Pivot Configuration",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.PivotConfig"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "Module Name",
+                        "name": "module",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                }
+            }
+        },
         "/api/reports/{id}": {
             "get": {
                 "produces": [
@@ -1716,6 +2980,152 @@
                             "items": {
                                 "type": "object"
                             }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/search": {
+            "get": {
+                "description": "Search across modules, pages, and records",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "search"
+                ],
+                "summary": "Global Search",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Search Query",
+                        "name": "q",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/service.SearchResult"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/sla-metrics/overview": {
+            "get": {
+                "description": "Retrieve aggregated SLA performance metrics including compliance rate, averages, etc.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SLA Metrics"
+                ],
+                "summary": "Get SLA overview metrics",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 30,
+                        "description": "Number of days to analyze",
+                        "name": "days",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/sla-metrics/trends": {
+            "get": {
+                "description": "Retrieve historical SLA performance data for trend analysis",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SLA Metrics"
+                ],
+                "summary": "Get SLA performance trends",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 30,
+                        "description": "Number of days to analyze",
+                        "name": "days",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/sla-metrics/violations": {
+            "get": {
+                "description": "Retrieve list of all tickets currently in SLA breach status",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SLA Metrics"
+                ],
+                "summary": "Get active SLA violations",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
@@ -1898,6 +3308,228 @@
                         "description": "Invalid input",
                         "schema": {
                             "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/sync/settings": {
+            "get": {
+                "description": "Get a list of all data sync settings",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sync"
+                ],
+                "summary": "List all sync settings",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.SyncSetting"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Register a new external DB sync setting",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sync"
+                ],
+                "summary": "Create a new sync setting",
+                "parameters": [
+                    {
+                        "description": "Sync Setting Data",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.SyncSetting"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/sync/settings/{id}": {
+            "get": {
+                "description": "Get a sync setting by ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sync"
+                ],
+                "summary": "Get a sync setting",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Sync Setting ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.SyncSetting"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Update a sync setting by ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sync"
+                ],
+                "summary": "Update a sync setting",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Sync Setting ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Update Data",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Delete a sync setting by ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sync"
+                ],
+                "summary": "Delete a sync setting",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Sync Setting ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/sync/settings/{id}/logs": {
+            "get": {
+                "description": "Get history of sync jobs for a setting",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sync"
+                ],
+                "summary": "List sync logs",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Sync Setting ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.SyncLog"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/sync/settings/{id}/run": {
+            "post": {
+                "description": "Trigger a sync job manually for a setting",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sync"
+                ],
+                "summary": "Run sync manually",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Sync Setting ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     }
                 }
@@ -2360,6 +3992,60 @@
                 }
             }
         },
+        "/api/tickets/{id}/sla-status": {
+            "get": {
+                "description": "Retrieve detailed SLA status information for a specific ticket",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SLA Metrics"
+                ],
+                "summary": "Get ticket SLA status",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Ticket ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/api/tickets/{id}/status": {
             "patch": {
                 "description": "Update the status of a ticket",
@@ -2780,6 +4466,123 @@
                 }
             }
         },
+        "/files/shared": {
+            "get": {
+                "description": "Get all organization-wide shared documents",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "files"
+                ],
+                "summary": "Get shared files",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.File"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/files/{id}": {
+            "delete": {
+                "description": "Delete a file by ID",
+                "tags": [
+                    "files"
+                ],
+                "summary": "Delete a file",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "File ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/files/{id}/download": {
+            "get": {
+                "description": "Download a file by ID",
+                "produces": [
+                    "application/octet-stream"
+                ],
+                "tags": [
+                    "files"
+                ],
+                "summary": "Download a file",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "File ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/files/{module}/{recordId}": {
+            "get": {
+                "description": "Get all files attached to a specific record",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "files"
+                ],
+                "summary": "Get files by record",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Module name",
+                        "name": "module",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Record ID",
+                        "name": "recordId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.File"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/health": {
             "get": {
                 "description": "Check if the server is up",
@@ -2793,52 +4596,6 @@
                 "responses": {
                     "200": {
                         "description": "OK",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/login": {
-            "post": {
-                "description": "Login with username and password",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "auth"
-                ],
-                "summary": "Login",
-                "parameters": [
-                    {
-                        "description": "Login Input",
-                        "name": "input",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/controllers.LoginRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/controllers.AuthResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid request body",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "401": {
-                        "description": "Invalid credentials",
                         "schema": {
                             "type": "string"
                         }
@@ -3176,6 +4933,132 @@
                 }
             }
         },
+        "/settings/file-sharing": {
+            "get": {
+                "description": "Get current file sharing settings",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "settings"
+                ],
+                "summary": "Get file sharing configuration",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.FileSharingConfig"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Update file sharing settings (admin only)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "settings"
+                ],
+                "summary": "Update file sharing configuration",
+                "parameters": [
+                    {
+                        "description": "File Sharing Configuration",
+                        "name": "config",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.FileSharingConfig"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/settings/general": {
+            "get": {
+                "description": "Get system general settings",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "settings"
+                ],
+                "summary": "Get General Configuration",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.GeneralConfig"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Update system general settings",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "settings"
+                ],
+                "summary": "Update General Configuration",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/upload": {
             "post": {
                 "description": "Upload a file and get a URL (Metadata stored in DB)",
@@ -3199,8 +5082,26 @@
                     },
                     {
                         "type": "string",
-                        "description": "Group (optional)",
-                        "name": "group",
+                        "description": "Module name (optional)",
+                        "name": "module_name",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Record ID (optional)",
+                        "name": "record_id",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Is shared document (optional)",
+                        "name": "is_shared",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "File description (optional)",
+                        "name": "description",
                         "in": "formData"
                     }
                 ],
@@ -3932,23 +5833,64 @@
                 "send_email",
                 "create_task",
                 "update_field",
-                "webhook"
+                "webhook",
+                "run_script",
+                "send_notification",
+                "send_sms",
+                "generate_pdf",
+                "data_sync",
+                "send_report"
             ],
             "x-enum-comments": {
                 "ActionCreateTask": "Creates a record in \"tasks\" module",
+                "ActionDataSync": "Trigger data synchronization",
+                "ActionGeneratePDF": "Generate PDF document",
+                "ActionRunScript": "Runs a registered Go script",
+                "ActionSendNotification": "In-app notification",
+                "ActionSendReport": "Send internal report via email",
+                "ActionSendSMS": "Send SMS message",
                 "ActionWebhook": "Custom HTTP trigger"
             },
             "x-enum-descriptions": [
                 "",
                 "Creates a record in \"tasks\" module",
                 "",
-                "Custom HTTP trigger"
+                "Custom HTTP trigger",
+                "Runs a registered Go script",
+                "In-app notification",
+                "Send SMS message",
+                "Generate PDF document",
+                "Trigger data synchronization",
+                "Send internal report via email"
             ],
             "x-enum-varnames": [
                 "ActionSendEmail",
                 "ActionCreateTask",
                 "ActionUpdateField",
-                "ActionWebhook"
+                "ActionWebhook",
+                "ActionRunScript",
+                "ActionSendNotification",
+                "ActionSendSMS",
+                "ActionGeneratePDF",
+                "ActionDataSync",
+                "ActionSendReport"
+            ]
+        },
+        "models.AggregationType": {
+            "type": "string",
+            "enum": [
+                "count",
+                "sum",
+                "avg",
+                "min",
+                "max"
+            ],
+            "x-enum-varnames": [
+                "AggregationTypeCount",
+                "AggregationTypeSum",
+                "AggregationTypeAvg",
+                "AggregationTypeMin",
+                "AggregationTypeMax"
             ]
         },
         "models.ApprovalStep": {
@@ -4031,7 +5973,16 @@
                 "DELETE",
                 "LOGIN",
                 "AUTOMATION",
-                "WORKFLOW"
+                "WORKFLOW",
+                "SYNC",
+                "CRON",
+                "SETTINGS",
+                "TEMPLATE",
+                "WEBHOOK",
+                "GROUP",
+                "REPORT",
+                "CHART",
+                "DASHBOARD"
             ],
             "x-enum-varnames": [
                 "AuditActionCreate",
@@ -4039,7 +5990,16 @@
                 "AuditActionDelete",
                 "AuditActionLogin",
                 "AuditActionAutomation",
-                "AuditActionWorkflow"
+                "AuditActionWorkflow",
+                "AuditActionSync",
+                "AuditActionCron",
+                "AuditActionSettings",
+                "AuditActionTemplate",
+                "AuditActionWebhook",
+                "AuditActionGroup",
+                "AuditActionReport",
+                "AuditActionChart",
+                "AuditActionDashboard"
             ]
         },
         "models.AuditLog": {
@@ -4119,11 +6079,379 @@
                 }
             }
         },
+        "models.BulkError": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                },
+                "record_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.BulkOperation": {
+            "type": "object",
+            "properties": {
+                "completed_at": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "error_count": {
+                    "type": "integer"
+                },
+                "errors": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.BulkError"
+                    }
+                },
+                "filters": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "id": {
+                    "type": "string"
+                },
+                "module_name": {
+                    "type": "string"
+                },
+                "processed_count": {
+                    "type": "integer"
+                },
+                "status": {
+                    "$ref": "#/definitions/models.BulkOperationStatus"
+                },
+                "success_count": {
+                    "type": "integer"
+                },
+                "total_records": {
+                    "type": "integer"
+                },
+                "type": {
+                    "description": "\"update\" or \"delete\"",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.BulkOperationType"
+                        }
+                    ]
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "updates": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "user_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.BulkOperationStatus": {
+            "type": "string",
+            "enum": [
+                "pending",
+                "processing",
+                "completed",
+                "failed"
+            ],
+            "x-enum-varnames": [
+                "BulkStatusPending",
+                "BulkStatusProcessing",
+                "BulkStatusCompleted",
+                "BulkStatusFailed"
+            ]
+        },
+        "models.BulkOperationType": {
+            "type": "string",
+            "enum": [
+                "update",
+                "delete"
+            ],
+            "x-enum-varnames": [
+                "BulkTypeUpdate",
+                "BulkTypeDelete"
+            ]
+        },
         "models.Change": {
             "type": "object",
             "properties": {
                 "new": {},
                 "old": {}
+            }
+        },
+        "models.Chart": {
+            "type": "object",
+            "properties": {
+                "aggregation_type": {
+                    "description": "count, sum, avg, etc.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.AggregationType"
+                        }
+                    ]
+                },
+                "chart_type": {
+                    "$ref": "#/definitions/models.ChartType"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "module_id": {
+                    "description": "The module to query",
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "x_axis_field": {
+                    "description": "Field to group by",
+                    "type": "string"
+                },
+                "y_axis_field": {
+                    "description": "Field to aggregate (optional for count)",
+                    "type": "string"
+                }
+            }
+        },
+        "models.ChartType": {
+            "type": "string",
+            "enum": [
+                "bar",
+                "line",
+                "pie",
+                "donut",
+                "area",
+                "funnel",
+                "scatter",
+                "radar",
+                "stacked_bar",
+                "stacked_area"
+            ],
+            "x-enum-varnames": [
+                "ChartTypeBar",
+                "ChartTypeLine",
+                "ChartTypePie",
+                "ChartTypeDonut",
+                "ChartTypeArea",
+                "ChartTypeFunnel",
+                "ChartTypeScatter",
+                "ChartTypeRadar",
+                "ChartTypeStackedBar",
+                "ChartTypeStackedArea"
+            ]
+        },
+        "models.CronJob": {
+            "description": "Cron job configuration for scheduled automation",
+            "type": "object",
+            "properties": {
+                "actions": {
+                    "description": "Actions to execute (reusing automation action types)",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.RuleAction"
+                    }
+                },
+                "active": {
+                    "description": "Whether the job is active",
+                    "type": "boolean",
+                    "example": true
+                },
+                "conditions": {
+                    "description": "Conditions to filter records (optional, for record-based jobs)",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.RuleCondition"
+                    }
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "created_by": {
+                    "description": "Audit fields",
+                    "type": "string",
+                    "example": "507f1f77bcf86cd799439011"
+                },
+                "description": {
+                    "type": "string",
+                    "example": "Send daily reminder for uncontacted leads"
+                },
+                "id": {
+                    "type": "string",
+                    "example": "507f1f77bcf86cd799439011"
+                },
+                "last_run": {
+                    "description": "Execution tracking",
+                    "type": "string"
+                },
+                "module_id": {
+                    "description": "Optional module to target for record-based operations",
+                    "type": "string",
+                    "example": "leads"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "Daily Lead Reminder"
+                },
+                "next_run": {
+                    "type": "string"
+                },
+                "schedule": {
+                    "description": "Cron expression (e.g., \"0 0 * * *\" for daily at midnight)",
+                    "type": "string",
+                    "example": "0 0 * * *"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.CronJobLog": {
+            "description": "Execution log for a cron job",
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "cron_job_id": {
+                    "type": "string"
+                },
+                "cron_job_name": {
+                    "description": "Denormalized for easier querying",
+                    "type": "string"
+                },
+                "end_time": {
+                    "type": "string"
+                },
+                "error": {
+                    "description": "Error and output details",
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "output": {
+                    "description": "JSON or text output",
+                    "type": "string"
+                },
+                "records_affected": {
+                    "type": "integer"
+                },
+                "records_processed": {
+                    "type": "integer"
+                },
+                "start_time": {
+                    "description": "Execution timing",
+                    "type": "string"
+                },
+                "status": {
+                    "description": "Execution results",
+                    "type": "string"
+                }
+            }
+        },
+        "models.CrossModuleConfig": {
+            "type": "object",
+            "properties": {
+                "base_module": {
+                    "description": "Primary module",
+                    "type": "string"
+                },
+                "joins": {
+                    "description": "Related modules to join",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.ModuleJoin"
+                    }
+                }
+            }
+        },
+        "models.DashboardConfig": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_default": {
+                    "description": "Default dashboard for user",
+                    "type": "boolean"
+                },
+                "is_shared": {
+                    "description": "Shared with other users",
+                    "type": "boolean"
+                },
+                "layout": {
+                    "description": "grid, vertical, etc.",
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "string"
+                },
+                "widgets": {
+                    "description": "Widget configurations",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.DashboardWidget"
+                    }
+                }
+            }
+        },
+        "models.DashboardWidget": {
+            "type": "object",
+            "properties": {
+                "config": {
+                    "description": "Widget-specific config",
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "id": {
+                    "description": "Unique widget ID",
+                    "type": "string"
+                },
+                "module_name": {
+                    "description": "Source module",
+                    "type": "string"
+                },
+                "position": {
+                    "description": "Grid position",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.WidgetPosition"
+                        }
+                    ]
+                },
+                "title": {
+                    "description": "Widget title",
+                    "type": "string"
+                },
+                "type": {
+                    "description": "metric, chart, table, etc.",
+                    "type": "string"
+                }
             }
         },
         "models.EmailConfig": {
@@ -4406,13 +6734,23 @@
                 "created_at": {
                     "type": "string"
                 },
+                "description": {
+                    "type": "string"
+                },
                 "group": {
                     "type": "string"
                 },
                 "id": {
                     "type": "string"
                 },
+                "is_shared": {
+                    "type": "boolean"
+                },
                 "mime_type": {
+                    "type": "string"
+                },
+                "module_name": {
+                    "description": "File sharing fields",
                     "type": "string"
                 },
                 "original_filename": {
@@ -4422,14 +6760,108 @@
                     "description": "Server file path",
                     "type": "string"
                 },
+                "record_id": {
+                    "type": "string"
+                },
                 "size": {
                     "type": "integer"
                 },
                 "unique_filename": {
                     "type": "string"
                 },
+                "uploaded_by": {
+                    "type": "string"
+                },
                 "url": {
                     "description": "Public Web URL",
+                    "type": "string"
+                }
+            }
+        },
+        "models.FileSharingConfig": {
+            "type": "object",
+            "properties": {
+                "allow_shared_documents": {
+                    "type": "boolean"
+                },
+                "allowed_file_types": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "enabled": {
+                    "type": "boolean"
+                },
+                "enabled_modules": {
+                    "description": "Empty = all modules",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "max_file_size_mb": {
+                    "type": "integer"
+                },
+                "max_files_per_record": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.FilterCondition": {
+            "type": "object",
+            "properties": {
+                "field": {
+                    "type": "string"
+                },
+                "operator": {
+                    "description": "eq, ne, gt, lt, gte, lte, contains, in, etc.",
+                    "type": "string"
+                },
+                "value": {}
+            }
+        },
+        "models.FilterCriteria": {
+            "type": "object",
+            "properties": {
+                "conditions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.FilterCondition"
+                    }
+                },
+                "groups": {
+                    "description": "Nested groups",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.FilterCriteria"
+                    }
+                },
+                "logic": {
+                    "description": "\"AND\" or \"OR\"",
+                    "type": "string"
+                }
+            }
+        },
+        "models.GeneralConfig": {
+            "type": "object",
+            "properties": {
+                "app_name": {
+                    "type": "string"
+                },
+                "app_url": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "landing_page_title": {
+                    "type": "string"
+                },
+                "logo_url": {
+                    "type": "string"
+                },
+                "support_email": {
                     "type": "string"
                 }
             }
@@ -4471,14 +6903,127 @@
                 }
             }
         },
+        "models.ImportError": {
+            "type": "object",
+            "properties": {
+                "field": {
+                    "type": "string"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "row": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.ImportJob": {
+            "type": "object",
+            "properties": {
+                "column_mapping": {
+                    "description": "CSV column -\u003e field mapping",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "completed_at": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "error_count": {
+                    "type": "integer"
+                },
+                "errors": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.ImportError"
+                    }
+                },
+                "file_name": {
+                    "type": "string"
+                },
+                "file_path": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "module_name": {
+                    "type": "string"
+                },
+                "processed_records": {
+                    "type": "integer"
+                },
+                "status": {
+                    "$ref": "#/definitions/models.ImportStatus"
+                },
+                "success_count": {
+                    "type": "integer"
+                },
+                "total_records": {
+                    "type": "integer"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.ImportPreview": {
+            "type": "object",
+            "properties": {
+                "headers": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "module_fields": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.ModuleField"
+                    }
+                },
+                "sample_data": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": true
+                    }
+                },
+                "total_rows": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.ImportStatus": {
+            "type": "string",
+            "enum": [
+                "pending",
+                "processing",
+                "completed",
+                "failed"
+            ],
+            "x-enum-varnames": [
+                "ImportStatusPending",
+                "ImportStatusProcessing",
+                "ImportStatusCompleted",
+                "ImportStatusFailed"
+            ]
+        },
         "models.LookupDef": {
             "type": "object",
             "properties": {
-                "display_field": {
-                    "description": "Target Field to display in UI",
+                "lookup_label": {
+                    "description": "Target Field to display in UI (e.g. name)",
                     "type": "string"
                 },
-                "module": {
+                "lookup_module": {
                     "description": "Target Module Name",
                     "type": "string"
                 },
@@ -4549,6 +7094,26 @@
                 }
             }
         },
+        "models.ModuleJoin": {
+            "type": "object",
+            "properties": {
+                "fields": {
+                    "description": "Fields to include from this module",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "lookup_field": {
+                    "description": "Field in base module that references this module",
+                    "type": "string"
+                },
+                "module_name": {
+                    "description": "Related module name",
+                    "type": "string"
+                }
+            }
+        },
         "models.ModulePermission": {
             "type": "object",
             "properties": {
@@ -4566,9 +7131,58 @@
                 }
             }
         },
+        "models.ModuleSyncConfig": {
+            "type": "object",
+            "properties": {
+                "mapping": {
+                    "description": "CRM Field -\u003e Target DB Column",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "module_name": {
+                    "type": "string"
+                },
+                "sync_deletes": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "models.PivotConfig": {
+            "type": "object",
+            "properties": {
+                "aggregation": {
+                    "description": "count, sum, avg, min, max",
+                    "type": "string"
+                },
+                "column_fields": {
+                    "description": "Fields to group by for columns",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "row_fields": {
+                    "description": "Fields to group by for rows",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "value_field": {
+                    "description": "Field to aggregate",
+                    "type": "string"
+                }
+            }
+        },
         "models.Report": {
             "type": "object",
             "properties": {
+                "chart_type": {
+                    "description": "bar, line, pie, table",
+                    "type": "string"
+                },
                 "columns": {
                     "description": "List of field names to display",
                     "type": "array",
@@ -4581,6 +7195,9 @@
                 },
                 "created_by": {
                     "type": "string"
+                },
+                "cross_module_config": {
+                    "$ref": "#/definitions/models.CrossModuleConfig"
                 },
                 "description": {
                     "type": "string"
@@ -4600,6 +7217,17 @@
                 "name": {
                     "type": "string"
                 },
+                "pivot_config": {
+                    "$ref": "#/definitions/models.PivotConfig"
+                },
+                "report_type": {
+                    "description": "standard, pivot, cross_module",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.ReportType"
+                        }
+                    ]
+                },
                 "updated_at": {
                     "type": "string"
                 },
@@ -4607,6 +7235,19 @@
                     "type": "string"
                 }
             }
+        },
+        "models.ReportType": {
+            "type": "string",
+            "enum": [
+                "standard",
+                "pivot",
+                "cross_module"
+            ],
+            "x-enum-varnames": [
+                "ReportTypeStandard",
+                "ReportTypePivot",
+                "ReportTypeCrossModule"
+            ]
         },
         "models.Role": {
             "type": "object",
@@ -4616,6 +7257,16 @@
                 },
                 "description": {
                     "type": "string"
+                },
+                "field_permissions": {
+                    "description": "Module -\u003e Field -\u003e \"read_write\" | \"read_only\" | \"none\"",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "string"
+                        }
+                    }
                 },
                 "id": {
                     "type": "string"
@@ -4723,6 +7374,41 @@
                 }
             }
         },
+        "models.SavedFilter": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "criteria": {
+                    "$ref": "#/definitions/models.FilterCriteria"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_default": {
+                    "type": "boolean"
+                },
+                "is_public": {
+                    "type": "boolean"
+                },
+                "module_name": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "string"
+                }
+            }
+        },
         "models.SelectOptions": {
             "type": "object",
             "properties": {
@@ -4757,6 +7443,72 @@
                         }
                     ],
                     "example": "open"
+                }
+            }
+        },
+        "models.SyncLog": {
+            "type": "object",
+            "properties": {
+                "end_time": {
+                    "type": "string"
+                },
+                "error": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "processed_count": {
+                    "type": "integer"
+                },
+                "start_time": {
+                    "type": "string"
+                },
+                "status": {
+                    "description": "\"success\", \"failed\", \"in_progress\"",
+                    "type": "string"
+                },
+                "sync_setting_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.SyncSetting": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_active": {
+                    "type": "boolean"
+                },
+                "last_sync_at": {
+                    "type": "string"
+                },
+                "modules": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.ModuleSyncConfig"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                },
+                "target_db_config": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "target_db_type": {
+                    "description": "\"postgres\", \"mysql\", \"sqlserver\", \"mongodb\"",
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
                 }
             }
         },
@@ -5120,6 +7872,51 @@
                 "url": {
                     "type": "string",
                     "example": "https://example.com/webhook"
+                }
+            }
+        },
+        "models.WidgetPosition": {
+            "type": "object",
+            "properties": {
+                "height": {
+                    "description": "Height in grid units",
+                    "type": "integer"
+                },
+                "width": {
+                    "description": "Width in grid units",
+                    "type": "integer"
+                },
+                "x": {
+                    "description": "X position",
+                    "type": "integer"
+                },
+                "y": {
+                    "description": "Y position",
+                    "type": "integer"
+                }
+            }
+        },
+        "service.SearchResult": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "icon": {
+                    "type": "string"
+                },
+                "link": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "type": {
+                    "description": "\"module\", \"record\", \"page\", \"user\"",
+                    "type": "string"
                 }
             }
         }

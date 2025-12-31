@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"go-crm/internal/models"
 	"go-crm/internal/repository"
+	"sort"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -155,10 +156,22 @@ func (s *ChartServiceImpl) GetChartData(ctx context.Context, id string) ([]map[s
 	}
 	pipeline = append(pipeline, groupStage)
 
-	// Sort by _id (X Axis)
+	// Determine Sort
+	sortDir := 1
+	sortField := "_id"
+
+	if chart.ChartType == models.ChartTypeFunnel {
+		sortField = "value"
+		sortDir = -1 // Default funnel to descending values
+	}
+
+	// If it's a select field, we might want to sort by picklist order in Go later,
+	// or stick to the aggregation sort if feasible.
+	// For now, let's keep it simple and refine the sort in Go if it's a select field.
+
 	sortStage := bson.D{
 		{Key: "$sort", Value: bson.D{
-			{Key: "_id", Value: 1},
+			{Key: sortField, Value: sortDir},
 		}},
 	}
 	pipeline = append(pipeline, sortStage)
@@ -169,8 +182,18 @@ func (s *ChartServiceImpl) GetChartData(ctx context.Context, id string) ([]map[s
 		return nil, err
 	}
 
-	// 5. Format Output
-	// Flatten _id to "name"
+	// 5. Format Output and Post-processing Sort
+	// If it's a select field, sort by option order
+	var selectOptions []models.SelectOptions
+	if module != nil {
+		for _, f := range module.Fields {
+			if f.Name == chart.XAxisField && f.Type == models.FieldTypeSelect {
+				selectOptions = f.Options
+				break
+			}
+		}
+	}
+
 	formatted := make([]map[string]interface{}, 0, len(results))
 	for _, res := range results {
 		name := "Unknown"
@@ -181,6 +204,27 @@ func (s *ChartServiceImpl) GetChartData(ctx context.Context, id string) ([]map[s
 		formatted = append(formatted, map[string]interface{}{
 			"name":  name,
 			"value": res["value"],
+		})
+	}
+
+	// Post-aggregation sort for select fields
+	if len(selectOptions) > 0 {
+		optionMap := make(map[string]int)
+		for i, opt := range selectOptions {
+			optionMap[opt.Value] = i
+		}
+
+		// Use a simple sort or just reorder
+		sort.Slice(formatted, func(i, j int) bool {
+			idxI, okI := optionMap[fmt.Sprintf("%v", formatted[i]["name"])]
+			idxJ, okJ := optionMap[fmt.Sprintf("%v", formatted[j]["name"])]
+			if !okI {
+				idxI = 999
+			}
+			if !okJ {
+				idxJ = 999
+			}
+			return idxI < idxJ
 		})
 	}
 
