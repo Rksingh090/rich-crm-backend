@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"go-crm/internal/config"
 	"go-crm/internal/models"
 	"go-crm/internal/repository"
 	"go-crm/internal/service"
@@ -20,17 +21,18 @@ type ImportController struct {
 	ImportService service.ImportService
 	FileRepo      repository.FileRepository
 	UploadDir     string
+	Config        *config.Config
 }
 
-func NewImportController(importService service.ImportService, fileRepo repository.FileRepository) *ImportController {
-	uploadDir := "./uploads"
-	if _, err := os.Stat(uploadDir); os.IsNotExist(err) {
-		os.MkdirAll(uploadDir, 0755)
+func NewImportController(importService service.ImportService, fileRepo repository.FileRepository, cfg *config.Config) *ImportController {
+	if _, err := os.Stat(cfg.FSPath); os.IsNotExist(err) {
+		os.MkdirAll(cfg.FSPath, 0755)
 	}
 	return &ImportController{
 		ImportService: importService,
 		FileRepo:      fileRepo,
-		UploadDir:     uploadDir,
+		UploadDir:     cfg.FSPath,
+		Config:        cfg,
 	}
 }
 
@@ -120,7 +122,7 @@ func (c *ImportController) CreateImportJob(ctx *fiber.Ctx) error {
 		OriginalFilename: originalName,
 		UniqueFilename:   uniqueName,
 		Path:             dstPath,
-		URL:              fmt.Sprintf("/uploads/%s", uniqueName),
+		URL:              fmt.Sprintf("%s/%s", c.Config.FSURL, uniqueName),
 		Group:            "import",
 		Size:             fileHeader.Size,
 		MIMEType:         fileHeader.Header.Get("Content-Type"),

@@ -20,18 +20,19 @@ type FileController struct {
 	UploadDir   string
 	Repo        repository.FileRepository
 	FileService service.FileService
+	Config      *config.Config
 }
 
 func NewFileController(repo repository.FileRepository, fileService service.FileService, cfg *config.Config) *FileController {
 	// Ensure upload directory exists
-	uploadDir := "./uploads" // Using a default, could be cfg.UploadDir if added to config
-	if _, err := os.Stat(uploadDir); os.IsNotExist(err) {
-		os.MkdirAll(uploadDir, 0755)
+	if _, err := os.Stat(cfg.FSPath); os.IsNotExist(err) {
+		os.MkdirAll(cfg.FSPath, 0755)
 	}
 	return &FileController{
-		UploadDir:   uploadDir,
+		UploadDir:   cfg.FSPath,
 		Repo:        repo,
 		FileService: fileService,
+		Config:      cfg,
 	}
 }
 
@@ -52,11 +53,10 @@ func NewFileController(repo repository.FileRepository, fileService service.FileS
 // @Router       /upload [post]
 func (ctrl *FileController) UploadFile(c *fiber.Ctx) error {
 	// Get user ID from context
-	userID, ok := c.Locals("user_id").(primitive.ObjectID)
-	if !ok {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"error": "Unauthorized",
-		})
+	userIDStr := c.Locals("userID").(string)
+	userID, err := primitive.ObjectIDFromHex(userIDStr)
+	if err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid user ID"})
 	}
 
 	// Get uploaded file
@@ -100,7 +100,7 @@ func (ctrl *FileController) UploadFile(c *fiber.Ctx) error {
 		OriginalFilename: originalName,
 		UniqueFilename:   uniqueName,
 		Path:             dstPath,
-		URL:              fmt.Sprintf("/uploads/%s", uniqueName),
+		URL:              fmt.Sprintf("%s/%s", ctrl.Config.FSURL, uniqueName),
 		Size:             file.Size,
 		MIMEType:         file.Header.Get("Content-Type"),
 		ModuleName:       moduleName,
@@ -192,12 +192,10 @@ func (ctrl *FileController) DownloadFile(c *fiber.Ctx) error {
 func (ctrl *FileController) DeleteFile(c *fiber.Ctx) error {
 	fileID := c.Params("id")
 
-	// Get user ID from context
-	userID, ok := c.Locals("user_id").(primitive.ObjectID)
-	if !ok {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"error": "Unauthorized",
-		})
+	userIDStr := c.Locals("userID").(string)
+	userID, err := primitive.ObjectIDFromHex(userIDStr)
+	if err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid user ID"})
 	}
 
 	if err := ctrl.FileService.DeleteFile(c.Context(), fileID, userID); err != nil {

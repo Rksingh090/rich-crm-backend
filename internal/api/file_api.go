@@ -31,6 +31,6 @@ func (h *FileApi) Setup(app *fiber.App) {
 	app.Get("/api/files/:id/download", middleware.AuthMiddleware(h.config.SkipAuth), h.controller.DownloadFile)
 	app.Delete("/api/files/:id", middleware.AuthMiddleware(h.config.SkipAuth), h.controller.DeleteFile)
 
-	// Static file serving
-	app.Static("/uploads", "./uploads")
+	// Static file serving - serve files from config FSPath via config FSURL
+	app.Static(h.config.FSURL, h.config.FSPath)
 }
