@@ -6,7 +6,7 @@
 # OR you are running this from the deployed /var/www/go-crm/backend/scripts directory.
 
 # --- Configuration ---
-APP_DIR="/var/www/go-crm" # Adjust if your path is different
+APP_DIR="/var/www/go-crm/deployment" # Adjust if your path is different
 NGINX_AVAILABLE="/etc/nginx/sites-available"
 NGINX_ENABLED="/etc/nginx/sites-enabled"
 SYSTEMD_DIR="/etc/systemd/system"
@@ -32,6 +32,7 @@ if [ -f "$APP_DIR/systemd/rich-backend.service" ]; then
     cp "$APP_DIR/systemd/rich-backend.service" "$SYSTEMD_DIR/"
     cp "$APP_DIR/systemd/rich-crm.service" "$SYSTEMD_DIR/"
     cp "$APP_DIR/systemd/rich-erp.service" "$SYSTEMD_DIR/"
+    cp "$APP_DIR/systemd/rich-web.service" "$SYSTEMD_DIR/"
 else
     echo -e "${RED}[!] Service files not found in $APP_DIR/systemd/. Please verify deployment.${NC}"
     # Try to find in current dir as fallback
@@ -44,8 +45,8 @@ else
 fi
 
 systemctl daemon-reload
-systemctl enable rich-backend rich-crm rich-erp
-systemctl restart rich-backend rich-crm rich-erp
+systemctl enable rich-backend rich-crm rich-erp rich-web
+systemctl restart rich-backend rich-crm rich-erp rich-web
 echo -e "${GREEN}[+] Services enabled and restarted.${NC}"
 
 # 2. Configure Nginx
