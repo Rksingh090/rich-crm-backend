@@ -184,6 +184,13 @@ func (s *ModuleServiceImpl) UpdateModule(ctx context.Context, module *models.Mod
 		}
 	}
 
+	// Preserve existing metadata if not provided in update
+	if module.Label == "" {
+		module.Label = existingModule.Label
+	}
+	module.ID = existingModule.ID
+	module.IsSystem = existingModule.IsSystem
+	module.CreatedAt = existingModule.CreatedAt
 	module.UpdatedAt = time.Now()
 	// In real app, we might check if module exists first or validate schema changes
 	err = s.Repo.Update(ctx, module)

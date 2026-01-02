@@ -495,10 +495,16 @@ func (s *RecordServiceImpl) DeleteRecord(ctx context.Context, moduleName, id str
 
 func (s *RecordServiceImpl) populateFiles(ctx context.Context, fields []models.ModuleField, record map[string]any) error {
 	for _, field := range fields {
-		if field.Type == models.FieldTypeFile {
+		if field.Type == models.FieldTypeFile || field.Type == models.FieldTypeImage {
 			if val, ok := record[field.Name]; ok {
-				// val should be a string (hex ID)
-				if idStr, ok := val.(string); ok && idStr != "" {
+				var idStr string
+				if oid, ok := val.(primitive.ObjectID); ok {
+					idStr = oid.Hex()
+				} else if s, ok := val.(string); ok {
+					idStr = s
+				}
+
+				if idStr != "" {
 					file, err := s.FileRepo.Get(ctx, idStr)
 					if err == nil {
 						// Replace ID with limited File Object
@@ -555,9 +561,19 @@ func (s *RecordServiceImpl) populateLookups(ctx context.Context, fields []models
 }
 
 func (s *RecordServiceImpl) validateAndConvert(ctx context.Context, field models.ModuleField, val interface{}) (interface{}, error) {
+	// Handle nil/empty
+	if val == nil {
+		return nil, nil
+	}
+	// Common empty check for "empty string" which means "null" for non-text fields
+	if strVal, ok := val.(string); ok && strVal == "" {
+		if field.Type != models.FieldTypeText && field.Type != models.FieldTypeTextArea && field.Type != models.FieldTypeSelect && field.Type != models.FieldTypeMultiSelect {
+			return nil, nil
+		}
+	}
+
 	switch field.Type {
 	case models.FieldTypeNumber:
-		// ... existing number logic
 		switch v := val.(type) {
 		case float64:
 			return v, nil
@@ -566,6 +582,9 @@ func (s *RecordServiceImpl) validateAndConvert(ctx context.Context, field models
 		case int64:
 			return float64(v), nil
 		case string:
+			if v == "" {
+				return nil, nil // Should conform to check above, but redundant safety
+			}
 			f, err := strconv.ParseFloat(v, 64)
 			if err != nil {
 				return nil, errors.New("expected number")
@@ -575,11 +594,13 @@ func (s *RecordServiceImpl) validateAndConvert(ctx context.Context, field models
 			return nil, errors.New("expected number")
 		}
 	case models.FieldTypeBoolean:
-		// ... existing boolean logic
 		if b, ok := val.(bool); ok {
 			return b, nil
 		}
 		if s, ok := val.(string); ok {
+			if s == "" {
+				return nil, nil
+			}
 			b, err := strconv.ParseBool(s)
 			if err != nil {
 				return nil, errors.New("expected boolean")
@@ -588,10 +609,12 @@ func (s *RecordServiceImpl) validateAndConvert(ctx context.Context, field models
 		}
 		return nil, errors.New("expected boolean")
 	case models.FieldTypeDate:
-		// ... existing date logic
 		strVal, ok := val.(string)
 		if !ok {
 			return nil, errors.New("expected date string")
+		}
+		if strVal == "" {
+			return nil, nil
 		}
 		t, err := time.Parse(time.RFC3339, strVal)
 		if err != nil {
@@ -602,10 +625,12 @@ func (s *RecordServiceImpl) validateAndConvert(ctx context.Context, field models
 		}
 		return t, nil
 	case models.FieldTypeEmail:
-		// ... existing email logic
 		strVal, ok := val.(string)
 		if !ok {
 			return nil, errors.New("expected string")
+		}
+		if strVal == "" {
+			return nil, nil
 		}
 		if match, _ := regexp.MatchString(`^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$`, strVal); !match {
 			return nil, errors.New("invalid email format")
@@ -616,6 +641,9 @@ func (s *RecordServiceImpl) validateAndConvert(ctx context.Context, field models
 		if !ok {
 			return nil, errors.New("expected valid objectID hex string")
 		}
+		if strVal == "" {
+			return nil, nil
+		}
 		oid, err := primitive.ObjectIDFromHex(strVal)
 		if err != nil {
 			return nil, errors.New("invalid objectID for lookup")
@@ -624,15 +652,11 @@ func (s *RecordServiceImpl) validateAndConvert(ctx context.Context, field models
 		// Integrity Check
 		if field.Lookup != nil && field.Lookup.LookupModule != "" {
 			// Check if referenced record exists
-			// We use Get from RecordRepo. Ideally, we might want a simpler "Exists" method, but Get works.
 			_, err := s.RecordRepo.Get(ctx, field.Lookup.LookupModule, strVal)
 			if err != nil {
 				if err == mongo.ErrNoDocuments {
 					return nil, fmt.Errorf("referenced record in module '%s' not found", field.Lookup.LookupModule)
 				}
-				// If other error, we might log it but assume it's okay or fail?
-				// Let's be strict: if we can't verify, we assume invalid to maintain integrity.
-				// However, if the collection doesn't exist yet, it's definitely invalid reference.
 				return nil, fmt.Errorf("failed to verify lookup reference: %v", err)
 			}
 		}
@@ -641,23 +665,39 @@ func (s *RecordServiceImpl) validateAndConvert(ctx context.Context, field models
 	case models.FieldTypeFile:
 		strVal, ok := val.(string)
 		if !ok {
-			return nil, errors.New("expected valid objectID hex string for file")
+			return nil, errors.New("expected string for file")
 		}
-		// Validate ID format
-		_, err := primitive.ObjectIDFromHex(strVal)
-		if err != nil {
-			return nil, errors.New("invalid file ID format")
+		if strVal == "" {
+			return nil, nil
 		}
 
-		// Check existence
-		// We can reuse Get, passing the ID directly
-		_, err = s.FileRepo.Get(ctx, strVal)
-		if err != nil {
-			if err == mongo.ErrNoDocuments {
-				return nil, errors.New("referenced file not found")
+		// Check if it's a valid ObjectID (Reference)
+		if _, err := primitive.ObjectIDFromHex(strVal); err == nil {
+			// It's an ID, check existence in DB
+			_, err = s.FileRepo.Get(ctx, strVal)
+			if err != nil {
+				if err == mongo.ErrNoDocuments {
+					return nil, errors.New("referenced file not found")
+				}
+				// If DB error, we can't verify, but maybe it's risky to fail?
+				// Let's fail on checking error to be safe.
+				return nil, fmt.Errorf("failed to verify file reference: %v", err)
 			}
-			return nil, fmt.Errorf("failed to verify file reference: %v", err)
+			// Return as is (ID string) or OID? Schema expects string usually for flexibility or OID?
+			// Existing logic returned strVal.
+			return strVal, nil
 		}
+
+		// If not ObjectID, assume it's a URL/Path (e.g. /uploads/...)
+		// We could validate it starts with /uploads or http, but let's be permissive strictly for now
+		return strVal, nil // Return the URL string
+
+	case models.FieldTypeImage:
+		strVal, ok := val.(string)
+		if !ok {
+			return nil, errors.New("expected string for image")
+		}
+		// Image is treated as string (URL or ID)
 		return strVal, nil
 	default:
 		return val, nil

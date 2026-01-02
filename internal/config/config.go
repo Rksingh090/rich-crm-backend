@@ -15,6 +15,8 @@ type Config struct {
 	SkipAuth    bool
 	Environment string
 	AppId       string
+	FSPath      string // Physical directory for file uploads
+	FSURL       string // URL path prefix for file access
 }
 
 // LoadConfig loads configuration from environment variables
@@ -33,6 +35,8 @@ func LoadConfig() (*Config, error) {
 		SkipAuth:    getEnv("SKIP_AUTH", "false") == "true",
 		Environment: getEnv("ENVIRONMENT", "development"),
 		AppId:       getEnv("APP_ID", "go-crm"),
+		FSPath:      getEnv("FS_PATH", "./uploads"),
+		FSURL:       getEnv("FS_URL", "/fs/uploads"),
 	}, nil
 }
 
