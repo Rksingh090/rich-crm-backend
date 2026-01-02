@@ -19,6 +19,7 @@ type UserRepository interface {
 	List(ctx context.Context, filter map[string]interface{}, limit, offset int64) ([]models.User, int64, error)
 	Update(ctx context.Context, id string, user *models.User) error
 	Delete(ctx context.Context, id string) error
+	FindByIDs(ctx context.Context, ids []string) ([]models.User, error)
 }
 
 type UserRepositoryImpl struct {
@@ -130,4 +131,29 @@ func (r *UserRepositoryImpl) Delete(ctx context.Context, id string) error {
 	}
 	_, err = r.Collection.DeleteOne(ctx, bson.M{"_id": objectID})
 	return err
+}
+
+func (r *UserRepositoryImpl) FindByIDs(ctx context.Context, ids []string) ([]models.User, error) {
+	var objectIDs []primitive.ObjectID
+	for _, id := range ids {
+		if oid, err := primitive.ObjectIDFromHex(id); err == nil {
+			objectIDs = append(objectIDs, oid)
+		}
+	}
+
+	if len(objectIDs) == 0 {
+		return []models.User{}, nil
+	}
+
+	cursor, err := r.Collection.Find(ctx, bson.M{"_id": bson.M{"$in": objectIDs}})
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var users []models.User
+	if err = cursor.All(ctx, &users); err != nil {
+		return nil, err
+	}
+	return users, nil
 }

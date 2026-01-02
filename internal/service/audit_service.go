@@ -60,18 +60,39 @@ func (s *AuditServiceImpl) ListLogs(ctx context.Context, filters map[string]inte
 		return nil, err
 	}
 
+	// Collect Actor IDs
+	actorIDs := make([]string, 0)
+	uniqueIDs := make(map[string]bool)
+	for _, log := range logs {
+		if log.ActorID != "system" && log.ActorID != "" {
+			if !uniqueIDs[log.ActorID] {
+				uniqueIDs[log.ActorID] = true
+				actorIDs = append(actorIDs, log.ActorID)
+			}
+		}
+	}
+
+	// Batch Fetch Users
+	userMap := make(map[string]string)
+	if len(actorIDs) > 0 {
+		users, err := s.UserRepo.FindByIDs(ctx, actorIDs)
+		if err == nil {
+			for _, user := range users {
+				userMap[user.ID.Hex()] = user.Username
+			}
+		}
+	}
+
 	// Populate Actor Names
 	for i, log := range logs {
-		if log.ActorID != "system" && log.ActorID != "" {
-			user, err := s.UserRepo.FindByID(ctx, log.ActorID)
-			if err == nil && user != nil {
-				logs[i].ActorName = user.Username
-				// Or use full name: logs[i].ActorName = user.FirstName + " " + user.LastName
+		if log.ActorID == "system" || log.ActorID == "" {
+			logs[i].ActorName = "System"
+		} else {
+			if name, ok := userMap[log.ActorID]; ok {
+				logs[i].ActorName = name
 			} else {
 				logs[i].ActorName = "Unknown User"
 			}
-		} else {
-			logs[i].ActorName = "System"
 		}
 	}
 

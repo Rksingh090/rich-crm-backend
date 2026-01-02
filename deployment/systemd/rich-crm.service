@@ -1,0 +1,20 @@
+[Unit]
+Description=Rich CRM Frontend (Next.js)
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/var/www/go-crm/ui/.next/standalone
+ExecStart=/usr/bin/node server.js
+Restart=always
+Environment=NODE_ENV=production
+Environment=PORT=42112
+Environment=HOSTNAME=0.0.0.0
+Environment=NEXT_PUBLIC_API_URL=http://localhost:42111
+# Note: NEXT_PUBLIC_API_URL might need to be the public Nginx URL if browser-side calls need it.
+# But for server-side rendering, localhost:42111 is correct if on same server.
+# If CORS issues arise, this might need to be https://yourdomain.com/api
+
+[Install]
+WantedBy=multi-user.target
