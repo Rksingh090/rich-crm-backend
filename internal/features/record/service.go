@@ -135,7 +135,7 @@ func (s *RecordServiceImpl) CreateRecord(ctx context.Context, moduleName string,
 	}
 
 	// 4. Insert
-	res, err := s.RecordRepo.Create(ctx, moduleName, validatedData)
+	res, err := s.RecordRepo.Create(ctx, moduleName, m.Product, validatedData)
 	if err != nil {
 		return nil, err
 	}
@@ -319,7 +319,13 @@ func (s *RecordServiceImpl) ListRecords(ctx context.Context, moduleName string, 
 		sortOrderInt = 1
 	}
 
-	records, err := s.RecordRepo.List(ctx, moduleName, typedFilters, limit, offset, sortBy, sortOrderInt)
+	// 3. Access Control
+	accessFilter, err := s.RoleService.GetAccessFilter(ctx, userID, moduleName, "read")
+	if err != nil {
+		return nil, 0, err
+	}
+
+	records, err := s.RecordRepo.List(ctx, moduleName, typedFilters, accessFilter, limit, offset, sortBy, sortOrderInt)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -329,7 +335,7 @@ func (s *RecordServiceImpl) ListRecords(ctx context.Context, moduleName string, 
 		_ = s.populateLookups(ctx, m.Fields, record)
 	}
 
-	totalCount, err := s.RecordRepo.Count(ctx, moduleName, typedFilters)
+	totalCount, err := s.RecordRepo.Count(ctx, moduleName, typedFilters, accessFilter)
 	if err != nil {
 		return nil, 0, err
 	}

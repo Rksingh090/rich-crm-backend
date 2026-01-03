@@ -33,7 +33,7 @@ func (ctrl *SLAMetricsController) GetOverview(c *fiber.Ctx) error {
 		endDate = time.Now()
 	}
 
-	metrics, err := ctrl.SLAService.GetSLAMetrics(c.Context(), startDate, endDate)
+	metrics, err := ctrl.SLAService.GetSLAMetrics(c.UserContext(), startDate, endDate)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err.Error(),
@@ -45,7 +45,7 @@ func (ctrl *SLAMetricsController) GetOverview(c *fiber.Ctx) error {
 
 // GetViolations godoc
 func (ctrl *SLAMetricsController) GetViolations(c *fiber.Ctx) error {
-	violations, err := ctrl.SLAService.GetSLAViolations(c.Context())
+	violations, err := ctrl.SLAService.GetSLAViolations(c.UserContext())
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err.Error(),
@@ -58,7 +58,7 @@ func (ctrl *SLAMetricsController) GetViolations(c *fiber.Ctx) error {
 // GetTrends godoc
 func (ctrl *SLAMetricsController) GetTrends(c *fiber.Ctx) error {
 	days := 7 // Default 7 days
-	trends, err := ctrl.SLAService.GetSLATrends(c.Context(), days)
+	trends, err := ctrl.SLAService.GetSLATrends(c.UserContext(), days)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err.Error(),
@@ -72,7 +72,7 @@ func (ctrl *SLAMetricsController) GetTrends(c *fiber.Ctx) error {
 func (ctrl *SLAMetricsController) GetTicketSLAStatus(c *fiber.Ctx) error {
 	ticketID := c.Params("id")
 
-	ticket, err := ctrl.TicketService.GetTicket(c.Context(), ticketID)
+	ticket, err := ctrl.TicketService.GetTicket(c.UserContext(), ticketID)
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"error": "Ticket not found",
@@ -82,9 +82,9 @@ func (ctrl *SLAMetricsController) GetTicketSLAStatus(c *fiber.Ctx) error {
 	// Find the policy
 	var policy *SLAPolicy
 	if ticket.SLAPolicyID != nil {
-		policy, _ = ctrl.SLAService.GetPolicy(c.Context(), ticket.SLAPolicyID.Hex())
+		policy, _ = ctrl.SLAService.GetPolicy(c.UserContext(), ticket.SLAPolicyID.Hex())
 	}
 
-	status := ctrl.SLAService.CalculateSLAStatus(c.Context(), ticket, policy)
+	status := ctrl.SLAService.CalculateSLAStatus(c.UserContext(), ticket, policy)
 	return c.JSON(status)
 }

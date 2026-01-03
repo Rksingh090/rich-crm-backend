@@ -44,6 +44,7 @@ type FileSharingConfig struct {
 
 type Settings struct {
 	ID          primitive.ObjectID `json:"id" bson:"_id,omitempty"`
+	TenantID    primitive.ObjectID `json:"tenant_id" bson:"tenant_id,omitempty"`
 	Type        SettingsType       `json:"type" bson:"type"` // Unique index on type
 	Email       *EmailConfig       `json:"email,omitempty" bson:"email,omitempty"`
 	General     *GeneralConfig     `json:"general,omitempty" bson:"general,omitempty"`

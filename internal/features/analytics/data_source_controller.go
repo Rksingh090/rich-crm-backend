@@ -34,7 +34,7 @@ func (c *DataSourceController) CreateDataSource(ctx *fiber.Ctx) error {
 		dataSource.CreatedBy = userID
 	}
 
-	if err := c.Service.CreateDataSource(ctx.Context(), &dataSource); err != nil {
+	if err := c.Service.CreateDataSource(ctx.UserContext(), &dataSource); err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
@@ -51,7 +51,7 @@ func (c *DataSourceController) CreateDataSource(ctx *fiber.Ctx) error {
 func (c *DataSourceController) GetDataSource(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 
-	dataSource, err := c.Service.GetDataSource(ctx.Context(), id)
+	dataSource, err := c.Service.GetDataSource(ctx.UserContext(), id)
 	if err != nil {
 		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Data source not found"})
 	}
@@ -66,7 +66,7 @@ func (c *DataSourceController) GetDataSource(ctx *fiber.Ctx) error {
 // @Success 200 {array} DataSource
 // @Router /api/data-sources [get]
 func (c *DataSourceController) ListDataSources(ctx *fiber.Ctx) error {
-	dataSources, err := c.Service.ListDataSources(ctx.Context())
+	dataSources, err := c.Service.ListDataSources(ctx.UserContext())
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
@@ -91,7 +91,7 @@ func (c *DataSourceController) UpdateDataSource(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
 
-	if err := c.Service.UpdateDataSource(ctx.Context(), id, updates); err != nil {
+	if err := c.Service.UpdateDataSource(ctx.UserContext(), id, updates); err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
@@ -107,7 +107,7 @@ func (c *DataSourceController) UpdateDataSource(ctx *fiber.Ctx) error {
 func (c *DataSourceController) DeleteDataSource(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 
-	if err := c.Service.DeleteDataSource(ctx.Context(), id); err != nil {
+	if err := c.Service.DeleteDataSource(ctx.UserContext(), id); err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
@@ -123,7 +123,7 @@ func (c *DataSourceController) DeleteDataSource(ctx *fiber.Ctx) error {
 func (c *DataSourceController) TestConnection(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 
-	if err := c.Service.TestDataSource(ctx.Context(), id); err != nil {
+	if err := c.Service.TestDataSource(ctx.UserContext(), id); err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error(), "status": "failed"})
 	}
 
@@ -144,7 +144,7 @@ func (c *DataSourceController) QueryDataSource(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
 
-	response, err := c.Service.QueryDataSource(ctx.Context(), query)
+	response, err := c.Service.QueryDataSource(ctx.UserContext(), query)
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
@@ -163,7 +163,7 @@ func (c *DataSourceController) GetSchema(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 	module := ctx.Params("module")
 
-	schema, err := c.Service.GetDataSourceSchema(ctx.Context(), id, module)
+	schema, err := c.Service.GetDataSourceSchema(ctx.UserContext(), id, module)
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
@@ -185,7 +185,7 @@ func (c *DataSourceController) QueryMultipleSources(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
 
-	results, err := c.Service.QueryMultipleSources(ctx.Context(), queries)
+	results, err := c.Service.QueryMultipleSources(ctx.UserContext(), queries)
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}

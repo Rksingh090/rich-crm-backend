@@ -48,7 +48,7 @@ func (c *ImportController) UploadAndPreview(ctx *fiber.Ctx) error {
 	}
 	defer file.Close()
 
-	preview, err := c.ImportService.PreviewFile(ctx.Context(), file, fileHeader.Filename, moduleName)
+	preview, err := c.ImportService.PreviewFile(ctx.UserContext(), file, fileHeader.Filename, moduleName)
 	if err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
@@ -64,7 +64,7 @@ func (c *ImportController) CreateImportJob(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "module and mapping required"})
 	}
 
-	userIDStr, ok := ctx.Locals("userID").(string)
+	userIDStr, ok := ctx.Locals("user_id").(string)
 	if !ok {
 		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "User ID not found"})
 	}
@@ -93,7 +93,7 @@ func (c *ImportController) CreateImportJob(ctx *fiber.Ctx) error {
 
 	file, _ := fileHeader.Open()
 	defer file.Close()
-	preview, _ := c.ImportService.PreviewFile(ctx.Context(), file, fileHeader.Filename, moduleName)
+	preview, _ := c.ImportService.PreviewFile(ctx.UserContext(), file, fileHeader.Filename, moduleName)
 	totalRows := 0
 	if preview != nil {
 		totalRows = preview.TotalRows
@@ -108,7 +108,7 @@ func (c *ImportController) CreateImportJob(ctx *fiber.Ctx) error {
 		TotalRecords:  totalRows,
 	}
 
-	if err := c.ImportService.CreateJob(ctx.Context(), job); err != nil {
+	if err := c.ImportService.CreateJob(ctx.UserContext(), job); err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
@@ -118,7 +118,7 @@ func (c *ImportController) CreateImportJob(ctx *fiber.Ctx) error {
 func (c *ImportController) ExecuteImport(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 
-	userIDStr, ok := ctx.Locals("userID").(string)
+	userIDStr, ok := ctx.Locals("user_id").(string)
 	if !ok {
 		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "User ID not found"})
 	}
@@ -135,7 +135,7 @@ func (c *ImportController) ExecuteImport(ctx *fiber.Ctx) error {
 func (c *ImportController) GetImportJob(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 
-	job, err := c.ImportService.GetJob(ctx.Context(), id)
+	job, err := c.ImportService.GetJob(ctx.UserContext(), id)
 	if err != nil {
 		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Job not found"})
 	}
@@ -144,13 +144,13 @@ func (c *ImportController) GetImportJob(ctx *fiber.Ctx) error {
 }
 
 func (c *ImportController) ListImportJobs(ctx *fiber.Ctx) error {
-	userIDStr, ok := ctx.Locals("userID").(string)
+	userIDStr, ok := ctx.Locals("user_id").(string)
 	if !ok {
 		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "User ID not found"})
 	}
 	userID, _ := primitive.ObjectIDFromHex(userIDStr)
 
-	jobs, err := c.ImportService.GetUserJobs(ctx.Context(), userID)
+	jobs, err := c.ImportService.GetUserJobs(ctx.UserContext(), userID)
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}

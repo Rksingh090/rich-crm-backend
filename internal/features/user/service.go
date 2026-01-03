@@ -116,6 +116,21 @@ func (s *UserServiceImpl) UpdateUser(ctx context.Context, id string, updates map
 		changes["status"] = models.Change{Old: user.Status, New: status}
 		user.Status = status
 	}
+	if groups, ok := updates["groups"].([]interface{}); ok {
+		// Convert []interface{} to []string
+		var newGroups []string
+		for _, g := range groups {
+			if str, ok := g.(string); ok {
+				newGroups = append(newGroups, str)
+			}
+		}
+		changes["groups"] = models.Change{Old: user.Groups, New: newGroups}
+		user.Groups = newGroups
+	}
+	if roles, ok := updates["roles"].([]primitive.ObjectID); ok {
+		changes["roles"] = models.Change{Old: user.Roles, New: roles}
+		user.Roles = roles
+	}
 
 	user.UpdatedAt = time.Now()
 

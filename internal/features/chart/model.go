@@ -32,6 +32,7 @@ const (
 
 type Chart struct {
 	ID              primitive.ObjectID `json:"id" bson:"_id,omitempty"`
+	TenantID        primitive.ObjectID `json:"tenant_id" bson:"tenant_id"`
 	Name            string             `json:"name" bson:"name"`
 	Description     string             `json:"description" bson:"description"`
 	ModuleID        string             `json:"module_id" bson:"module_id"`

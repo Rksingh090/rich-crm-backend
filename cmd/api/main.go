@@ -25,8 +25,11 @@ import (
 	import_feature "go-crm/internal/features/import"
 	"go-crm/internal/features/module"
 	"go-crm/internal/features/notification"
+	"go-crm/internal/features/organization"
+	"go-crm/internal/features/permission"
 	"go-crm/internal/features/record"
 	"go-crm/internal/features/report"
+	"go-crm/internal/features/resource"
 	"go-crm/internal/features/role"
 	"go-crm/internal/features/saved_filter"
 	"go-crm/internal/features/search"
@@ -148,6 +151,7 @@ func main() {
 			file.NewFileRepository,
 			audit.NewAuditRepository,
 			module.NewModuleRepository,
+			organization.NewOrganizationRepository,
 			user.NewUserRepository,
 			record.NewRecordRepository,
 			role.NewRoleRepository,
@@ -176,6 +180,8 @@ func main() {
 			import_feature.NewImportRepository,
 			analytics.NewMetricRepository,
 			analytics.NewDataSourceRepository,
+			resource.NewResourceRepository,
+			permission.NewPermissionRepository,
 
 			audit.NewAuditService,
 			auth.NewAuthService,
@@ -209,6 +215,8 @@ func main() {
 			saved_filter.NewSavedFilterService,
 			analytics.NewAnalyticsService,
 			analytics.NewDataSourceService,
+			resource.NewResourceService,
+			permission.NewPermissionService,
 
 			// Interface Adapters to break circular dependencies and satisfy Fx
 			func(s approval.ApprovalService) record.ApprovalTrigger { return s },
@@ -249,6 +257,8 @@ func main() {
 			cron_feature.NewCronController,
 			analytics.NewAnalyticsController,
 			analytics.NewDataSourceController,
+			resource.NewResourceController,
+			permission.NewPermissionController,
 
 			// Initialize API Routes
 			AsRoute(admin.NewAdminApi),
@@ -283,6 +293,8 @@ func main() {
 			AsRoute(system.NewSwaggerApi),
 			AsRoute(analytics.NewAnalyticsApi),
 			AsRoute(analytics.NewDataSourceApi),
+			AsRoute(resource.NewResourceApi),
+			AsRoute(permission.NewPermissionApi),
 			AsRoute(system.NewWebSocketApi),
 		),
 		fx.WithLogger(func(log *zap.Logger) fxevent.Logger {

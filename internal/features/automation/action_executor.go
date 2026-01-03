@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	common_models "go-crm/internal/common/models"
 	"go-crm/internal/features/audit"
 	"go-crm/internal/features/email"
 	"go-crm/internal/features/email_template"
+	"go-crm/internal/features/module"
 	"go-crm/internal/features/record"
 	"go-crm/internal/features/sync"
 	"log"
@@ -23,6 +25,7 @@ type ActionExecutor interface {
 }
 
 type ActionExecutorImpl struct {
+	moduleRepo           module.ModuleRepository
 	recordRepo           record.RecordRepository
 	emailService         email.EmailService
 	emailTemplateService email_template.EmailTemplateService
@@ -32,6 +35,7 @@ type ActionExecutorImpl struct {
 }
 
 func NewActionExecutor(
+	moduleRepo module.ModuleRepository,
 	recordRepo record.RecordRepository,
 	emailService email.EmailService,
 	emailTemplateService email_template.EmailTemplateService,
@@ -39,6 +43,7 @@ func NewActionExecutor(
 	syncService sync.SyncService,
 ) ActionExecutor {
 	return &ActionExecutorImpl{
+		moduleRepo:           moduleRepo,
 		recordRepo:           recordRepo,
 		emailService:         emailService,
 		emailTemplateService: emailTemplateService,
@@ -228,7 +233,14 @@ func (e *ActionExecutorImpl) executeCreateTask(ctx context.Context, config map[s
 		taskData["due_date"] = dueDate
 	}
 
-	_, err := e.recordRepo.Create(ctx, "tasks", taskData)
+	// Lookup tasks module to get product
+	taskModule, err := e.moduleRepo.FindByName(ctx, "tasks")
+	var product common_models.Product = common_models.ProductCRM // Default
+	if err == nil {
+		product = taskModule.Product
+	}
+
+	_, err = e.recordRepo.Create(ctx, "tasks", product, taskData)
 	if err != nil {
 		return fmt.Errorf("failed to create task: %w", err)
 	}
@@ -286,7 +298,14 @@ func (e *ActionExecutorImpl) executeSendNotification(ctx context.Context, config
 		"created_at": time.Now(),
 	}
 
-	_, err := e.recordRepo.Create(ctx, "notifications", notificationData)
+	// Lookup notifications module to get product
+	notifModule, err := e.moduleRepo.FindByName(ctx, "notifications")
+	var product common_models.Product = common_models.ProductCRM // Default or Platform?
+	if err == nil {
+		product = notifModule.Product
+	}
+
+	_, err = e.recordRepo.Create(ctx, "notifications", product, notificationData)
 	if err != nil {
 		return fmt.Errorf("failed to create notification: %w", err)
 	}

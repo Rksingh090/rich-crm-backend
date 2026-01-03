@@ -1820,7 +1820,7 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "description": "User ID",
-                        "name": "userId",
+                        "name": "user_id",
                         "in": "path",
                         "required": true
                     }

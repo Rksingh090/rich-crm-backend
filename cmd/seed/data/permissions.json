@@ -1,0 +1,326 @@
+[
+    {
+        "role_name": "Super Admin",
+        "resource": {
+            "type": "module",
+            "id": "*"
+        },
+        "actions": {
+            "read": {
+                "allowed": true
+            },
+            "create": {
+                "allowed": true
+            },
+            "update": {
+                "allowed": true
+            },
+            "delete": {
+                "allowed": true
+            }
+        }
+    },
+    {
+        "role_name": "Sales Manager",
+        "resource": {
+            "type": "module",
+            "id": "crm.leads"
+        },
+        "actions": {
+            "read": {
+                "allowed": true
+            },
+            "create": {
+                "allowed": true
+            },
+            "update": {
+                "allowed": true
+            },
+            "delete": {
+                "allowed": true
+            }
+        }
+    },
+    {
+        "role_name": "Sales Rep",
+        "resource": {
+            "type": "module",
+            "id": "crm.leads"
+        },
+        "actions": {
+            "read": {
+                "allowed": true,
+                "conditions": {
+                    "operator": "OR",
+                    "rules": [
+                        {
+                            "field": "owner",
+                            "operator": "eq",
+                            "value": "$user.id",
+                            "type": "variable"
+                        },
+                        {
+                            "field": "ownerGroup",
+                            "operator": "in",
+                            "value": "$user.groups",
+                            "type": "variable"
+                        }
+                    ]
+                }
+            },
+            "create": {
+                "allowed": true
+            },
+            "update": {
+                "allowed": true,
+                "conditions": {
+                    "operator": "AND",
+                    "rules": [
+                        {
+                            "field": "owner",
+                            "operator": "eq",
+                            "value": "$user.id",
+                            "type": "variable"
+                        },
+                        {
+                            "field": "status",
+                            "operator": "ne",
+                            "value": "closed",
+                            "type": "static"
+                        }
+                    ]
+                }
+            },
+            "delete": {
+                "allowed": false
+            }
+        },
+        "field_rules": {
+            "name": "read_write",
+            "email": "read_write",
+            "phone": "read_write",
+            "company": "read_write",
+            "status": "read_write",
+            "value": "read_only",
+            "internal_notes": "none"
+        }
+    },
+    {
+        "role_name": "Sales Rep",
+        "resource": {
+            "type": "module",
+            "id": "crm.contacts"
+        },
+        "actions": {
+            "read": {
+                "allowed": true
+            },
+            "create": {
+                "allowed": true
+            },
+            "update": {
+                "allowed": true,
+                "conditions": {
+                    "operator": "OR",
+                    "rules": [
+                        {
+                            "field": "owner",
+                            "operator": "eq",
+                            "value": "$user.id",
+                            "type": "variable"
+                        }
+                    ]
+                }
+            },
+            "delete": {
+                "allowed": false
+            }
+        }
+    },
+    {
+        "role_name": "Support Agent",
+        "resource": {
+            "type": "page",
+            "id": "crm.tickets"
+        },
+        "actions": {
+            "read": {
+                "allowed": true
+            },
+            "create": {
+                "allowed": true
+            },
+            "update": {
+                "allowed": true,
+                "conditions": {
+                    "operator": "OR",
+                    "rules": [
+                        {
+                            "field": "assignedTo",
+                            "operator": "eq",
+                            "value": "$user.id",
+                            "type": "variable"
+                        }
+                    ]
+                }
+            },
+            "delete": {
+                "allowed": false
+            }
+        }
+    },
+    {
+        "role_name": "Support Agent",
+        "resource": {
+            "type": "module",
+            "id": "crm.leads"
+        },
+        "actions": {
+            "read": {
+                "allowed": true
+            },
+            "create": {
+                "allowed": false
+            },
+            "update": {
+                "allowed": false
+            },
+            "delete": {
+                "allowed": false
+            }
+        },
+        "field_rules": {
+            "name": "read_only",
+            "email": "read_only",
+            "phone": "read_only",
+            "value": "none",
+            "internal_notes": "none"
+        }
+    },
+    {
+        "role_name": "Viewer",
+        "resource": {
+            "type": "module",
+            "id": "crm.leads"
+        },
+        "actions": {
+            "read": {
+                "allowed": true
+            },
+            "create": {
+                "allowed": false
+            },
+            "update": {
+                "allowed": false
+            },
+            "delete": {
+                "allowed": false
+            }
+        }
+    },
+    {
+        "role_name": "Viewer",
+        "resource": {
+            "type": "module",
+            "id": "crm.contacts"
+        },
+        "actions": {
+            "read": {
+                "allowed": true
+            },
+            "create": {
+                "allowed": false
+            },
+            "update": {
+                "allowed": false
+            },
+            "delete": {
+                "allowed": false
+            }
+        }
+    },
+    {
+        "role_name": "Viewer",
+        "resource": {
+            "type": "system",
+            "id": "modules"
+        },
+        "actions": {
+            "read": {
+                "allowed": true
+            },
+            "create": {
+                "allowed": false
+            },
+            "update": {
+                "allowed": false
+            },
+            "delete": {
+                "allowed": false
+            }
+        }
+    },
+    {
+        "role_name": "Sales Rep",
+        "resource": {
+            "type": "system",
+            "id": "modules"
+        },
+        "actions": {
+            "read": {
+                "allowed": true
+            },
+            "create": {
+                "allowed": false
+            },
+            "update": {
+                "allowed": false
+            },
+            "delete": {
+                "allowed": false
+            }
+        }
+    },
+    {
+        "role_name": "Sales Manager",
+        "resource": {
+            "type": "system",
+            "id": "modules"
+        },
+        "actions": {
+            "read": {
+                "allowed": true
+            },
+            "create": {
+                "allowed": false
+            },
+            "update": {
+                "allowed": false
+            },
+            "delete": {
+                "allowed": false
+            }
+        }
+    },
+    {
+        "role_name": "Support Agent",
+        "resource": {
+            "type": "system",
+            "id": "modules"
+        },
+        "actions": {
+            "read": {
+                "allowed": true
+            },
+            "create": {
+                "allowed": false
+            },
+            "update": {
+                "allowed": false
+            },
+            "delete": {
+                "allowed": false
+            }
+        }
+    }
+]

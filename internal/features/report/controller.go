@@ -22,7 +22,7 @@ func (c *ReportController) Create(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request body"})
 	}
 
-	if err := c.ReportService.CreateReport(ctx.Context(), &report); err != nil {
+	if err := c.ReportService.CreateReport(ctx.UserContext(), &report); err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
@@ -31,7 +31,7 @@ func (c *ReportController) Create(ctx *fiber.Ctx) error {
 
 // List godoc
 func (c *ReportController) List(ctx *fiber.Ctx) error {
-	reports, err := c.ReportService.ListReports(ctx.Context())
+	reports, err := c.ReportService.ListReports(ctx.UserContext())
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
@@ -41,7 +41,7 @@ func (c *ReportController) List(ctx *fiber.Ctx) error {
 // Get godoc
 func (c *ReportController) Get(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
-	report, err := c.ReportService.GetReport(ctx.Context(), id)
+	report, err := c.ReportService.GetReport(ctx.UserContext(), id)
 	if err != nil {
 		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Report not found"})
 	}
@@ -56,7 +56,7 @@ func (c *ReportController) Update(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request body"})
 	}
 
-	if err := c.ReportService.UpdateReport(ctx.Context(), id, &report); err != nil {
+	if err := c.ReportService.UpdateReport(ctx.UserContext(), id, &report); err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
@@ -66,7 +66,7 @@ func (c *ReportController) Update(ctx *fiber.Ctx) error {
 // Delete godoc
 func (c *ReportController) Delete(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
-	if err := c.ReportService.DeleteReport(ctx.Context(), id); err != nil {
+	if err := c.ReportService.DeleteReport(ctx.UserContext(), id); err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 	return ctx.SendStatus(fiber.StatusNoContent)
@@ -76,7 +76,7 @@ func (c *ReportController) Delete(ctx *fiber.Ctx) error {
 func (c *ReportController) Run(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 
-	userIDStr, ok := ctx.Locals("userID").(string)
+	userIDStr, ok := ctx.Locals("user_id").(string)
 	if !ok {
 		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "User ID not found"})
 	}
@@ -85,7 +85,7 @@ func (c *ReportController) Run(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid user ID"})
 	}
 
-	data, err := c.ReportService.RunReport(ctx.Context(), id, userID)
+	data, err := c.ReportService.RunReport(ctx.UserContext(), id, userID)
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
@@ -97,7 +97,7 @@ func (c *ReportController) Export(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 	format := ctx.Query("format", "csv")
 
-	userIDStr, ok := ctx.Locals("userID").(string)
+	userIDStr, ok := ctx.Locals("user_id").(string)
 	if !ok {
 		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "User ID not found"})
 	}
@@ -106,7 +106,7 @@ func (c *ReportController) Export(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid user ID"})
 	}
 
-	data, filename, err := c.ReportService.ExportReport(ctx.Context(), id, format, userID)
+	data, filename, err := c.ReportService.ExportReport(ctx.UserContext(), id, format, userID)
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
@@ -128,7 +128,7 @@ func (c *ReportController) RunPivot(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "module query parameter is required"})
 	}
 
-	userIDStr, ok := ctx.Locals("userID").(string)
+	userIDStr, ok := ctx.Locals("user_id").(string)
 	if !ok {
 		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "User ID not found"})
 	}
@@ -138,7 +138,7 @@ func (c *ReportController) RunPivot(ctx *fiber.Ctx) error {
 	}
 
 	filters := make(map[string]any)
-	result, err := c.ReportService.RunPivotReport(ctx.Context(), &config, moduleName, filters, userID)
+	result, err := c.ReportService.RunPivotReport(ctx.UserContext(), &config, moduleName, filters, userID)
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
@@ -153,7 +153,7 @@ func (c *ReportController) RunCrossModule(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request body"})
 	}
 
-	userIDStr, ok := ctx.Locals("userID").(string)
+	userIDStr, ok := ctx.Locals("user_id").(string)
 	if !ok {
 		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "User ID not found"})
 	}
@@ -163,7 +163,7 @@ func (c *ReportController) RunCrossModule(ctx *fiber.Ctx) error {
 	}
 
 	filters := make(map[string]any)
-	result, err := c.ReportService.RunCrossModuleReport(ctx.Context(), &config, filters, userID)
+	result, err := c.ReportService.RunCrossModuleReport(ctx.UserContext(), &config, filters, userID)
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
@@ -187,7 +187,7 @@ func (c *ReportController) ExportExcel(ctx *fiber.Ctx) error {
 		request.Filename = fmt.Sprintf("export_%d", int64(primitive.NewObjectID().Timestamp().Unix()))
 	}
 
-	data, filename, err := c.ReportService.ExportToExcel(ctx.Context(), request.Data, request.Columns, request.Filename)
+	data, filename, err := c.ReportService.ExportToExcel(ctx.UserContext(), request.Data, request.Columns, request.Filename)
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}

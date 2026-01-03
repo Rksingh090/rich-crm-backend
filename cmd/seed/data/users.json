@@ -1,13 +1,88 @@
 [
     {
-        "username": "root",
-        "password": "Root@090",
-        "email": "root@gocrm.com",
-        "first_name": "System",
+        "username": "admin",
+        "password": "Admin@123",
+        "email": "admin@gocrm.com",
+        "first_name": "Super",
         "last_name": "Admin",
         "status": "active",
         "roles": [
-            "admin"
+            "Super Admin"
+        ],
+        "groups": [
+            "admins",
+            "managers"
         ]
+    },
+    {
+        "username": "sales.manager",
+        "password": "Manager@123",
+        "email": "sales.manager@gocrm.com",
+        "first_name": "Sales",
+        "last_name": "Manager",
+        "status": "active",
+        "roles": [
+            "Sales Manager"
+        ],
+        "groups": [
+            "sales",
+            "managers"
+        ]
+    },
+    {
+        "username": "john.sales",
+        "password": "Sales@123",
+        "email": "john.sales@gocrm.com",
+        "first_name": "John",
+        "last_name": "Doe",
+        "status": "active",
+        "roles": [
+            "Sales Rep"
+        ],
+        "groups": [
+            "sales",
+            "team_west"
+        ]
+    },
+    {
+        "username": "jane.sales",
+        "password": "Sales@123",
+        "email": "jane.sales@gocrm.com",
+        "first_name": "Jane",
+        "last_name": "Smith",
+        "status": "active",
+        "roles": [
+            "Sales Rep"
+        ],
+        "groups": [
+            "sales",
+            "team_east"
+        ]
+    },
+    {
+        "username": "support.agent",
+        "password": "Support@123",
+        "email": "support@gocrm.com",
+        "first_name": "Support",
+        "last_name": "Agent",
+        "status": "active",
+        "roles": [
+            "Support Agent"
+        ],
+        "groups": [
+            "support"
+        ]
+    },
+    {
+        "username": "viewer",
+        "password": "Viewer@123",
+        "email": "viewer@gocrm.com",
+        "first_name": "View",
+        "last_name": "Only",
+        "status": "active",
+        "roles": [
+            "Viewer"
+        ],
+        "groups": []
     }
 ]

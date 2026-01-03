@@ -24,14 +24,14 @@ func (ctrl *WebhookController) CreateWebhook(c *fiber.Ctx) error {
 		})
 	}
 
-	userIDStr, ok := c.Locals("userID").(string)
+	userIDStr, ok := c.Locals("user_id").(string)
 	if ok {
 		if oid, err := primitive.ObjectIDFromHex(userIDStr); err == nil {
 			webhook.CreatedBy = oid
 		}
 	}
 
-	if err := ctrl.Service.CreateWebhook(c.Context(), &webhook); err != nil {
+	if err := ctrl.Service.CreateWebhook(c.UserContext(), &webhook); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": err.Error(),
 		})
@@ -45,7 +45,7 @@ func (ctrl *WebhookController) CreateWebhook(c *fiber.Ctx) error {
 
 // ListWebhooks godoc
 func (ctrl *WebhookController) ListWebhooks(c *fiber.Ctx) error {
-	webhooks, err := ctrl.Service.ListWebhooks(c.Context())
+	webhooks, err := ctrl.Service.ListWebhooks(c.UserContext())
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err.Error(),
@@ -61,7 +61,7 @@ func (ctrl *WebhookController) ListWebhooks(c *fiber.Ctx) error {
 func (ctrl *WebhookController) GetWebhook(c *fiber.Ctx) error {
 	id := c.Params("id")
 
-	webhook, err := ctrl.Service.GetWebhook(c.Context(), id)
+	webhook, err := ctrl.Service.GetWebhook(c.UserContext(), id)
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"error": err.Error(),
@@ -82,7 +82,7 @@ func (ctrl *WebhookController) UpdateWebhook(c *fiber.Ctx) error {
 		})
 	}
 
-	if err := ctrl.Service.UpdateWebhook(c.Context(), id, updates); err != nil {
+	if err := ctrl.Service.UpdateWebhook(c.UserContext(), id, updates); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": err.Error(),
 		})
@@ -97,7 +97,7 @@ func (ctrl *WebhookController) UpdateWebhook(c *fiber.Ctx) error {
 func (ctrl *WebhookController) DeleteWebhook(c *fiber.Ctx) error {
 	id := c.Params("id")
 
-	if err := ctrl.Service.DeleteWebhook(c.Context(), id); err != nil {
+	if err := ctrl.Service.DeleteWebhook(c.UserContext(), id); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err.Error(),
 		})

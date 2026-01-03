@@ -21,7 +21,7 @@ func NewRoleController(service RoleService) *RoleController {
 // @Failure      500  {string}  string
 // @Router       /roles [get]
 func (c *RoleController) ListRoles(ctx *fiber.Ctx) error {
-	roles, err := c.Service.ListRoles(ctx.Context())
+	roles, err := c.Service.ListRoles(ctx.UserContext())
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to fetch roles",
@@ -42,7 +42,7 @@ func (c *RoleController) ListRoles(ctx *fiber.Ctx) error {
 // @Router       /roles/{id} [get]
 func (c *RoleController) GetRole(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
-	role, err := c.Service.GetRoleByID(ctx.Context(), id)
+	role, err := c.Service.GetRoleByID(ctx.UserContext(), id)
 	if err != nil {
 		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"error": "Role not found",
@@ -70,7 +70,7 @@ func (c *RoleController) CreateRole(ctx *fiber.Ctx) error {
 		})
 	}
 
-	createdRole, err := c.Service.CreateRole(ctx.Context(), &role)
+	createdRole, err := c.Service.CreateRole(ctx.UserContext(), &role)
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to create role",
@@ -103,13 +103,13 @@ func (c *RoleController) UpdateRole(ctx *fiber.Ctx) error {
 		})
 	}
 
-	if err := c.Service.UpdateRole(ctx.Context(), id, &role); err != nil {
+	if err := c.Service.UpdateRole(ctx.UserContext(), id, &role); err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to update role",
 		})
 	}
 
-	updatedRole, _ := c.Service.GetRoleByID(ctx.Context(), id)
+	updatedRole, _ := c.Service.GetRoleByID(ctx.UserContext(), id)
 	return ctx.JSON(updatedRole)
 }
 
@@ -126,7 +126,7 @@ func (c *RoleController) UpdateRole(ctx *fiber.Ctx) error {
 func (c *RoleController) DeleteRole(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 
-	if err := c.Service.DeleteRole(ctx.Context(), id); err != nil {
+	if err := c.Service.DeleteRole(ctx.UserContext(), id); err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": err.Error(),
 		})

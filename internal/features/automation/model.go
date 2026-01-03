@@ -44,6 +44,7 @@ type RuleAction struct {
 
 type AutomationRule struct {
 	ID          primitive.ObjectID `json:"id" bson:"_id,omitempty"`
+	TenantID    primitive.ObjectID `json:"tenant_id" bson:"tenant_id"`
 	Name        string             `json:"name" bson:"name"`
 	ModuleID    string             `json:"module_id" bson:"module_id"`
 	TriggerType string             `json:"trigger_type" bson:"trigger_type"`

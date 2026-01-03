@@ -19,7 +19,7 @@ func NewSearchController(service SearchService) *SearchController {
 func (ctrl *SearchController) GlobalSearch(c *fiber.Ctx) error {
 	query := c.Query("q")
 
-	userIDStr, ok := c.Locals("userID").(string)
+	userIDStr, ok := c.Locals("user_id").(string)
 	if !ok {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"error": "User ID not found in context",
@@ -32,7 +32,7 @@ func (ctrl *SearchController) GlobalSearch(c *fiber.Ctx) error {
 		})
 	}
 
-	results, err := ctrl.Service.GlobalSearch(c.Context(), query, userID)
+	results, err := ctrl.Service.GlobalSearch(c.UserContext(), query, userID)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err.Error(),

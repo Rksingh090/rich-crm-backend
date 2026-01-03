@@ -33,8 +33,9 @@ func (h *ModuleApi) Setup(app *fiber.App) {
 
 	// Module CRUD (Schema Management) - Protected by "modules" permission
 	modules.Post("/", middleware.RequirePermission(h.roleService, "modules", "create"), h.moduleController.CreateModule)
-	modules.Get("/", middleware.RequirePermission(h.roleService, "modules", "read"), h.moduleController.ListModules)
-	modules.Get("/:name", middleware.RequirePermission(h.roleService, "modules", "read"), h.moduleController.GetModule)
-	modules.Put("/:name", middleware.RequirePermission(h.roleService, "modules", "update"), h.moduleController.UpdateModule)
-	modules.Delete("/:name", middleware.RequirePermission(h.roleService, "modules", "delete"), h.moduleController.DeleteModule)
+	// ListModules handles its own permission checking (granular)
+	modules.Get("/", h.moduleController.ListModules)
+	modules.Get("/:name", h.moduleController.GetModule)
+	modules.Put("/:name", h.moduleController.UpdateModule)
+	modules.Delete("/:name", h.moduleController.DeleteModule)
 }

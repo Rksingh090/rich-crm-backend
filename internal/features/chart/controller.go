@@ -19,7 +19,7 @@ func (c *ChartController) Create(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request body"})
 	}
 
-	if err := c.ChartService.CreateChart(ctx.Context(), &ch); err != nil {
+	if err := c.ChartService.CreateChart(ctx.UserContext(), &ch); err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
@@ -28,7 +28,7 @@ func (c *ChartController) Create(ctx *fiber.Ctx) error {
 
 // List godoc
 func (c *ChartController) List(ctx *fiber.Ctx) error {
-	charts, err := c.ChartService.ListCharts(ctx.Context())
+	charts, err := c.ChartService.ListCharts(ctx.UserContext())
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
@@ -38,7 +38,7 @@ func (c *ChartController) List(ctx *fiber.Ctx) error {
 // Get godoc
 func (c *ChartController) Get(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
-	ch, err := c.ChartService.GetChart(ctx.Context(), id)
+	ch, err := c.ChartService.GetChart(ctx.UserContext(), id)
 	if err != nil {
 		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Chart not found"})
 	}
@@ -53,7 +53,7 @@ func (c *ChartController) Update(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request body"})
 	}
 
-	if err := c.ChartService.UpdateChart(ctx.Context(), id, &ch); err != nil {
+	if err := c.ChartService.UpdateChart(ctx.UserContext(), id, &ch); err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
@@ -63,7 +63,7 @@ func (c *ChartController) Update(ctx *fiber.Ctx) error {
 // Delete godoc
 func (c *ChartController) Delete(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
-	if err := c.ChartService.DeleteChart(ctx.Context(), id); err != nil {
+	if err := c.ChartService.DeleteChart(ctx.UserContext(), id); err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 	return ctx.SendStatus(fiber.StatusNoContent)
@@ -72,7 +72,7 @@ func (c *ChartController) Delete(ctx *fiber.Ctx) error {
 // GetData godoc
 func (c *ChartController) GetData(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
-	data, err := c.ChartService.GetChartData(ctx.Context(), id)
+	data, err := c.ChartService.GetChartData(ctx.UserContext(), id)
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}

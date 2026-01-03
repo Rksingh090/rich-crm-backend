@@ -35,7 +35,7 @@ func (ctrl *TicketController) CreateTicket(c *fiber.Ctx) error {
 	}
 
 	// Get user ID from context (set by auth middleware)
-	userIDStr, ok := c.Locals("userID").(string)
+	userIDStr, ok := c.Locals("user_id").(string)
 	if !ok {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"error": "User ID not found in context",
@@ -49,7 +49,7 @@ func (ctrl *TicketController) CreateTicket(c *fiber.Ctx) error {
 		})
 	}
 
-	if err := ctrl.TicketService.CreateTicket(c.Context(), &ticket, userID); err != nil {
+	if err := ctrl.TicketService.CreateTicket(c.UserContext(), &ticket, userID); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": err.Error(),
 		})
@@ -89,7 +89,7 @@ func (ctrl *TicketController) ListTickets(c *fiber.Ctx) error {
 		filters["search"] = search
 	}
 
-	tickets, totalCount, err := ctrl.TicketService.ListTickets(c.Context(), filters, page, limit, sortBy, sortOrder)
+	tickets, totalCount, err := ctrl.TicketService.ListTickets(c.UserContext(), filters, page, limit, sortBy, sortOrder)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err.Error(),
@@ -110,7 +110,7 @@ func (ctrl *TicketController) ListTickets(c *fiber.Ctx) error {
 func (ctrl *TicketController) GetTicket(c *fiber.Ctx) error {
 	id := c.Params("id")
 
-	ticket, err := ctrl.TicketService.GetTicket(c.Context(), id)
+	ticket, err := ctrl.TicketService.GetTicket(c.UserContext(), id)
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"error": err.Error(),
@@ -131,7 +131,7 @@ func (ctrl *TicketController) UpdateTicket(c *fiber.Ctx) error {
 		})
 	}
 
-	userIDStr, ok := c.Locals("userID").(string)
+	userIDStr, ok := c.Locals("user_id").(string)
 	if !ok {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"error": "User ID not found in context",
@@ -145,7 +145,7 @@ func (ctrl *TicketController) UpdateTicket(c *fiber.Ctx) error {
 		})
 	}
 
-	if err := ctrl.TicketService.UpdateTicket(c.Context(), id, updates, userID); err != nil {
+	if err := ctrl.TicketService.UpdateTicket(c.UserContext(), id, updates, userID); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": err.Error(),
 		})
@@ -160,7 +160,7 @@ func (ctrl *TicketController) UpdateTicket(c *fiber.Ctx) error {
 func (ctrl *TicketController) DeleteTicket(c *fiber.Ctx) error {
 	id := c.Params("id")
 
-	userIDStr, ok := c.Locals("userID").(string)
+	userIDStr, ok := c.Locals("user_id").(string)
 	if !ok {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"error": "User ID not found in context",
@@ -174,7 +174,7 @@ func (ctrl *TicketController) DeleteTicket(c *fiber.Ctx) error {
 		})
 	}
 
-	if err := ctrl.TicketService.DeleteTicket(c.Context(), id, userID); err != nil {
+	if err := ctrl.TicketService.DeleteTicket(c.UserContext(), id, userID); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err.Error(),
 		})
@@ -199,7 +199,7 @@ func (ctrl *TicketController) UpdateStatus(c *fiber.Ctx) error {
 		})
 	}
 
-	userIDStr, ok := c.Locals("userID").(string)
+	userIDStr, ok := c.Locals("user_id").(string)
 	if !ok {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"error": "User ID not found in context",
@@ -214,7 +214,7 @@ func (ctrl *TicketController) UpdateStatus(c *fiber.Ctx) error {
 	}
 
 	status := TicketStatus(input.Status)
-	if err := ctrl.TicketService.UpdateStatus(c.Context(), id, status, input.Comment, userID); err != nil {
+	if err := ctrl.TicketService.UpdateStatus(c.UserContext(), id, status, input.Comment, userID); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": err.Error(),
 		})
@@ -245,7 +245,7 @@ func (ctrl *TicketController) AssignTicket(c *fiber.Ctx) error {
 		})
 	}
 
-	userIDStr, ok := c.Locals("userID").(string)
+	userIDStr, ok := c.Locals("user_id").(string)
 	if !ok {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"error": "User ID not found in context",
@@ -259,7 +259,7 @@ func (ctrl *TicketController) AssignTicket(c *fiber.Ctx) error {
 		})
 	}
 
-	if err := ctrl.TicketService.AssignTicket(c.Context(), id, assignedTo, userID); err != nil {
+	if err := ctrl.TicketService.AssignTicket(c.UserContext(), id, assignedTo, userID); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": err.Error(),
 		})
@@ -281,7 +281,7 @@ func (ctrl *TicketController) AddComment(c *fiber.Ctx) error {
 		})
 	}
 
-	userIDStr, ok := c.Locals("userID").(string)
+	userIDStr, ok := c.Locals("user_id").(string)
 	if !ok {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"error": "User ID not found in context",
@@ -296,7 +296,7 @@ func (ctrl *TicketController) AddComment(c *fiber.Ctx) error {
 	}
 	comment.CreatedBy = userID
 
-	if err := ctrl.TicketService.AddComment(c.Context(), id, &comment); err != nil {
+	if err := ctrl.TicketService.AddComment(c.UserContext(), id, &comment); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": err.Error(),
 		})
@@ -312,7 +312,7 @@ func (ctrl *TicketController) AddComment(c *fiber.Ctx) error {
 func (ctrl *TicketController) ListComments(c *fiber.Ctx) error {
 	id := c.Params("id")
 
-	comments, err := ctrl.TicketService.ListComments(c.Context(), id)
+	comments, err := ctrl.TicketService.ListComments(c.UserContext(), id)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": err.Error(),
@@ -329,7 +329,7 @@ func (ctrl *TicketController) GetMyTickets(c *fiber.Ctx) error {
 	page, _ := strconv.ParseInt(c.Query("page", "1"), 10, 64)
 	limit, _ := strconv.ParseInt(c.Query("limit", "10"), 10, 64)
 
-	userIDStr, ok := c.Locals("userID").(string)
+	userIDStr, ok := c.Locals("user_id").(string)
 	if !ok {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"error": "User ID not found in context",
@@ -343,7 +343,7 @@ func (ctrl *TicketController) GetMyTickets(c *fiber.Ctx) error {
 		})
 	}
 
-	tickets, totalCount, err := ctrl.TicketService.GetMyTickets(c.Context(), userID, page, limit)
+	tickets, totalCount, err := ctrl.TicketService.GetMyTickets(c.UserContext(), userID, page, limit)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err.Error(),
@@ -373,7 +373,7 @@ func (ctrl *TicketController) GetCustomerTickets(c *fiber.Ctx) error {
 	page, _ := strconv.ParseInt(c.Query("page", "1"), 10, 64)
 	limit, _ := strconv.ParseInt(c.Query("limit", "10"), 10, 64)
 
-	tickets, totalCount, err := ctrl.TicketService.GetCustomerTickets(c.Context(), customerID, page, limit)
+	tickets, totalCount, err := ctrl.TicketService.GetCustomerTickets(c.UserContext(), customerID, page, limit)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err.Error(),
@@ -401,7 +401,7 @@ func (ctrl *TicketController) CreateSLAPolicy(c *fiber.Ctx) error {
 		})
 	}
 
-	if err := ctrl.SLAService.CreatePolicy(c.Context(), &policy); err != nil {
+	if err := ctrl.SLAService.CreatePolicy(c.UserContext(), &policy); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": err.Error(),
 		})
@@ -415,7 +415,7 @@ func (ctrl *TicketController) CreateSLAPolicy(c *fiber.Ctx) error {
 
 // ListSLAPolicies godoc
 func (ctrl *TicketController) ListSLAPolicies(c *fiber.Ctx) error {
-	policies, err := ctrl.SLAService.ListPolicies(c.Context())
+	policies, err := ctrl.SLAService.ListPolicies(c.UserContext())
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err.Error(),
@@ -431,7 +431,7 @@ func (ctrl *TicketController) ListSLAPolicies(c *fiber.Ctx) error {
 func (ctrl *TicketController) GetSLAPolicy(c *fiber.Ctx) error {
 	id := c.Params("id")
 
-	policy, err := ctrl.SLAService.GetPolicy(c.Context(), id)
+	policy, err := ctrl.SLAService.GetPolicy(c.UserContext(), id)
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"error": err.Error(),
@@ -452,7 +452,7 @@ func (ctrl *TicketController) UpdateSLAPolicy(c *fiber.Ctx) error {
 		})
 	}
 
-	if err := ctrl.SLAService.UpdatePolicy(c.Context(), id, updates); err != nil {
+	if err := ctrl.SLAService.UpdatePolicy(c.UserContext(), id, updates); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": err.Error(),
 		})
@@ -467,7 +467,7 @@ func (ctrl *TicketController) UpdateSLAPolicy(c *fiber.Ctx) error {
 func (ctrl *TicketController) DeleteSLAPolicy(c *fiber.Ctx) error {
 	id := c.Params("id")
 
-	if err := ctrl.SLAService.DeletePolicy(c.Context(), id); err != nil {
+	if err := ctrl.SLAService.DeletePolicy(c.UserContext(), id); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err.Error(),
 		})
@@ -489,7 +489,7 @@ func (ctrl *TicketController) CreateEscalationRule(c *fiber.Ctx) error {
 		})
 	}
 
-	if err := ctrl.EscalationService.CreateRule(c.Context(), &rule); err != nil {
+	if err := ctrl.EscalationService.CreateRule(c.UserContext(), &rule); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": err.Error(),
 		})
@@ -503,7 +503,7 @@ func (ctrl *TicketController) CreateEscalationRule(c *fiber.Ctx) error {
 
 // ListEscalationRules godoc
 func (ctrl *TicketController) ListEscalationRules(c *fiber.Ctx) error {
-	rules, err := ctrl.EscalationService.ListRules(c.Context())
+	rules, err := ctrl.EscalationService.ListRules(c.UserContext())
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err.Error(),
@@ -519,7 +519,7 @@ func (ctrl *TicketController) ListEscalationRules(c *fiber.Ctx) error {
 func (ctrl *TicketController) GetEscalationRule(c *fiber.Ctx) error {
 	id := c.Params("id")
 
-	rule, err := ctrl.EscalationService.GetRule(c.Context(), id)
+	rule, err := ctrl.EscalationService.GetRule(c.UserContext(), id)
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"error": err.Error(),
@@ -540,7 +540,7 @@ func (ctrl *TicketController) UpdateEscalationRule(c *fiber.Ctx) error {
 		})
 	}
 
-	if err := ctrl.EscalationService.UpdateRule(c.Context(), id, updates); err != nil {
+	if err := ctrl.EscalationService.UpdateRule(c.UserContext(), id, updates); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": err.Error(),
 		})
@@ -555,7 +555,7 @@ func (ctrl *TicketController) UpdateEscalationRule(c *fiber.Ctx) error {
 func (ctrl *TicketController) DeleteEscalationRule(c *fiber.Ctx) error {
 	id := c.Params("id")
 
-	if err := ctrl.EscalationService.DeleteRule(c.Context(), id); err != nil {
+	if err := ctrl.EscalationService.DeleteRule(c.UserContext(), id); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err.Error(),
 		})

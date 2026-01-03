@@ -18,7 +18,7 @@ func NewDebugController() *DebugController {
 // @Success      200  {object}  map[string]interface{}
 // @Router       /debug/user [get]
 func (c *DebugController) GetCurrentUser(ctx *fiber.Ctx) error {
-	userID := ctx.Locals("userID")
+	userID := ctx.Locals("user_id")
 	roles := ctx.Locals("roles")
 
 	return ctx.JSON(fiber.Map{

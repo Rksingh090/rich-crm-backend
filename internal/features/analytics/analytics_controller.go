@@ -32,7 +32,7 @@ func (c *AnalyticsController) CreateMetric(ctx *fiber.Ctx) error {
 		metric.CreatedBy = userID
 	}
 
-	if err := c.Service.CreateMetric(ctx.Context(), &metric); err != nil {
+	if err := c.Service.CreateMetric(ctx.UserContext(), &metric); err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
@@ -49,7 +49,7 @@ func (c *AnalyticsController) CreateMetric(ctx *fiber.Ctx) error {
 func (c *AnalyticsController) GetMetric(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 
-	metric, err := c.Service.GetMetric(ctx.Context(), id)
+	metric, err := c.Service.GetMetric(ctx.UserContext(), id)
 	if err != nil {
 		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Metric not found"})
 	}
@@ -64,7 +64,7 @@ func (c *AnalyticsController) GetMetric(ctx *fiber.Ctx) error {
 // @Success 200 {array} Metric
 // @Router /api/analytics/metrics [get]
 func (c *AnalyticsController) ListMetrics(ctx *fiber.Ctx) error {
-	metrics, err := c.Service.ListMetrics(ctx.Context())
+	metrics, err := c.Service.ListMetrics(ctx.UserContext())
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
@@ -89,7 +89,7 @@ func (c *AnalyticsController) UpdateMetric(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
 
-	if err := c.Service.UpdateMetric(ctx.Context(), id, updates); err != nil {
+	if err := c.Service.UpdateMetric(ctx.UserContext(), id, updates); err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
@@ -105,7 +105,7 @@ func (c *AnalyticsController) UpdateMetric(ctx *fiber.Ctx) error {
 func (c *AnalyticsController) DeleteMetric(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 
-	if err := c.Service.DeleteMetric(ctx.Context(), id); err != nil {
+	if err := c.Service.DeleteMetric(ctx.UserContext(), id); err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
@@ -127,7 +127,7 @@ func (c *AnalyticsController) CalculateMetric(ctx *fiber.Ctx) error {
 	var filters map[string]interface{}
 	ctx.BodyParser(&filters) // Optional filters
 
-	result, err := c.Service.CalculateMetric(ctx.Context(), id, filters)
+	result, err := c.Service.CalculateMetric(ctx.UserContext(), id, filters)
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
@@ -153,7 +153,7 @@ func (c *AnalyticsController) GetMetricHistory(ctx *fiber.Ctx) error {
 		// End: parse end time
 	}
 
-	history, err := c.Service.GetMetricHistory(ctx.Context(), id, timeRange)
+	history, err := c.Service.GetMetricHistory(ctx.UserContext(), id, timeRange)
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
@@ -171,7 +171,7 @@ func (c *AnalyticsController) GetMetricHistory(ctx *fiber.Ctx) error {
 func (c *AnalyticsController) GetDashboardMetrics(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 
-	metrics, err := c.Service.GetDashboardMetrics(ctx.Context(), id)
+	metrics, err := c.Service.GetDashboardMetrics(ctx.UserContext(), id)
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}

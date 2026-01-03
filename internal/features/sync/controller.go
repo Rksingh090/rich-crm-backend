@@ -23,7 +23,7 @@ func (ctrl *SyncController) CreateSyncSetting(c *fiber.Ctx) error {
 		})
 	}
 
-	if err := ctrl.Service.CreateSetting(c.Context(), &setting); err != nil {
+	if err := ctrl.Service.CreateSetting(c.UserContext(), &setting); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": err.Error(),
 		})
@@ -37,7 +37,7 @@ func (ctrl *SyncController) CreateSyncSetting(c *fiber.Ctx) error {
 
 // ListSyncSettings godoc
 func (ctrl *SyncController) ListSyncSettings(c *fiber.Ctx) error {
-	settings, err := ctrl.Service.ListSettings(c.Context())
+	settings, err := ctrl.Service.ListSettings(c.UserContext())
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err.Error(),
@@ -53,7 +53,7 @@ func (ctrl *SyncController) ListSyncSettings(c *fiber.Ctx) error {
 func (ctrl *SyncController) GetSyncSetting(c *fiber.Ctx) error {
 	id := c.Params("id")
 
-	setting, err := ctrl.Service.GetSetting(c.Context(), id)
+	setting, err := ctrl.Service.GetSetting(c.UserContext(), id)
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"error": err.Error(),
@@ -74,7 +74,7 @@ func (ctrl *SyncController) UpdateSyncSetting(c *fiber.Ctx) error {
 		})
 	}
 
-	if err := ctrl.Service.UpdateSetting(c.Context(), id, updates); err != nil {
+	if err := ctrl.Service.UpdateSetting(c.UserContext(), id, updates); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": err.Error(),
 		})
@@ -89,7 +89,7 @@ func (ctrl *SyncController) UpdateSyncSetting(c *fiber.Ctx) error {
 func (ctrl *SyncController) DeleteSyncSetting(c *fiber.Ctx) error {
 	id := c.Params("id")
 
-	if err := ctrl.Service.DeleteSetting(c.Context(), id); err != nil {
+	if err := ctrl.Service.DeleteSetting(c.UserContext(), id); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err.Error(),
 		})
@@ -104,7 +104,7 @@ func (ctrl *SyncController) DeleteSyncSetting(c *fiber.Ctx) error {
 func (ctrl *SyncController) RunSync(c *fiber.Ctx) error {
 	id := c.Params("id")
 
-	if err := ctrl.Service.RunSync(c.Context(), id); err != nil {
+	if err := ctrl.Service.RunSync(c.UserContext(), id); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err.Error(),
 		})
@@ -118,7 +118,7 @@ func (ctrl *SyncController) RunSync(c *fiber.Ctx) error {
 // ListSyncLogs godoc
 func (ctrl *SyncController) ListSyncLogs(c *fiber.Ctx) error {
 	id := c.Params("id")
-	logs, err := ctrl.Service.ListLogs(c.Context(), id, 50)
+	logs, err := ctrl.Service.ListLogs(c.UserContext(), id, 50)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err.Error(),

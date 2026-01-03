@@ -27,7 +27,7 @@ func (ctrl *AuditController) ListLogs(c *fiber.Ctx) error {
 		filters["record_id"] = recordID
 	}
 
-	logs, err := ctrl.Service.ListLogs(c.Context(), filters, page, limit)
+	logs, err := ctrl.Service.ListLogs(c.UserContext(), filters, page, limit)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err.Error(),

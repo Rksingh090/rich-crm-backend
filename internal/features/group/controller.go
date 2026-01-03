@@ -22,7 +22,7 @@ func (c *GroupController) CreateGroup(ctx *fiber.Ctx) error {
 		})
 	}
 
-	if err := c.Service.CreateGroup(ctx.Context(), &group); err != nil {
+	if err := c.Service.CreateGroup(ctx.UserContext(), &group); err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": err.Error(),
 		})
@@ -33,7 +33,7 @@ func (c *GroupController) CreateGroup(ctx *fiber.Ctx) error {
 
 // GetAllGroups godoc
 func (c *GroupController) GetAllGroups(ctx *fiber.Ctx) error {
-	groups, err := c.Service.GetAllGroups(ctx.Context())
+	groups, err := c.Service.GetAllGroups(ctx.UserContext())
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err.Error(),
@@ -52,7 +52,7 @@ func (c *GroupController) GetGroup(ctx *fiber.Ctx) error {
 		})
 	}
 
-	group, err := c.Service.GetGroupByID(ctx.Context(), id)
+	group, err := c.Service.GetGroupByID(ctx.UserContext(), id)
 	if err != nil {
 		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"error": "Group not found",
@@ -78,7 +78,7 @@ func (c *GroupController) UpdateGroup(ctx *fiber.Ctx) error {
 		})
 	}
 
-	if err := c.Service.UpdateGroup(ctx.Context(), id, &group); err != nil {
+	if err := c.Service.UpdateGroup(ctx.UserContext(), id, &group); err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": err.Error(),
 		})
@@ -98,7 +98,7 @@ func (c *GroupController) DeleteGroup(ctx *fiber.Ctx) error {
 		})
 	}
 
-	if err := c.Service.DeleteGroup(ctx.Context(), id); err != nil {
+	if err := c.Service.DeleteGroup(ctx.UserContext(), id); err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": err.Error(),
 		})
@@ -134,7 +134,7 @@ func (c *GroupController) AddMember(ctx *fiber.Ctx) error {
 		})
 	}
 
-	if err := c.Service.AddMember(ctx.Context(), groupID, userID); err != nil {
+	if err := c.Service.AddMember(ctx.UserContext(), groupID, userID); err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": err.Error(),
 		})
@@ -154,14 +154,14 @@ func (c *GroupController) RemoveMember(ctx *fiber.Ctx) error {
 		})
 	}
 
-	userID, err := primitive.ObjectIDFromHex(ctx.Params("userId"))
+	userID, err := primitive.ObjectIDFromHex(ctx.Params("user_id"))
 	if err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Invalid user ID",
 		})
 	}
 
-	if err := c.Service.RemoveMember(ctx.Context(), groupID, userID); err != nil {
+	if err := c.Service.RemoveMember(ctx.UserContext(), groupID, userID); err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": err.Error(),
 		})

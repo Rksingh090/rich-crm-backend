@@ -3,7 +3,9 @@ package record
 import (
 	"context"
 	"fmt"
+	"go-crm/internal/common/models"
 	"go-crm/internal/database"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -12,48 +14,121 @@ import (
 )
 
 type RecordRepository interface {
-	Create(ctx context.Context, moduleName string, data map[string]any) (any, error)
+	Create(ctx context.Context, moduleName string, product models.Product, data map[string]any) (any, error)
 	Get(ctx context.Context, moduleName, id string) (map[string]any, error)
-	List(ctx context.Context, moduleName string, filter map[string]any, limit, offset int64, sortBy string, sortOrder int) ([]map[string]any, error)
-	Count(ctx context.Context, moduleName string, filter map[string]any) (int64, error)
+	List(ctx context.Context, moduleName string, filter map[string]any, accessFilter map[string]any, limit, offset int64, sortBy string, sortOrder int) ([]map[string]any, error)
+	Count(ctx context.Context, moduleName string, filter map[string]any, accessFilter map[string]any) (int64, error)
 	Update(ctx context.Context, moduleName, id string, data map[string]any) error
 	Delete(ctx context.Context, moduleName, id string) error
 	Aggregate(ctx context.Context, moduleName string, pipeline mongo.Pipeline) ([]map[string]any, error)
 }
 
 type RecordRepositoryImpl struct {
-	DB *mongo.Database
+	Collection *mongo.Collection
 }
 
 func NewRecordRepository(mongodb *database.MongodbDB) RecordRepository {
 	return &RecordRepositoryImpl{
-		DB: mongodb.DB,
+		Collection: mongodb.DB.Collection("entity_records"),
 	}
 }
 
-func (r *RecordRepositoryImpl) Create(ctx context.Context, moduleName string, data map[string]interface{}) (interface{}, error) {
-	collectionName := fmt.Sprintf("module_%s", moduleName)
-	result, err := r.DB.Collection(collectionName).InsertOne(ctx, data)
+func (r *RecordRepositoryImpl) Create(ctx context.Context, moduleName string, product models.Product, data map[string]interface{}) (interface{}, error) {
+	tenantID, ok := ctx.Value(models.TenantIDKey).(string)
+	if !ok || tenantID == "" {
+		return nil, fmt.Errorf("organization context missing")
+	}
+	oid, err := primitive.ObjectIDFromHex(tenantID)
 	if err != nil {
 		return nil, err
 	}
-	return result.InsertedID, nil
+
+	record := models.EntityRecord{
+		ID:        primitive.NewObjectID(),
+		TenantID:  oid,
+		Product:   product,
+		Entity:    moduleName,
+		Data:      data,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+
+	// Capture CreatedBy from context if available (assuming generic UserID key)
+	if userID, ok := ctx.Value("user_id").(string); ok {
+		record.CreatedBy = userID
+		record.UpdatedBy = userID
+	}
+
+	_, err = r.Collection.InsertOne(ctx, record)
+	if err != nil {
+		return nil, err
+	}
+	return record.ID, nil
 }
 
 func (r *RecordRepositoryImpl) Get(ctx context.Context, moduleName, id string) (map[string]interface{}, error) {
-	collectionName := fmt.Sprintf("module_%s", moduleName)
-	oid, err := primitive.ObjectIDFromHex(id)
+	tenantID, ok := ctx.Value(models.TenantIDKey).(string)
+	if !ok || tenantID == "" {
+		return nil, fmt.Errorf("organization context missing")
+	}
+	oid, err := primitive.ObjectIDFromHex(tenantID)
 	if err != nil {
 		return nil, err
 	}
 
-	var result map[string]interface{}
-	err = r.DB.Collection(collectionName).FindOne(ctx, bson.M{"_id": oid}).Decode(&result)
-	return result, err
+	recordID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return nil, err
+	}
+
+	var record models.EntityRecord
+	err = r.Collection.FindOne(ctx, bson.M{"_id": recordID, "tenant_id": oid, "entity": moduleName}).Decode(&record)
+	if err != nil {
+		return nil, err
+	}
+
+	return r.flattenRecord(&record), nil
 }
 
-func (r *RecordRepositoryImpl) List(ctx context.Context, moduleName string, filter map[string]any, limit, offset int64, sortBy string, sortOrder int) ([]map[string]any, error) {
-	collectionName := fmt.Sprintf("module_%s", moduleName)
+func (r *RecordRepositoryImpl) List(ctx context.Context, moduleName string, filter map[string]any, accessFilter map[string]any, limit, offset int64, sortBy string, sortOrder int) ([]map[string]any, error) {
+	tenantID, ok := ctx.Value(models.TenantIDKey).(string)
+	if !ok || tenantID == "" {
+		return nil, fmt.Errorf("organization context missing")
+	}
+	oid, err := primitive.ObjectIDFromHex(tenantID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Base filter
+	baseQuery := bson.M{
+		"tenant_id": oid,
+		"entity":    moduleName,
+	}
+
+	// User Filters (need to map fields to data.field)
+	userQuery := bson.M{}
+	for k, v := range filter {
+		// If key is system field, use as is, else prepend data.
+		if k == "_id" || k == "created_at" || k == "updated_at" || k == "created_by" {
+			userQuery[k] = v
+		} else {
+			userQuery["data."+k] = v
+		}
+	}
+
+	// Combine: Base AND (UserQuery AND AccessFilter)
+	// But UserQuery might be empty, AccessFilter might be empty
+	andConditions := []bson.M{baseQuery}
+
+	if len(userQuery) > 0 {
+		andConditions = append(andConditions, userQuery)
+	}
+	if len(accessFilter) > 0 {
+		andConditions = append(andConditions, accessFilter)
+	}
+
+	finalQuery := bson.M{"$and": andConditions}
 
 	findOptions := options.Find()
 	findOptions.SetLimit(limit)
@@ -64,65 +139,140 @@ func (r *RecordRepositoryImpl) List(ctx context.Context, moduleName string, filt
 		sortBy = "created_at"
 	}
 	if sortOrder == 0 {
-		sortOrder = -1 // Default DESC
+		sortOrder = -1
 	}
-	findOptions.SetSort(bson.D{{Key: sortBy, Value: sortOrder}})
 
-	cursor, err := r.DB.Collection(collectionName).Find(ctx, filter, findOptions)
+	sortKey := sortBy
+	if sortBy != "_id" && sortBy != "created_at" && sortBy != "updated_at" {
+		sortKey = "data." + sortBy
+	}
+
+	findOptions.SetSort(bson.D{{Key: sortKey, Value: sortOrder}})
+
+	cursor, err := r.Collection.Find(ctx, finalQuery, findOptions)
 	if err != nil {
 		return nil, err
 	}
 	defer cursor.Close(ctx)
 
-	var results []map[string]any
-	if err := cursor.All(ctx, &results); err != nil {
+	var records []models.EntityRecord
+	if err := cursor.All(ctx, &records); err != nil {
 		return nil, err
+	}
+
+	results := make([]map[string]any, len(records))
+	for i, rec := range records {
+		results[i] = r.flattenRecord(&rec)
 	}
 	return results, nil
 }
 
-func (r *RecordRepositoryImpl) Update(ctx context.Context, moduleName, id string, data map[string]interface{}) error {
-	collectionName := fmt.Sprintf("module_%s", moduleName)
-	oid, err := primitive.ObjectIDFromHex(id)
+func (r *RecordRepositoryImpl) Update(ctx context.Context, moduleName, id string, data map[string]any) error {
+	tenantID, ok := ctx.Value(models.TenantIDKey).(string)
+	if !ok || tenantID == "" {
+		return fmt.Errorf("organization context missing")
+	}
+	oid, err := primitive.ObjectIDFromHex(tenantID)
 	if err != nil {
 		return err
 	}
 
-	_, err = r.DB.Collection(collectionName).UpdateOne(ctx, bson.M{"_id": oid}, bson.M{"$set": data})
+	recordID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return err
+	}
+
+	// Flatten update: map fields to data.field
+	updateSet := bson.M{
+		"updated_at": time.Now(),
+	}
+	for k, v := range data {
+		updateSet["data."+k] = v
+	}
+	// TODO: Handle UpdatedBy
+
+	_, err = r.Collection.UpdateOne(ctx, bson.M{"_id": recordID, "tenant_id": oid, "entity": moduleName}, bson.M{"$set": updateSet})
 	return err
 }
 
 func (r *RecordRepositoryImpl) Delete(ctx context.Context, moduleName, id string) error {
-	collectionName := fmt.Sprintf("module_%s", moduleName)
-	oid, err := primitive.ObjectIDFromHex(id)
+	tenantID, ok := ctx.Value(models.TenantIDKey).(string)
+	if !ok || tenantID == "" {
+		return fmt.Errorf("organization context missing")
+	}
+	oid, err := primitive.ObjectIDFromHex(tenantID)
 	if err != nil {
 		return err
 	}
 
-	_, err = r.DB.Collection(collectionName).DeleteOne(ctx, bson.M{"_id": oid})
+	recordID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return err
+	}
+
+	_, err = r.Collection.DeleteOne(ctx, bson.M{"_id": recordID, "tenant_id": oid, "entity": moduleName})
 	return err
 }
 
-func (r *RecordRepositoryImpl) Count(ctx context.Context, moduleName string, filter map[string]any) (int64, error) {
-	collectionName := fmt.Sprintf("module_%s", moduleName)
-	count, err := r.DB.Collection(collectionName).CountDocuments(ctx, filter)
+func (r *RecordRepositoryImpl) Count(ctx context.Context, moduleName string, filter map[string]any, accessFilter map[string]any) (int64, error) {
+	tenantID, ok := ctx.Value(models.TenantIDKey).(string)
+	if !ok || tenantID == "" {
+		return 0, fmt.Errorf("organization context missing")
+	}
+	oid, err := primitive.ObjectIDFromHex(tenantID)
 	if err != nil {
 		return 0, err
 	}
-	return count, nil
+
+	baseQuery := bson.M{
+		"tenant_id": oid,
+		"entity":    moduleName,
+	}
+
+	userQuery := bson.M{}
+	for k, v := range filter {
+		if k == "_id" || k == "created_at" || k == "updated_at" {
+			userQuery[k] = v
+		} else {
+			userQuery["data."+k] = v
+		}
+	}
+
+	andConditions := []bson.M{baseQuery}
+	if len(userQuery) > 0 {
+		andConditions = append(andConditions, userQuery)
+	}
+	if len(accessFilter) > 0 {
+		andConditions = append(andConditions, accessFilter)
+	}
+	finalQuery := bson.M{"$and": andConditions}
+
+	return r.Collection.CountDocuments(ctx, finalQuery)
 }
 
 func (r *RecordRepositoryImpl) Aggregate(ctx context.Context, moduleName string, pipeline mongo.Pipeline) ([]map[string]any, error) {
-	collectionName := fmt.Sprintf("module_%s", moduleName)
-	cursor, err := r.DB.Collection(collectionName).Aggregate(ctx, pipeline)
-	if err != nil {
-		return nil, err
-	}
-	defer cursor.Close(ctx)
+	// Aggregation is tricky because of data nesting. Caller likely sends pipeline for flat structure.
+	// For now, assume pipeline is adjusted or basic support.
+	// We should probably inject a $match stage for tenant_id and entity at the start.
 
-	var results []map[string]any
-	if err := cursor.All(ctx, &results); err != nil {
-		return nil, err
+	// This is a placeholder as full aggregation support on nested data requires rewriting the pipeline
+	// which is complex. For basic use cases, we might encourage List usage.
+
+	return nil, fmt.Errorf("aggregation not yet supported on unified collection")
+}
+
+func (r *RecordRepositoryImpl) flattenRecord(rec *models.EntityRecord) map[string]any {
+	flat := make(map[string]any)
+	for k, v := range rec.Data {
+		flat[k] = v
 	}
-	return results, nil
+	flat["_id"] = rec.ID
+	flat["id"] = rec.ID // convenience
+	flat["created_at"] = rec.CreatedAt
+	flat["updated_at"] = rec.UpdatedAt
+	flat["created_by"] = rec.CreatedBy
+	flat["updated_by"] = rec.UpdatedBy
+	// flat["entity"] = rec.Entity
+	// flat["product"] = rec.Product
+	return flat
 }

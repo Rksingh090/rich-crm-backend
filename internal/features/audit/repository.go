@@ -6,6 +6,7 @@ import (
 	"go-crm/internal/database"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -26,6 +27,15 @@ func NewAuditRepository(mongodb *database.MongodbDB) AuditRepository {
 }
 
 func (r *AuditRepositoryImpl) Create(ctx context.Context, log common_models.AuditLog) error {
+	tenantID, ok := ctx.Value(common_models.TenantIDKey).(string)
+	if ok && tenantID != "" {
+		if oid, err := primitive.ObjectIDFromHex(tenantID); err == nil {
+			log.TenantID = oid
+		}
+	}
+	// Note: Audit logs might sometimes be created without tenant context (e.g. system events).
+	// But mostly they should have it.
+
 	_, err := r.Collection.InsertOne(ctx, log)
 	return err
 }
@@ -34,6 +44,14 @@ func (r *AuditRepositoryImpl) List(ctx context.Context, filters map[string]inter
 	opts := options.Find().SetLimit(limit).SetSkip(offset).SetSort(bson.M{"timestamp": -1})
 
 	query := bson.M{}
+
+	tenantID, ok := ctx.Value(common_models.TenantIDKey).(string)
+	if ok && tenantID != "" {
+		if oid, err := primitive.ObjectIDFromHex(tenantID); err == nil {
+			query["tenant_id"] = oid
+		}
+	}
+
 	for k, v := range filters {
 		if v == nil {
 			continue

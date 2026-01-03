@@ -21,14 +21,14 @@ func (c *SavedFilterController) CreateFilter(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request"})
 	}
 
-	userIDStr, ok := ctx.Locals("userID").(string)
+	userIDStr, ok := ctx.Locals("user_id").(string)
 	if !ok {
 		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
 	}
 	userID, _ := primitive.ObjectIDFromHex(userIDStr)
 	filter.UserID = userID
 
-	if err := c.FilterService.CreateFilter(ctx.Context(), &filter); err != nil {
+	if err := c.FilterService.CreateFilter(ctx.UserContext(), &filter); err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
@@ -38,7 +38,7 @@ func (c *SavedFilterController) CreateFilter(ctx *fiber.Ctx) error {
 func (c *SavedFilterController) GetFilter(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 
-	filter, err := c.FilterService.GetFilter(ctx.Context(), id)
+	filter, err := c.FilterService.GetFilter(ctx.UserContext(), id)
 	if err != nil {
 		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Filter not found"})
 	}
@@ -57,7 +57,7 @@ func (c *SavedFilterController) UpdateFilter(ctx *fiber.Ctx) error {
 	objID, _ := primitive.ObjectIDFromHex(id)
 	filter.ID = objID
 
-	if err := c.FilterService.UpdateFilter(ctx.Context(), &filter); err != nil {
+	if err := c.FilterService.UpdateFilter(ctx.UserContext(), &filter); err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
@@ -67,13 +67,13 @@ func (c *SavedFilterController) UpdateFilter(ctx *fiber.Ctx) error {
 func (c *SavedFilterController) DeleteFilter(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 
-	userIDStr, ok := ctx.Locals("userID").(string)
+	userIDStr, ok := ctx.Locals("user_id").(string)
 	if !ok {
 		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
 	}
 	userID, _ := primitive.ObjectIDFromHex(userIDStr)
 
-	if err := c.FilterService.DeleteFilter(ctx.Context(), id, userID); err != nil {
+	if err := c.FilterService.DeleteFilter(ctx.UserContext(), id, userID); err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
@@ -86,13 +86,13 @@ func (c *SavedFilterController) ListUserFilters(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "module parameter required"})
 	}
 
-	userIDStr, ok := ctx.Locals("userID").(string)
+	userIDStr, ok := ctx.Locals("user_id").(string)
 	if !ok {
 		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
 	}
 	userID, _ := primitive.ObjectIDFromHex(userIDStr)
 
-	filters, err := c.FilterService.GetUserFilters(ctx.Context(), userID, moduleName)
+	filters, err := c.FilterService.GetUserFilters(ctx.UserContext(), userID, moduleName)
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
@@ -106,7 +106,7 @@ func (c *SavedFilterController) ListPublicFilters(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "module parameter required"})
 	}
 
-	filters, err := c.FilterService.GetPublicFilters(ctx.Context(), moduleName)
+	filters, err := c.FilterService.GetPublicFilters(ctx.UserContext(), moduleName)
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}

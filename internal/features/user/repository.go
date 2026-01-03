@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"fmt"
 	"go-crm/internal/common/models"
 	"go-crm/internal/database"
 
@@ -14,6 +15,7 @@ import (
 type UserRepository interface {
 	Create(ctx context.Context, user *models.User) error
 	FindByUsername(ctx context.Context, username string) (*models.User, error)
+	FindByUsernameGlobal(ctx context.Context, username string) (*models.User, error)
 	FindByID(ctx context.Context, id string) (*models.User, error)
 	FindByEmail(ctx context.Context, email string) (*models.User, error)
 	List(ctx context.Context, filter map[string]interface{}, limit, offset int64) ([]models.User, int64, error)
@@ -33,12 +35,43 @@ func NewUserRepository(mongodb *database.MongodbDB) UserRepository {
 }
 
 func (r *UserRepositoryImpl) Create(ctx context.Context, user *models.User) error {
-	_, err := r.Collection.InsertOne(ctx, user)
+	tenantID, ok := ctx.Value(models.TenantIDKey).(string)
+	if !ok || tenantID == "" {
+		return fmt.Errorf("tenant context missing")
+	}
+	oid, err := primitive.ObjectIDFromHex(tenantID)
+	if err != nil {
+		return err
+	}
+	user.TenantID = oid
+
+	_, err = r.Collection.InsertOne(ctx, user)
 	return err
 }
 
 func (r *UserRepositoryImpl) FindByUsername(ctx context.Context, username string) (*models.User, error) {
+	tenantID, ok := ctx.Value(models.TenantIDKey).(string)
+	if !ok || tenantID == "" {
+		return nil, fmt.Errorf("tenant context missing")
+	}
+
 	var user models.User
+	// Parse tenantID first
+	oid, err := primitive.ObjectIDFromHex(tenantID)
+	if err != nil {
+		return nil, err
+	}
+
+	err = r.Collection.FindOne(ctx, bson.M{"username": username, "tenant_id": oid}).Decode(&user)
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
+func (r *UserRepositoryImpl) FindByUsernameGlobal(ctx context.Context, username string) (*models.User, error) {
+	var user models.User
+	// No org filter, used for login
 	err := r.Collection.FindOne(ctx, bson.M{"username": username}).Decode(&user)
 	if err != nil {
 		return nil, err
@@ -47,12 +80,21 @@ func (r *UserRepositoryImpl) FindByUsername(ctx context.Context, username string
 }
 
 func (r *UserRepositoryImpl) FindByID(ctx context.Context, id string) (*models.User, error) {
+	tenantID, ok := ctx.Value(models.TenantIDKey).(string)
+	if !ok || tenantID == "" {
+		return nil, fmt.Errorf("tenant context missing")
+	}
+	oid, err := primitive.ObjectIDFromHex(tenantID)
+	if err != nil {
+		return nil, err
+	}
+
 	objectID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return nil, err
 	}
 	var user models.User
-	err = r.Collection.FindOne(ctx, bson.M{"_id": objectID}).Decode(&user)
+	err = r.Collection.FindOne(ctx, bson.M{"_id": objectID, "tenant_id": oid}).Decode(&user)
 	if err != nil {
 		return nil, err
 	}
@@ -60,8 +102,17 @@ func (r *UserRepositoryImpl) FindByID(ctx context.Context, id string) (*models.U
 }
 
 func (r *UserRepositoryImpl) FindByEmail(ctx context.Context, email string) (*models.User, error) {
+	tenantID, ok := ctx.Value(models.TenantIDKey).(string)
+	if !ok || tenantID == "" {
+		return nil, fmt.Errorf("tenant context missing")
+	}
+	oid, err := primitive.ObjectIDFromHex(tenantID)
+	if err != nil {
+		return nil, err
+	}
+
 	var user models.User
-	err := r.Collection.FindOne(ctx, bson.M{"email": email}).Decode(&user)
+	err = r.Collection.FindOne(ctx, bson.M{"email": email, "tenant_id": oid}).Decode(&user)
 	if err != nil {
 		return nil, err
 	}
@@ -69,6 +120,16 @@ func (r *UserRepositoryImpl) FindByEmail(ctx context.Context, email string) (*mo
 }
 
 func (r *UserRepositoryImpl) List(ctx context.Context, filter map[string]interface{}, limit, offset int64) ([]models.User, int64, error) {
+	tenantID, ok := ctx.Value(models.TenantIDKey).(string)
+	if !ok || tenantID == "" {
+		return nil, 0, fmt.Errorf("tenant context missing")
+	}
+	oid, err := primitive.ObjectIDFromHex(tenantID)
+	if err != nil {
+		return nil, 0, err
+	}
+	filter["tenant_id"] = oid
+
 	opts := options.Find()
 	if limit > 0 {
 		opts.SetLimit(limit)
@@ -98,6 +159,15 @@ func (r *UserRepositoryImpl) List(ctx context.Context, filter map[string]interfa
 }
 
 func (r *UserRepositoryImpl) Update(ctx context.Context, id string, user *models.User) error {
+	tenantID, ok := ctx.Value(models.TenantIDKey).(string)
+	if !ok || tenantID == "" {
+		return fmt.Errorf("tenant context missing")
+	}
+	oid, err := primitive.ObjectIDFromHex(tenantID)
+	if err != nil {
+		return err
+	}
+
 	objectID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return err
@@ -120,16 +190,25 @@ func (r *UserRepositoryImpl) Update(ctx context.Context, id string, user *models
 		update["$set"].(bson.M)["last_login"] = user.LastLogin
 	}
 
-	_, err = r.Collection.UpdateOne(ctx, bson.M{"_id": objectID}, update)
+	_, err = r.Collection.UpdateOne(ctx, bson.M{"_id": objectID, "tenant_id": oid}, update)
 	return err
 }
 
 func (r *UserRepositoryImpl) Delete(ctx context.Context, id string) error {
+	tenantID, ok := ctx.Value(models.TenantIDKey).(string)
+	if !ok || tenantID == "" {
+		return fmt.Errorf("tenant context missing")
+	}
+	oid, err := primitive.ObjectIDFromHex(tenantID)
+	if err != nil {
+		return err
+	}
+
 	objectID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return err
 	}
-	_, err = r.Collection.DeleteOne(ctx, bson.M{"_id": objectID})
+	_, err = r.Collection.DeleteOne(ctx, bson.M{"_id": objectID, "tenant_id": oid})
 	return err
 }
 

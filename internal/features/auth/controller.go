@@ -18,6 +18,7 @@ type RegisterRequest struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
 	Email    string `json:"email"`
+	OrgName  string `json:"org_name"`
 }
 
 type LoginRequest struct {
@@ -48,7 +49,7 @@ func (ctrl *AuthController) Register(c *fiber.Ctx) error {
 		})
 	}
 
-	_, err := ctrl.AuthService.Register(c.Context(), req.Username, req.Password, req.Email)
+	_, err := ctrl.AuthService.Register(c.Context(), req.Username, req.Password, req.Email, req.OrgName)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to create user",

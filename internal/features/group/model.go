@@ -3,6 +3,8 @@ package group
 import (
 	"time"
 
+	"go-crm/internal/common/models"
+
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -19,7 +21,7 @@ type Group struct {
 }
 
 type ModulePermission struct {
-	Read   bool `json:"read" bson:"read"`
-	Write  bool `json:"write" bson:"write"`
-	Delete bool `json:"delete" bson:"delete"`
+	Read   models.ActionPermission `json:"read" bson:"read"`
+	Write  models.ActionPermission `json:"write" bson:"write"`
+	Delete models.ActionPermission `json:"delete" bson:"delete"`
 }

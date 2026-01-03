@@ -238,7 +238,7 @@ func (s *CronServiceImpl) executeRecordBasedJob(ctx context.Context, cronJob *Cr
 		}
 	}
 
-	records, err := s.recordRepo.List(ctx, cronJob.ModuleID, filter, 1000, 0, "created_at", -1)
+	records, err := s.recordRepo.List(ctx, cronJob.ModuleID, filter, nil, 1000, 0, "created_at", -1)
 	if err != nil {
 		return 0, 0, fmt.Errorf("failed to fetch records: %w", err)
 	}

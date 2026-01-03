@@ -27,13 +27,13 @@ func (c *BulkOperationController) PreviewBulkOperation(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request"})
 	}
 
-	userIDStr, ok := ctx.Locals("userID").(string)
+	userIDStr, ok := ctx.Locals("user_id").(string)
 	if !ok {
 		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
 	}
 	userID, _ := primitive.ObjectIDFromHex(userIDStr)
 
-	records, total, err := c.BulkService.PreviewBulkOperation(ctx.Context(), req.ModuleName, req.Filters, userID)
+	records, total, err := c.BulkService.PreviewBulkOperation(ctx.UserContext(), req.ModuleName, req.Filters, userID)
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
@@ -50,7 +50,7 @@ func (c *BulkOperationController) CreateBulkOperation(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request"})
 	}
 
-	userIDStr, ok := ctx.Locals("userID").(string)
+	userIDStr, ok := ctx.Locals("user_id").(string)
 	if !ok {
 		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
 	}
@@ -64,7 +64,7 @@ func (c *BulkOperationController) CreateBulkOperation(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid operation type"})
 	}
 
-	if err := c.BulkService.CreateBulkOperation(ctx.Context(), &op); err != nil {
+	if err := c.BulkService.CreateBulkOperation(ctx.UserContext(), &op); err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
@@ -74,7 +74,7 @@ func (c *BulkOperationController) CreateBulkOperation(ctx *fiber.Ctx) error {
 func (c *BulkOperationController) ExecuteBulkOperation(ctx *fiber.Ctx) error {
 	opID := ctx.Params("id")
 
-	userIDStr, ok := ctx.Locals("userID").(string)
+	userIDStr, ok := ctx.Locals("user_id").(string)
 	if !ok {
 		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
 	}
@@ -91,7 +91,7 @@ func (c *BulkOperationController) ExecuteBulkOperation(ctx *fiber.Ctx) error {
 func (c *BulkOperationController) GetBulkOperation(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 
-	op, err := c.BulkService.GetOperation(ctx.Context(), id)
+	op, err := c.BulkService.GetOperation(ctx.UserContext(), id)
 	if err != nil {
 		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Operation not found"})
 	}
@@ -100,13 +100,13 @@ func (c *BulkOperationController) GetBulkOperation(ctx *fiber.Ctx) error {
 }
 
 func (c *BulkOperationController) ListBulkOperations(ctx *fiber.Ctx) error {
-	userIDStr, ok := ctx.Locals("userID").(string)
+	userIDStr, ok := ctx.Locals("user_id").(string)
 	if !ok {
 		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
 	}
 	userID, _ := primitive.ObjectIDFromHex(userIDStr)
 
-	ops, err := c.BulkService.GetUserOperations(ctx.Context(), userID)
+	ops, err := c.BulkService.GetUserOperations(ctx.UserContext(), userID)
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}

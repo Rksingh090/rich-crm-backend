@@ -31,7 +31,7 @@ func NewFileController(fileService FileService, cfg *config.Config) *FileControl
 }
 
 func (ctrl *FileController) UploadFile(c *fiber.Ctx) error {
-	userIDStr := c.Locals("userID").(string)
+	userIDStr := c.Locals("user_id").(string)
 	userID, err := primitive.ObjectIDFromHex(userIDStr)
 	if err != nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid user ID"})
@@ -49,7 +49,7 @@ func (ctrl *FileController) UploadFile(c *fiber.Ctx) error {
 	isShared := c.FormValue("is_shared") == "true"
 	description := c.FormValue("description")
 
-	if err := ctrl.FileService.ValidateUpload(c.Context(), moduleName, recordID, file.Size, file.Header.Get("Content-Type")); err != nil {
+	if err := ctrl.FileService.ValidateUpload(c.UserContext(), moduleName, recordID, file.Size, file.Header.Get("Content-Type")); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": err.Error(),
 		})
@@ -83,7 +83,7 @@ func (ctrl *FileController) UploadFile(c *fiber.Ctx) error {
 		CreatedAt:        time.Now(),
 	}
 
-	if err := ctrl.FileService.SaveFile(c.Context(), fileRecord); err != nil {
+	if err := ctrl.FileService.SaveFile(c.UserContext(), fileRecord); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Error saving file metadata",
 		})
@@ -96,7 +96,7 @@ func (ctrl *FileController) GetFilesByRecord(c *fiber.Ctx) error {
 	moduleName := c.Params("module")
 	recordID := c.Params("recordId")
 
-	files, err := ctrl.FileService.GetFilesByRecord(c.Context(), moduleName, recordID)
+	files, err := ctrl.FileService.GetFilesByRecord(c.UserContext(), moduleName, recordID)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Error retrieving files",
@@ -107,7 +107,7 @@ func (ctrl *FileController) GetFilesByRecord(c *fiber.Ctx) error {
 }
 
 func (ctrl *FileController) GetSharedFiles(c *fiber.Ctx) error {
-	files, err := ctrl.FileService.GetSharedFiles(c.Context())
+	files, err := ctrl.FileService.GetSharedFiles(c.UserContext())
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Error retrieving shared files",
@@ -120,7 +120,7 @@ func (ctrl *FileController) GetSharedFiles(c *fiber.Ctx) error {
 func (ctrl *FileController) DownloadFile(c *fiber.Ctx) error {
 	fileID := c.Params("id")
 
-	file, err := ctrl.FileService.GetFile(c.Context(), fileID)
+	file, err := ctrl.FileService.GetFile(c.UserContext(), fileID)
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"error": "File not found",
@@ -133,13 +133,13 @@ func (ctrl *FileController) DownloadFile(c *fiber.Ctx) error {
 func (ctrl *FileController) DeleteFile(c *fiber.Ctx) error {
 	fileID := c.Params("id")
 
-	userIDStr := c.Locals("userID").(string)
+	userIDStr := c.Locals("user_id").(string)
 	userID, err := primitive.ObjectIDFromHex(userIDStr)
 	if err != nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid user ID"})
 	}
 
-	if err := ctrl.FileService.DeleteFile(c.Context(), fileID, userID); err != nil {
+	if err := ctrl.FileService.DeleteFile(c.UserContext(), fileID, userID); err != nil {
 		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
 			"error": err.Error(),
 		})

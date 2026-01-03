@@ -22,7 +22,7 @@ func (ctrl *DashboardController) CreateDashboard(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
 
-	userIDStr := ctx.Locals("userID")
+	userIDStr := ctx.Locals("user_id")
 	if userIDStr == nil {
 		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "unauthorized"})
 	}
@@ -32,7 +32,7 @@ func (ctrl *DashboardController) CreateDashboard(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "invalid user ID"})
 	}
 
-	if err := ctrl.DashboardService.CreateDashboard(ctx.Context(), &dashboard, userID); err != nil {
+	if err := ctrl.DashboardService.CreateDashboard(ctx.UserContext(), &dashboard, userID); err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
@@ -41,7 +41,7 @@ func (ctrl *DashboardController) CreateDashboard(ctx *fiber.Ctx) error {
 
 // ListDashboards godoc
 func (ctrl *DashboardController) ListDashboards(ctx *fiber.Ctx) error {
-	userIDStr := ctx.Locals("userID")
+	userIDStr := ctx.Locals("user_id")
 	if userIDStr == nil {
 		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "unauthorized"})
 	}
@@ -51,7 +51,7 @@ func (ctrl *DashboardController) ListDashboards(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "invalid user ID"})
 	}
 
-	dashboards, err := ctrl.DashboardService.ListUserDashboards(ctx.Context(), userID)
+	dashboards, err := ctrl.DashboardService.ListUserDashboards(ctx.UserContext(), userID)
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
@@ -63,7 +63,7 @@ func (ctrl *DashboardController) ListDashboards(ctx *fiber.Ctx) error {
 func (ctrl *DashboardController) GetDashboard(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 
-	userIDStr := ctx.Locals("userID")
+	userIDStr := ctx.Locals("user_id")
 	if userIDStr == nil {
 		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "unauthorized"})
 	}
@@ -73,7 +73,7 @@ func (ctrl *DashboardController) GetDashboard(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "invalid user ID"})
 	}
 
-	dashboard, err := ctrl.DashboardService.GetDashboard(ctx.Context(), id, userID)
+	dashboard, err := ctrl.DashboardService.GetDashboard(ctx.UserContext(), id, userID)
 	if err != nil {
 		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": err.Error()})
 	}
@@ -90,7 +90,7 @@ func (ctrl *DashboardController) UpdateDashboard(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
 
-	userIDStr := ctx.Locals("userID")
+	userIDStr := ctx.Locals("user_id")
 	if userIDStr == nil {
 		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "unauthorized"})
 	}
@@ -100,7 +100,7 @@ func (ctrl *DashboardController) UpdateDashboard(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "invalid user ID"})
 	}
 
-	if err := ctrl.DashboardService.UpdateDashboard(ctx.Context(), id, &dashboard, userID); err != nil {
+	if err := ctrl.DashboardService.UpdateDashboard(ctx.UserContext(), id, &dashboard, userID); err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
@@ -111,7 +111,7 @@ func (ctrl *DashboardController) UpdateDashboard(ctx *fiber.Ctx) error {
 func (ctrl *DashboardController) DeleteDashboard(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 
-	userIDStr := ctx.Locals("userID")
+	userIDStr := ctx.Locals("user_id")
 	if userIDStr == nil {
 		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "unauthorized"})
 	}
@@ -121,7 +121,7 @@ func (ctrl *DashboardController) DeleteDashboard(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "invalid user ID"})
 	}
 
-	if err := ctrl.DashboardService.DeleteDashboard(ctx.Context(), id, userID); err != nil {
+	if err := ctrl.DashboardService.DeleteDashboard(ctx.UserContext(), id, userID); err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
@@ -132,7 +132,7 @@ func (ctrl *DashboardController) DeleteDashboard(ctx *fiber.Ctx) error {
 func (ctrl *DashboardController) SetDefaultDashboard(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 
-	userIDStr := ctx.Locals("userID")
+	userIDStr := ctx.Locals("user_id")
 	if userIDStr == nil {
 		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "unauthorized"})
 	}
@@ -142,7 +142,7 @@ func (ctrl *DashboardController) SetDefaultDashboard(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "invalid user ID"})
 	}
 
-	if err := ctrl.DashboardService.SetDefaultDashboard(ctx.Context(), id, userID); err != nil {
+	if err := ctrl.DashboardService.SetDefaultDashboard(ctx.UserContext(), id, userID); err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
@@ -153,7 +153,7 @@ func (ctrl *DashboardController) SetDefaultDashboard(ctx *fiber.Ctx) error {
 func (ctrl *DashboardController) GetDashboardData(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 
-	userIDStr := ctx.Locals("userID")
+	userIDStr := ctx.Locals("user_id")
 	if userIDStr == nil {
 		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "unauthorized"})
 	}
@@ -163,7 +163,7 @@ func (ctrl *DashboardController) GetDashboardData(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "invalid user ID"})
 	}
 
-	data, err := ctrl.DashboardService.GetDashboardData(ctx.Context(), id, userID)
+	data, err := ctrl.DashboardService.GetDashboardData(ctx.UserContext(), id, userID)
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}

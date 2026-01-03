@@ -19,7 +19,7 @@ func NewNotificationController(service NotificationService) *NotificationControl
 
 // List godoc
 func (c *NotificationController) List(ctx *fiber.Ctx) error {
-	userIDStr := ctx.Locals("userID").(string)
+	userIDStr := ctx.Locals("user_id").(string)
 	userID, err := primitive.ObjectIDFromHex(userIDStr)
 	if err != nil {
 		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid user ID"})
@@ -28,7 +28,7 @@ func (c *NotificationController) List(ctx *fiber.Ctx) error {
 	page, _ := strconv.ParseInt(ctx.Query("page", "1"), 10, 64)
 	limit, _ := strconv.ParseInt(ctx.Query("limit", "10"), 10, 64)
 
-	notifications, total, err := c.service.GetUserNotifications(ctx.Context(), userID, page, limit)
+	notifications, total, err := c.service.GetUserNotifications(ctx.UserContext(), userID, page, limit)
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
@@ -43,13 +43,13 @@ func (c *NotificationController) List(ctx *fiber.Ctx) error {
 
 // GetUnreadCount godoc
 func (c *NotificationController) GetUnreadCount(ctx *fiber.Ctx) error {
-	userIDStr := ctx.Locals("userID").(string)
+	userIDStr := ctx.Locals("user_id").(string)
 	userID, err := primitive.ObjectIDFromHex(userIDStr)
 	if err != nil {
 		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid user ID"})
 	}
 
-	count, err := c.service.GetUnreadCount(ctx.Context(), userID)
+	count, err := c.service.GetUnreadCount(ctx.UserContext(), userID)
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
@@ -59,14 +59,14 @@ func (c *NotificationController) GetUnreadCount(ctx *fiber.Ctx) error {
 
 // MarkAsRead godoc
 func (c *NotificationController) MarkAsRead(ctx *fiber.Ctx) error {
-	userIDStr := ctx.Locals("userID").(string)
+	userIDStr := ctx.Locals("user_id").(string)
 	userID, err := primitive.ObjectIDFromHex(userIDStr)
 	if err != nil {
 		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid user ID"})
 	}
 
 	id := ctx.Params("id")
-	if err := c.service.MarkAsRead(ctx.Context(), id, userID); err != nil {
+	if err := c.service.MarkAsRead(ctx.UserContext(), id, userID); err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
@@ -75,13 +75,13 @@ func (c *NotificationController) MarkAsRead(ctx *fiber.Ctx) error {
 
 // MarkAllAsRead godoc
 func (c *NotificationController) MarkAllAsRead(ctx *fiber.Ctx) error {
-	userIDStr := ctx.Locals("userID").(string)
+	userIDStr := ctx.Locals("user_id").(string)
 	userID, err := primitive.ObjectIDFromHex(userIDStr)
 	if err != nil {
 		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid user ID"})
 	}
 
-	if err := c.service.MarkAllAsRead(ctx.Context(), userID); err != nil {
+	if err := c.service.MarkAllAsRead(ctx.UserContext(), userID); err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 

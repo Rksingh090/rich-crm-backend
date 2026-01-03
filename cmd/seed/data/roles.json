@@ -1,47 +1,27 @@
 [
     {
-        "name": "admin",
-        "description": "Administrator with full access",
-        "is_system": true,
-        "module_permissions": {
-            "*": {
-                "create": true,
-                "read": true,
-                "update": true,
-                "delete": true
-            }
-        }
+        "name": "Super Admin",
+        "description": "Full system access with all permissions",
+        "is_system": true
     },
     {
-        "name": "manager",
-        "description": "Manager with access to most modules",
-        "is_system": true,
-        "module_permissions": {
-            "users": {
-                "create": true,
-                "read": true,
-                "update": true,
-                "delete": false
-            },
-            "reports": {
-                "create": true,
-                "read": true,
-                "update": true,
-                "delete": true
-            }
-        }
+        "name": "Sales Manager",
+        "description": "Manages sales team with full CRM access",
+        "is_system": false
     },
     {
-        "name": "user",
-        "description": "Standard user",
-        "is_system": true,
-        "module_permissions": {
-            "profile": {
-                "create": false,
-                "read": true,
-                "update": true,
-                "delete": false
-            }
-        }
+        "name": "Sales Rep",
+        "description": "Sales representative with limited CRM access based on ownership",
+        "is_system": false
+    },
+    {
+        "name": "Support Agent",
+        "description": "Customer support with ticket management and read-only CRM access",
+        "is_system": false
+    },
+    {
+        "name": "Viewer",
+        "description": "Read-only access to CRM modules",
+        "is_system": false
     }
 ]

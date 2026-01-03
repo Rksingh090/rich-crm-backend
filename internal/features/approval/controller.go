@@ -25,7 +25,7 @@ func (c *ApprovalController) CreateWorkflow(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request body"})
 	}
 
-	if err := c.Service.CreateWorkflow(ctx.Context(), input); err != nil {
+	if err := c.Service.CreateWorkflow(ctx.UserContext(), input); err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
@@ -39,7 +39,7 @@ func (c *ApprovalController) UpdateWorkflow(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request body"})
 	}
 
-	if err := c.Service.UpdateWorkflow(ctx.Context(), id, input); err != nil {
+	if err := c.Service.UpdateWorkflow(ctx.UserContext(), id, input); err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
@@ -48,7 +48,7 @@ func (c *ApprovalController) UpdateWorkflow(ctx *fiber.Ctx) error {
 
 func (c *ApprovalController) DeleteWorkflow(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
-	if err := c.Service.DeleteWorkflow(ctx.Context(), id); err != nil {
+	if err := c.Service.DeleteWorkflow(ctx.UserContext(), id); err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 	return ctx.SendStatus(fiber.StatusNoContent)
@@ -56,7 +56,7 @@ func (c *ApprovalController) DeleteWorkflow(ctx *fiber.Ctx) error {
 
 func (c *ApprovalController) GetWorkflowByModule(ctx *fiber.Ctx) error {
 	moduleID := ctx.Params("moduleId")
-	workflow, err := c.Service.GetWorkflowByModule(ctx.Context(), moduleID)
+	workflow, err := c.Service.GetWorkflowByModule(ctx.UserContext(), moduleID)
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
@@ -68,7 +68,7 @@ func (c *ApprovalController) GetWorkflowByModule(ctx *fiber.Ctx) error {
 
 func (c *ApprovalController) GetWorkflowByID(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
-	workflow, err := c.Service.GetWorkflowByID(ctx.Context(), id)
+	workflow, err := c.Service.GetWorkflowByID(ctx.UserContext(), id)
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
@@ -79,7 +79,7 @@ func (c *ApprovalController) GetWorkflowByID(ctx *fiber.Ctx) error {
 }
 
 func (c *ApprovalController) ListWorkflows(ctx *fiber.Ctx) error {
-	workflows, err := c.Service.ListWorkflows(ctx.Context())
+	workflows, err := c.Service.ListWorkflows(ctx.UserContext())
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
@@ -97,7 +97,7 @@ func (c *ApprovalController) ApproveRecord(ctx *fiber.Ctx) error {
 
 	userClaims := ctx.Locals(utils.UserClaimsKey).(*utils.UserClaims)
 
-	canApprove, err := c.Service.CanApprove(ctx.Context(), moduleName, recordID, userClaims.UserID, userClaims.RoleIDs)
+	canApprove, err := c.Service.CanApprove(ctx.UserContext(), moduleName, recordID, userClaims.UserID, userClaims.RoleIDs)
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
@@ -105,7 +105,7 @@ func (c *ApprovalController) ApproveRecord(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "You are not authorized to approve this step"})
 	}
 
-	if err := c.Service.ApproveRecord(ctx.Context(), moduleName, recordID, userClaims.UserID, body.Comment); err != nil {
+	if err := c.Service.ApproveRecord(ctx.UserContext(), moduleName, recordID, userClaims.UserID, body.Comment); err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
@@ -123,7 +123,7 @@ func (c *ApprovalController) RejectRecord(ctx *fiber.Ctx) error {
 
 	userClaims := ctx.Locals(utils.UserClaimsKey).(*utils.UserClaims)
 
-	canApprove, err := c.Service.CanApprove(ctx.Context(), moduleName, recordID, userClaims.UserID, userClaims.RoleIDs)
+	canApprove, err := c.Service.CanApprove(ctx.UserContext(), moduleName, recordID, userClaims.UserID, userClaims.RoleIDs)
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
@@ -131,7 +131,7 @@ func (c *ApprovalController) RejectRecord(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "You are not authorized to reject this step"})
 	}
 
-	if err := c.Service.RejectRecord(ctx.Context(), moduleName, recordID, userClaims.UserID, body.Comment); err != nil {
+	if err := c.Service.RejectRecord(ctx.UserContext(), moduleName, recordID, userClaims.UserID, body.Comment); err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 

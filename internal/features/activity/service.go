@@ -27,7 +27,7 @@ func (s *ActivityServiceImpl) GetCalendarEvents(ctx context.Context, start, end 
 	// Fetch Tasks
 	tasks, err := s.RecordRepo.List(ctx, "tasks", bson.M{
 		"due_date": bson.M{"$gte": start, "$lte": end},
-	}, 1000, 0, "due_date", 1)
+	}, nil, 1000, 0, "due_date", 1)
 	if err == nil {
 		for _, t := range tasks {
 			dueDate := toTime(t["due_date"])
@@ -45,7 +45,7 @@ func (s *ActivityServiceImpl) GetCalendarEvents(ctx context.Context, start, end 
 	// Fetch Calls
 	calls, err := s.RecordRepo.List(ctx, "calls", bson.M{
 		"start_time": bson.M{"$gte": start, "$lte": end},
-	}, 1000, 0, "start_time", 1)
+	}, nil, 1000, 0, "start_time", 1)
 	if err == nil {
 		for _, c := range calls {
 			startT := toTime(c["start_time"])
@@ -74,7 +74,7 @@ func (s *ActivityServiceImpl) GetCalendarEvents(ctx context.Context, start, end 
 	// Fetch Meetings
 	meetings, err := s.RecordRepo.List(ctx, "meetings", bson.M{
 		"start_time": bson.M{"$gte": start, "$lte": end},
-	}, 1000, 0, "start_time", 1)
+	}, nil, 1000, 0, "start_time", 1)
 	if err == nil {
 		for _, m := range meetings {
 			startT := toTime(m["start_time"])

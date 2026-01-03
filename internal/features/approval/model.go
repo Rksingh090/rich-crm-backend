@@ -11,6 +11,7 @@ import (
 // ApprovalWorkflow defines the rules for approving records in a module
 type ApprovalWorkflow struct {
 	ID        primitive.ObjectID            `bson:"_id,omitempty" json:"id"`
+	TenantID  primitive.ObjectID            `bson:"tenant_id" json:"tenant_id"`
 	ModuleID  string                        `bson:"module_id" json:"module_id"` // The module this workflow applies to
 	Name      string                        `bson:"name" json:"name"`
 	Active    bool                          `bson:"active" json:"active"`

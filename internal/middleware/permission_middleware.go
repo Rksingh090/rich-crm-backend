@@ -29,7 +29,7 @@ func PermissionMiddleware(roleService RoleService, moduleName string, permission
 		}
 
 		// Check if any of the user's roles has the required permission
-		hasPermission, err := roleService.CheckModulePermission(context.Background(), roles, moduleName, permission)
+		hasPermission, err := roleService.CheckModulePermission(c.UserContext(), roles, moduleName, permission)
 		if err != nil || !hasPermission {
 			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
 				"error": "Access denied: Insufficient permissions for this action",

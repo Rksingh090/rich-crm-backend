@@ -24,11 +24,11 @@ func (ctrl *RecordController) CreateRecord(c *fiber.Ctx) error {
 	}
 
 	var userID primitive.ObjectID
-	if idStr, ok := c.Locals("userID").(string); ok && idStr != "" {
+	if idStr, ok := c.Locals("user_id").(string); ok && idStr != "" {
 		userID, _ = primitive.ObjectIDFromHex(idStr)
 	}
 
-	res, err := ctrl.Service.CreateRecord(c.Context(), moduleName, data, userID)
+	res, err := ctrl.Service.CreateRecord(c.UserContext(), moduleName, data, userID)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": err.Error(),
@@ -44,11 +44,11 @@ func (ctrl *RecordController) GetRecord(c *fiber.Ctx) error {
 	id := c.Params("id")
 
 	var userID primitive.ObjectID
-	if idStr, ok := c.Locals("userID").(string); ok && idStr != "" {
+	if idStr, ok := c.Locals("user_id").(string); ok && idStr != "" {
 		userID, _ = primitive.ObjectIDFromHex(idStr)
 	}
 
-	record, err := ctrl.Service.GetRecord(c.Context(), moduleName, id, userID)
+	record, err := ctrl.Service.GetRecord(c.UserContext(), moduleName, id, userID)
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"error": "Record not found",
@@ -80,11 +80,11 @@ func (ctrl *RecordController) ListRecords(c *fiber.Ctx) error {
 	})
 
 	var userID primitive.ObjectID
-	if idStr, ok := c.Locals("userID").(string); ok && idStr != "" {
+	if idStr, ok := c.Locals("user_id").(string); ok && idStr != "" {
 		userID, _ = primitive.ObjectIDFromHex(idStr)
 	}
 
-	records, total, err := ctrl.Service.ListRecords(c.Context(), moduleName, filters, page, limit, sortBy, sortOrder, userID)
+	records, total, err := ctrl.Service.ListRecords(c.UserContext(), moduleName, filters, page, limit, sortBy, sortOrder, userID)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err.Error(),
@@ -112,11 +112,11 @@ func (ctrl *RecordController) UpdateRecord(c *fiber.Ctx) error {
 	}
 
 	var userID primitive.ObjectID
-	if idStr, ok := c.Locals("userID").(string); ok && idStr != "" {
+	if idStr, ok := c.Locals("user_id").(string); ok && idStr != "" {
 		userID, _ = primitive.ObjectIDFromHex(idStr)
 	}
 
-	if err := ctrl.Service.UpdateRecord(c.Context(), moduleName, id, data, userID); err != nil {
+	if err := ctrl.Service.UpdateRecord(c.UserContext(), moduleName, id, data, userID); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": err.Error(),
 		})
@@ -132,7 +132,7 @@ func (ctrl *RecordController) DeleteRecord(c *fiber.Ctx) error {
 	moduleName := c.Params("name")
 	id := c.Params("id")
 
-	if err := ctrl.Service.DeleteRecord(c.Context(), moduleName, id); err != nil {
+	if err := ctrl.Service.DeleteRecord(c.UserContext(), moduleName, id); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": err.Error(),
 		})

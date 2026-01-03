@@ -10,7 +10,7 @@ import (
 func AdminMiddleware() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		// Get user from context (set by AuthMiddleware)
-		userID := c.Locals("userID")
+		userID := c.Locals("user_id")
 		if userID == nil {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 				"error": "Unauthorized",

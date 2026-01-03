@@ -24,6 +24,7 @@ type WidgetPosition struct {
 
 type DashboardConfig struct {
 	ID          primitive.ObjectID `json:"id" bson:"_id,omitempty"`
+	TenantID    primitive.ObjectID `json:"tenant_id" bson:"tenant_id"`
 	UserID      primitive.ObjectID `json:"user_id" bson:"user_id"`
 	Name        string             `json:"name" bson:"name"`
 	Description string             `json:"description,omitempty" bson:"description,omitempty"`

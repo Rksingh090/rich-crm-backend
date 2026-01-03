@@ -192,7 +192,7 @@ func (s *SyncServiceImpl) syncModule(ctx context.Context, setting *SyncSetting, 
 
 	for {
 		offset := (page - 1) * limit
-		records, err := s.RecordRepo.List(ctx, config.ModuleName, filters, limit, offset, "updated_at", 1)
+		records, err := s.RecordRepo.List(ctx, config.ModuleName, filters, nil, limit, offset, "updated_at", 1)
 		if err != nil {
 			return totalSynced, fmt.Errorf("failed to fetch records for %s on page %d: %v", config.ModuleName, page, err)
 		}

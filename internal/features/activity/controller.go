@@ -33,7 +33,7 @@ func (c *ActivityController) GetCalendarEvents(ctx *fiber.Ctx) error {
 
 	end = end.Add(24 * time.Hour)
 
-	events, err := c.ActivityService.GetCalendarEvents(ctx.Context(), start, end)
+	events, err := c.ActivityService.GetCalendarEvents(ctx.UserContext(), start, end)
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch events"})
 	}

@@ -11,32 +11,61 @@ import (
 	"go-crm/internal/features/user"
 	"go-crm/pkg/utils"
 
+	"fmt"
+	"go-crm/internal/features/organization"
+
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type AuthService interface {
-	Register(ctx context.Context, username, password, email string) (*models.User, error)
+	Register(ctx context.Context, username, password, email, orgName string) (*models.User, error)
 	Login(ctx context.Context, username, password string) (string, error)
 }
 
 type AuthServiceImpl struct {
-	UserRepo     user.UserRepository
-	RoleRepo     role.RoleRepository
-	AuditService audit.AuditService
+	UserRepo         user.UserRepository
+	RoleRepo         role.RoleRepository
+	OrganizationRepo organization.OrganizationRepository
+	AuditService     audit.AuditService
 }
 
-func NewAuthService(userRepo user.UserRepository, roleRepo role.RoleRepository, auditService audit.AuditService) AuthService {
+func NewAuthService(userRepo user.UserRepository, roleRepo role.RoleRepository, orgRepo organization.OrganizationRepository, auditService audit.AuditService) AuthService {
 	return &AuthServiceImpl{
-		UserRepo:     userRepo,
-		RoleRepo:     roleRepo,
-		AuditService: auditService,
+		UserRepo:         userRepo,
+		RoleRepo:         roleRepo,
+		OrganizationRepo: orgRepo,
+		AuditService:     auditService,
 	}
 }
 
-func (s *AuthServiceImpl) Register(ctx context.Context, username, password, email string) (*models.User, error) {
+func (s *AuthServiceImpl) Register(ctx context.Context, username, password, email, orgName string) (*models.User, error) {
 	// hash password placeholder (TODO: use bcrypt)
 	hashedPassword := password
+
+	// Create Organization
+	if orgName == "" {
+		orgName = fmt.Sprintf("%s's Organization", username)
+	}
+
+	newOrg := models.Organization{
+		ID:        primitive.NewObjectID(),
+		Name:      orgName,
+		Slug:      utils.Slugify(orgName) + "-" + primitive.NewObjectID().Hex()[:4], // Simple slug generation
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+	// Note: OwnerID will be set after user creation, or perform transaction?
+	// For simplicity, generate UserID first.
+	newUserID := primitive.NewObjectID()
+	newOrg.OwnerID = newUserID
+
+	if err := s.OrganizationRepo.Create(ctx, &newOrg); err != nil {
+		return nil, err
+	}
+
+	// Set Organization Context for subsequent calls (e.g. Roles)
+	ctx = context.WithValue(ctx, models.TenantIDKey, newOrg.ID.Hex())
 
 	// Assign default "user" role
 	userRole, err := s.RoleRepo.FindByName(ctx, "user")
@@ -48,13 +77,13 @@ func (s *AuthServiceImpl) Register(ctx context.Context, username, password, emai
 	case mongo.ErrNoDocuments:
 		// Create default role if not exists (Bootstrap)
 		newRole := role.Role{
-			ID:                primitive.NewObjectID(),
-			Name:              "user",
-			Description:       "Default user role",
-			ModulePermissions: make(map[string]role.ModulePermission),
-			IsSystem:          false,
-			CreatedAt:         time.Now(),
-			UpdatedAt:         time.Now(),
+			ID:          primitive.NewObjectID(),
+			Name:        "user",
+			Description: "Default user role",
+			Permissions: make(map[string]map[string]models.ActionPermission),
+			IsSystem:    false,
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
 		}
 		if err := s.RoleRepo.Create(ctx, &newRole); err == nil {
 			roleIDs = append(roleIDs, newRole.ID)
@@ -64,7 +93,8 @@ func (s *AuthServiceImpl) Register(ctx context.Context, username, password, emai
 	}
 
 	newUser := models.User{
-		ID:        primitive.NewObjectID(),
+		ID:        newUserID,
+		TenantID:  newOrg.ID,
 		Username:  username,
 		Password:  hashedPassword,
 		Email:     email,
@@ -75,13 +105,15 @@ func (s *AuthServiceImpl) Register(ctx context.Context, username, password, emai
 	}
 
 	if err := s.UserRepo.Create(ctx, &newUser); err != nil {
+		// potential rollback of org creation needed here in real world
 		return nil, err
 	}
 
 	// Audit Log
 	changes := map[string]models.Change{
-		"username": {New: username},
-		"email":    {New: email},
+		"username":  {New: username},
+		"email":     {New: email},
+		"tenant_id": {New: newOrg.ID.Hex()},
 	}
 	_ = s.AuditService.LogChange(ctx, models.AuditActionCreate, "user", newUser.ID.Hex(), changes)
 
@@ -89,7 +121,8 @@ func (s *AuthServiceImpl) Register(ctx context.Context, username, password, emai
 }
 
 func (s *AuthServiceImpl) Login(ctx context.Context, username, password string) (string, error) {
-	usr, err := s.UserRepo.FindByUsername(ctx, username)
+	// Use Global lookup because we don't have org context yet
+	usr, err := s.UserRepo.FindByUsernameGlobal(ctx, username)
 	if err != nil {
 		return "", errors.New("invalid credentials")
 	}
@@ -107,51 +140,19 @@ func (s *AuthServiceImpl) Login(ctx context.Context, username, password string) 
 		return "", errors.New("account inactive")
 	}
 
-	// Fetch role names and aggregate permissions
+	// Set Organization Context for subsequent calls (e.g. Roles)
+	ctx = context.WithValue(ctx, models.TenantIDKey, usr.TenantID.Hex())
+
+	// Fetch role names
 	var roleNames []string
 	var roleIDs []string
-	permissions := make(map[string][]string)
 
 	for _, roleID := range usr.Roles {
 		r, err := s.RoleRepo.FindByID(ctx, roleID.Hex())
 		if err == nil {
 			roleNames = append(roleNames, r.Name)
 			roleIDs = append(roleIDs, roleID.Hex())
-
-			// Aggregate permissions from all roles
-			for moduleName, modulePerm := range r.ModulePermissions {
-				if _, exists := permissions[moduleName]; !exists {
-					permissions[moduleName] = []string{}
-				}
-
-				// Add permissions if granted by this role
-				if modulePerm.Create && !contains(permissions[moduleName], "create") {
-					permissions[moduleName] = append(permissions[moduleName], "create")
-				}
-				if modulePerm.Read && !contains(permissions[moduleName], "read") {
-					permissions[moduleName] = append(permissions[moduleName], "read")
-				}
-				if modulePerm.Update && !contains(permissions[moduleName], "update") {
-					permissions[moduleName] = append(permissions[moduleName], "update")
-				}
-				if modulePerm.Delete && !contains(permissions[moduleName], "delete") {
-					permissions[moduleName] = append(permissions[moduleName], "delete")
-				}
-			}
 		}
-	}
-
-	// If user has admin role, grant full wildcard permission
-	isAdmin := false
-	for _, name := range roleNames {
-		if name == "admin" || name == "Super Admin" {
-			isAdmin = true
-			break
-		}
-	}
-
-	if isAdmin {
-		permissions["*"] = []string{"create", "read", "update", "delete"}
 	}
 
 	// If no roles found, assign empty array
@@ -162,7 +163,13 @@ func (s *AuthServiceImpl) Login(ctx context.Context, username, password string) 
 		roleIDs = []string{}
 	}
 
-	token, err := utils.GenerateToken(usr.ID, roleNames, roleIDs, permissions)
+	// Generate JWT with user groups
+	userGroups := usr.Groups
+	if userGroups == nil {
+		userGroups = []string{}
+	}
+	token, err := utils.GenerateToken(usr.ID, usr.TenantID, roleNames, roleIDs, userGroups)
+
 	if err != nil {
 		return "", err
 	}

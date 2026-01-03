@@ -38,6 +38,7 @@ type CrossModuleConfig struct {
 // Report represents a saved report configuration
 type Report struct {
 	ID                primitive.ObjectID `json:"id" bson:"_id,omitempty"`
+	TenantID          primitive.ObjectID `json:"tenant_id" bson:"tenant_id"`
 	Name              string             `json:"name" bson:"name"`
 	Description       string             `json:"description" bson:"description"`
 	ReportType        ReportType         `json:"report_type" bson:"report_type"` // standard, pivot, cross_module

@@ -17,7 +17,7 @@ func NewExtensionController(service ExtensionService) *ExtensionController {
 // ListExtensions godoc
 func (ctrl *ExtensionController) ListExtensions(c *fiber.Ctx) error {
 	installed := c.Query("installed") == "true"
-	exts, err := ctrl.Service.ListExtensions(c.Context(), installed)
+	exts, err := ctrl.Service.ListExtensions(c.UserContext(), installed)
 	if err != nil {
 		return err
 	}
@@ -27,7 +27,7 @@ func (ctrl *ExtensionController) ListExtensions(c *fiber.Ctx) error {
 // GetExtension godoc
 func (ctrl *ExtensionController) GetExtension(c *fiber.Ctx) error {
 	id := c.Params("id")
-	ext, err := ctrl.Service.GetExtension(c.Context(), id)
+	ext, err := ctrl.Service.GetExtension(c.UserContext(), id)
 	if err != nil {
 		return err
 	}
@@ -40,7 +40,7 @@ func (ctrl *ExtensionController) GetExtension(c *fiber.Ctx) error {
 // InstallExtension godoc
 func (ctrl *ExtensionController) InstallExtension(c *fiber.Ctx) error {
 	id := c.Params("id")
-	if err := ctrl.Service.InstallExtension(c.Context(), id); err != nil {
+	if err := ctrl.Service.InstallExtension(c.UserContext(), id); err != nil {
 		return err
 	}
 	return c.JSON(fiber.Map{"message": "Extension installed successfully"})
@@ -49,7 +49,7 @@ func (ctrl *ExtensionController) InstallExtension(c *fiber.Ctx) error {
 // UninstallExtension godoc
 func (ctrl *ExtensionController) UninstallExtension(c *fiber.Ctx) error {
 	id := c.Params("id")
-	if err := ctrl.Service.UninstallExtension(c.Context(), id); err != nil {
+	if err := ctrl.Service.UninstallExtension(c.UserContext(), id); err != nil {
 		return err
 	}
 	return c.JSON(fiber.Map{"message": "Extension uninstalled successfully"})
@@ -61,7 +61,7 @@ func (ctrl *ExtensionController) CreateExtension(c *fiber.Ctx) error {
 	if err := c.BodyParser(&ext); err != nil {
 		return err
 	}
-	if err := ctrl.Service.CreateExtension(c.Context(), &ext); err != nil {
+	if err := ctrl.Service.CreateExtension(c.UserContext(), &ext); err != nil {
 		return err
 	}
 	return c.Status(201).JSON(ext)

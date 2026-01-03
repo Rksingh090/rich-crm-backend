@@ -7,8 +7,10 @@ import (
 
 	common_models "go-crm/internal/common/models"
 	"go-crm/internal/features/audit"
+	"go-crm/internal/features/permission"
 	"go-crm/internal/features/user"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -22,19 +24,28 @@ type RoleService interface {
 	GetPermissionsForRoles(ctx context.Context, roleIDHexes []string) ([]string, error)
 	CheckModulePermission(ctx context.Context, roleNames []string, moduleName string, permission string) (bool, error)
 	GetFieldPermissions(ctx context.Context, userID primitive.ObjectID, moduleName string) (map[string]string, error)
+	GetAccessFilter(ctx context.Context, userID primitive.ObjectID, moduleName string, action string) (bson.M, error)
+	CheckPermission(ctx context.Context, userID primitive.ObjectID, resourceID string, action string) (bool, error)
 }
 
 type RoleServiceImpl struct {
-	RoleRepo     RoleRepository
-	UserRepo     user.UserRepository
-	AuditService audit.AuditService
+	RoleRepo          RoleRepository
+	UserRepo          user.UserRepository
+	AuditService      audit.AuditService
+	PermissionService permission.PermissionService
 }
 
-func NewRoleService(roleRepo RoleRepository, userRepo user.UserRepository, auditService audit.AuditService) RoleService {
+func NewRoleService(
+	roleRepo RoleRepository,
+	userRepo user.UserRepository,
+	auditService audit.AuditService,
+	permissionService permission.PermissionService,
+) RoleService {
 	return &RoleServiceImpl{
-		RoleRepo:     roleRepo,
-		UserRepo:     userRepo,
-		AuditService: auditService,
+		RoleRepo:          roleRepo,
+		UserRepo:          userRepo,
+		AuditService:      auditService,
+		PermissionService: permissionService,
 	}
 }
 
@@ -43,8 +54,8 @@ func (s *RoleServiceImpl) CreateRole(ctx context.Context, role *Role) (*Role, er
 	role.CreatedAt = time.Now()
 	role.UpdatedAt = time.Now()
 
-	if role.ModulePermissions == nil {
-		role.ModulePermissions = make(map[string]ModulePermission)
+	if role.Permissions == nil {
+		role.Permissions = make(map[string]map[string]common_models.ActionPermission)
 	}
 
 	if err := s.RoleRepo.Create(ctx, role); err != nil {
@@ -78,11 +89,13 @@ func (s *RoleServiceImpl) UpdateRole(ctx context.Context, id string, role *Role)
 	}
 
 	_ = s.AuditService.LogChange(ctx, common_models.AuditActionUpdate, "role", id, map[string]common_models.Change{
-		"permissions": {New: role.ModulePermissions},
+		"permissions": {New: role.Permissions},
 	})
 
 	return nil
 }
+
+// ... DeleteRole ...
 
 func (s *RoleServiceImpl) DeleteRole(ctx context.Context, id string) error {
 	// Check if role is a system role
@@ -123,66 +136,66 @@ func (s *RoleServiceImpl) GetPermissionsForRoles(ctx context.Context, roleIDHexe
 }
 
 func (s *RoleServiceImpl) CheckModulePermission(ctx context.Context, roleNames []string, moduleName string, permission string) (bool, error) {
-	for _, roleName := range roleNames {
+	// Legacy method relied on roleNames, but new system relies on UserID for effective permissions
+	// Extract userID from context if available (AuthMiddleware usually puts "user_id" in Locals, need fiber context?)
+	// But this is service layer, relying on context values passed from controller/middleware.
+	// The standard way: Middleware should pass UserID or we extract it from context if stored there.
+	// If not available, we fall back to checking roles individually via PermissionService (less efficient/accurate for ABAC).
+
+	// Better approach: Use the passed roleNames to find roles, then check permissions for those roles.
+	// But our new system aggregates permissions.
+
+	// Helper to check a single role's permission via new system
+	checkRole := func(roleName string) (bool, error) {
 		role, err := s.RoleRepo.FindByName(ctx, roleName)
 		if err != nil {
-			continue
+			return false, err
+		}
+		perms, err := s.PermissionService.GetPermissionsByRole(ctx, role.ID.Hex())
+		if err != nil {
+			return false, err
 		}
 
-		// Admin Bypass
-		if role.Name == "admin" {
+		resourceID := "crm." + moduleName // Assumption mapping
+		if moduleName == "*" {
+			resourceID = "*"
+		}
+
+		for _, p := range perms {
+			if p.Resource.ID == resourceID || p.Resource.ID == "*" {
+				if actionPerm, ok := p.Actions[permission]; ok && actionPerm.Allowed {
+					return true, nil
+				}
+			}
+		}
+		return false, nil
+	}
+
+	for _, name := range roleNames {
+		// Check for Super Admin bypass in role name
+		if name == "Super Admin" || name == "admin" {
 			return true, nil
 		}
-
-		// Check for wildcard permission first
-		if wildcardPerm, exists := role.ModulePermissions["*"]; exists {
-			switch permission {
-			case "create":
-				if wildcardPerm.Create {
-					return true, nil
-				}
-			case "read":
-				if wildcardPerm.Read {
-					return true, nil
-				}
-			case "update":
-				if wildcardPerm.Update {
-					return true, nil
-				}
-			case "delete":
-				if wildcardPerm.Delete {
-					return true, nil
-				}
-			}
-		}
-
-		if modulePerm, exists := role.ModulePermissions[moduleName]; exists {
-
-			switch permission {
-			case "create":
-				if modulePerm.Create {
-					return true, nil
-				}
-			case "read":
-				if modulePerm.Read {
-					return true, nil
-				}
-			case "update":
-				if modulePerm.Update {
-					return true, nil
-				}
-			case "delete":
-				if modulePerm.Delete {
-					return true, nil
-				}
-			}
+		allowed, err := checkRole(name)
+		if err == nil && allowed {
+			return true, nil
 		}
 	}
 
 	return false, nil
 }
 
+// ... GetFieldPermissions ...
+
 func (s *RoleServiceImpl) GetFieldPermissions(ctx context.Context, userID primitive.ObjectID, moduleName string) (map[string]string, error) {
+	// ... implementation same as before but referring to FieldPermissions which is separate ...
+	// Checking previous code: FieldPermissions is a separate map on Role.
+	// So this method likely doesn't check ModulePermissions/Permissions.
+	// Let's verify existing code content.
+	// Existing code just accesses Role.FieldPermissions. This is fine.
+	// I will just copy it or leave it if not touched.
+	// Wait, I am replacing the whole block, so I need to include it.
+
 	// 1. Get User
 	user, err := s.UserRepo.FindByID(ctx, userID.Hex())
 	if err != nil {
@@ -210,10 +223,6 @@ func (s *RoleServiceImpl) GetFieldPermissions(ctx context.Context, userID primit
 					if !exists {
 						finalPerms[field] = p
 					} else {
-						// Union: read_write > read_only > none
-						// Least Restrictive logic:
-						// If any role says read_write, it's read_write.
-						// If any role says read_only (and no read_write), it's read_only.
 						switch p {
 						case FieldPermReadWrite:
 							finalPerms[field] = FieldPermReadWrite
@@ -228,9 +237,7 @@ func (s *RoleServiceImpl) GetFieldPermissions(ctx context.Context, userID primit
 		}
 
 		if role.FieldPermissions == nil || role.FieldPermissions[moduleName] == nil {
-			// This role grants full access to this module's fields.
-			// Return nil effectively.
-			return nil, nil
+			return nil, nil // Full access
 		}
 	}
 
@@ -239,4 +246,127 @@ func (s *RoleServiceImpl) GetFieldPermissions(ctx context.Context, userID primit
 	}
 
 	return finalPerms, nil
+}
+
+func (s *RoleServiceImpl) GetAccessFilter(ctx context.Context, userID primitive.ObjectID, moduleName string, action string) (primitive.M, error) {
+	// 1. Get User to find roles
+	user, err := s.UserRepo.FindByID(ctx, userID.Hex())
+	if err != nil {
+		return nil, err
+	}
+	if user == nil {
+		return nil, fmt.Errorf("user not found")
+	}
+
+	var orConditions []primitive.M
+	hasFullAccess := false
+
+	// Prepared Context Data for Variables
+	orgID := user.TenantID
+	userGroups := user.Groups
+	if userGroups == nil {
+		userGroups = []string{}
+	}
+	contextData := PrepareContextData(userID, orgID, userGroups)
+
+	for _, roleID := range user.Roles {
+		role, err := s.RoleRepo.FindByID(ctx, roleID.Hex())
+		if err != nil {
+			continue
+		}
+
+		// Check Admin
+		if role.Name == "admin" || role.Name == "Super Admin" {
+			return primitive.M{}, nil // Full Access
+		}
+
+		// Check Wildcard Module "*"
+		if wildResource, ok := role.Permissions["*"]; ok {
+			if perm, ok := wildResource[action]; ok {
+				if perm.Allowed {
+					if perm.Conditions == nil {
+						hasFullAccess = true
+					} else {
+						cond, err := TranslateConditions(perm.Conditions, contextData)
+						if err == nil {
+							orConditions = append(orConditions, cond)
+						}
+					}
+				}
+			}
+		}
+
+		// Check Specific Module (Resource)
+		if resourcePerms, ok := role.Permissions[moduleName]; ok {
+			if perm, ok := resourcePerms[action]; ok {
+				if perm.Allowed {
+					if perm.Conditions == nil {
+						hasFullAccess = true
+					} else {
+						cond, err := TranslateConditions(perm.Conditions, contextData)
+						if err == nil {
+							orConditions = append(orConditions, cond)
+						}
+					}
+				}
+			}
+		}
+	}
+
+	if hasFullAccess {
+		return primitive.M{}, nil
+	}
+
+	if len(orConditions) == 0 {
+		return primitive.M{"_id": -1}, nil
+	}
+
+	if len(orConditions) == 1 {
+		return orConditions[0], nil
+	}
+
+	return primitive.M{"$or": orConditions}, nil
+}
+
+func (s *RoleServiceImpl) CheckPermission(ctx context.Context, userID primitive.ObjectID, resourceID string, action string) (bool, error) {
+	// 1. Get User
+	user, err := s.UserRepo.FindByID(ctx, userID.Hex())
+	if err != nil {
+		return false, err
+	}
+	if user == nil {
+		return false, fmt.Errorf("user not found")
+	}
+
+	// 2. Iterate Roles
+	for _, roleID := range user.Roles {
+		role, err := s.RoleRepo.FindByID(ctx, roleID.Hex())
+		if err != nil || role == nil {
+			continue
+		}
+
+		if role.Name == "admin" || role.Name == "Super Admin" {
+			return true, nil
+		}
+
+		// Check Wildcard
+		if wildResource, ok := role.Permissions["*"]; ok {
+			if perm, ok := wildResource[action]; ok {
+				if perm.Allowed {
+					return true, nil
+				}
+			}
+		}
+
+		// Check Specific Resource
+		if resourcePerms, ok := role.Permissions[resourceID]; ok {
+			if perm, ok := resourcePerms[action]; ok {
+				if perm.Allowed {
+					return true, nil
+				}
+			}
+		}
+	}
+
+	return false, nil
 }

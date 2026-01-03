@@ -16,7 +16,7 @@ func NewSettingsController(service SettingsService) *SettingsController {
 
 // GetEmailConfig godoc
 func (c *SettingsController) GetEmailConfig(ctx *fiber.Ctx) error {
-	config, err := c.Service.GetEmailConfig(ctx.Context())
+	config, err := c.Service.GetEmailConfig(ctx.UserContext())
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
@@ -33,7 +33,7 @@ func (c *SettingsController) UpdateEmailConfig(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request body"})
 	}
 
-	if err := c.Service.UpdateEmailConfig(ctx.Context(), config); err != nil {
+	if err := c.Service.UpdateEmailConfig(ctx.UserContext(), config); err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
@@ -42,7 +42,7 @@ func (c *SettingsController) UpdateEmailConfig(ctx *fiber.Ctx) error {
 
 // GetGeneralConfig godoc
 func (c *SettingsController) GetGeneralConfig(ctx *fiber.Ctx) error {
-	config, err := c.Service.GetGeneralConfig(ctx.Context())
+	config, err := c.Service.GetGeneralConfig(ctx.UserContext())
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
@@ -58,7 +58,7 @@ func (ctrl *SettingsController) UpdateGeneralConfig(c *fiber.Ctx) error {
 		})
 	}
 
-	if err := ctrl.Service.UpdateGeneralConfig(c.Context(), config); err != nil {
+	if err := ctrl.Service.UpdateGeneralConfig(c.UserContext(), config); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Error updating general settings",
 		})
@@ -71,7 +71,7 @@ func (ctrl *SettingsController) UpdateGeneralConfig(c *fiber.Ctx) error {
 
 // GetFileSharingConfig godoc
 func (ctrl *SettingsController) GetFileSharingConfig(c *fiber.Ctx) error {
-	config, err := ctrl.Service.GetFileSharingConfig(c.Context())
+	config, err := ctrl.Service.GetFileSharingConfig(c.UserContext())
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Error retrieving file sharing settings",
@@ -90,7 +90,7 @@ func (ctrl *SettingsController) UpdateFileSharingConfig(c *fiber.Ctx) error {
 		})
 	}
 
-	if err := ctrl.Service.UpdateFileSharingConfig(c.Context(), config); err != nil {
+	if err := ctrl.Service.UpdateFileSharingConfig(c.UserContext(), config); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Error updating file sharing settings",
 		})

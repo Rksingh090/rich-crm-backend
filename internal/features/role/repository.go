@@ -2,8 +2,10 @@ package role
 
 import (
 	"context"
+	"fmt"
 	"slices"
 
+	"go-crm/internal/common/models"
 	"go-crm/internal/database"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -32,18 +34,37 @@ func NewRoleRepository(mongodb *database.MongodbDB) RoleRepository {
 }
 
 func (r *RoleRepositoryImpl) Create(ctx context.Context, role *Role) error {
-	_, err := r.Collection.InsertOne(ctx, role)
+	tenantID, ok := ctx.Value(models.TenantIDKey).(string)
+	if !ok || tenantID == "" {
+		return fmt.Errorf("tenant context missing")
+	}
+	oid, err := primitive.ObjectIDFromHex(tenantID)
+	if err != nil {
+		return err
+	}
+	role.TenantID = oid
+
+	_, err = r.Collection.InsertOne(ctx, role)
 	return err
 }
 
 func (r *RoleRepositoryImpl) FindByID(ctx context.Context, id string) (*Role, error) {
+	tenantID, ok := ctx.Value(models.TenantIDKey).(string)
+	if !ok || tenantID == "" {
+		return nil, fmt.Errorf("tenant context missing")
+	}
+	oid, err := primitive.ObjectIDFromHex(tenantID)
+	if err != nil {
+		return nil, err
+	}
+
 	objectID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return nil, err
 	}
 
 	var role Role
-	err = r.Collection.FindOne(ctx, bson.M{"_id": objectID}).Decode(&role)
+	err = r.Collection.FindOne(ctx, bson.M{"_id": objectID, "tenant_id": oid}).Decode(&role)
 	if err != nil {
 		return nil, err
 	}
@@ -51,8 +72,17 @@ func (r *RoleRepositoryImpl) FindByID(ctx context.Context, id string) (*Role, er
 }
 
 func (r *RoleRepositoryImpl) FindByName(ctx context.Context, name string) (*Role, error) {
+	tenantID, ok := ctx.Value(models.TenantIDKey).(string)
+	if !ok || tenantID == "" {
+		return nil, fmt.Errorf("tenant context missing")
+	}
+	oid, err := primitive.ObjectIDFromHex(tenantID)
+	if err != nil {
+		return nil, err
+	}
+
 	var role Role
-	err := r.Collection.FindOne(ctx, bson.M{"name": name}).Decode(&role)
+	err = r.Collection.FindOne(ctx, bson.M{"name": name, "tenant_id": oid}).Decode(&role)
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +90,16 @@ func (r *RoleRepositoryImpl) FindByName(ctx context.Context, name string) (*Role
 }
 
 func (r *RoleRepositoryImpl) List(ctx context.Context) ([]Role, error) {
-	cursor, err := r.Collection.Find(ctx, bson.M{})
+	tenantID, ok := ctx.Value(models.TenantIDKey).(string)
+	if !ok || tenantID == "" {
+		return nil, fmt.Errorf("tenant context missing")
+	}
+	oid, err := primitive.ObjectIDFromHex(tenantID)
+	if err != nil {
+		return nil, err
+	}
+
+	cursor, err := r.Collection.Find(ctx, bson.M{"tenant_id": oid})
 	if err != nil {
 		return nil, err
 	}
@@ -74,6 +113,15 @@ func (r *RoleRepositoryImpl) List(ctx context.Context) ([]Role, error) {
 }
 
 func (r *RoleRepositoryImpl) Update(ctx context.Context, id string, role *Role) error {
+	tenantID, ok := ctx.Value(models.TenantIDKey).(string)
+	if !ok || tenantID == "" {
+		return fmt.Errorf("tenant context missing")
+	}
+	oid, err := primitive.ObjectIDFromHex(tenantID)
+	if err != nil {
+		return err
+	}
+
 	objectID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return err
@@ -81,29 +129,47 @@ func (r *RoleRepositoryImpl) Update(ctx context.Context, id string, role *Role) 
 
 	update := bson.M{
 		"$set": bson.M{
-			"name":               role.Name,
-			"description":        role.Description,
-			"module_permissions": role.ModulePermissions,
-			"field_permissions":  role.FieldPermissions,
-			"updated_at":         role.UpdatedAt,
+			"name":              role.Name,
+			"description":       role.Description,
+			"permissions":       role.Permissions,
+			"field_permissions": role.FieldPermissions,
+			"updated_at":        role.UpdatedAt,
 		},
 	}
 
-	_, err = r.Collection.UpdateOne(ctx, bson.M{"_id": objectID}, update)
+	_, err = r.Collection.UpdateOne(ctx, bson.M{"_id": objectID, "tenant_id": oid}, update)
 	return err
 }
 
 func (r *RoleRepositoryImpl) Delete(ctx context.Context, id string) error {
+	tenantID, ok := ctx.Value(models.TenantIDKey).(string)
+	if !ok || tenantID == "" {
+		return fmt.Errorf("tenant context missing")
+	}
+	oid, err := primitive.ObjectIDFromHex(tenantID)
+	if err != nil {
+		return err
+	}
+
 	objectID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return err
 	}
-	_, err = r.Collection.DeleteOne(ctx, bson.M{"_id": objectID})
+	_, err = r.Collection.DeleteOne(ctx, bson.M{"_id": objectID, "tenant_id": oid})
 	return err
 }
 
 func (r *RoleRepositoryImpl) FindPermissionsByRoleIDs(ctx context.Context, roleIDs []interface{}) ([]string, error) {
-	filter := bson.M{"_id": bson.M{"$in": roleIDs}}
+	tenantID, ok := ctx.Value(models.TenantIDKey).(string)
+	if !ok || tenantID == "" {
+		return nil, fmt.Errorf("tenant context missing")
+	}
+	oid, err := primitive.ObjectIDFromHex(tenantID)
+	if err != nil {
+		return nil, err
+	}
+
+	filter := bson.M{"_id": bson.M{"$in": roleIDs}, "tenant_id": oid}
 	cursor, err := r.Collection.Find(ctx, filter)
 	if err != nil {
 		return nil, err
@@ -115,21 +181,17 @@ func (r *RoleRepositoryImpl) FindPermissionsByRoleIDs(ctx context.Context, roleI
 		return nil, err
 	}
 
-	// Collect all unique permissions from all modules
+	// Collect all unique permissions from all resources
 	var permissions []string
 	for _, role := range roles {
-		for moduleName, modulePerm := range role.ModulePermissions {
-			if modulePerm.Create && !slices.Contains(permissions, moduleName+":create") {
-				permissions = append(permissions, moduleName+":create")
-			}
-			if modulePerm.Read && !slices.Contains(permissions, moduleName+":read") {
-				permissions = append(permissions, moduleName+":read")
-			}
-			if modulePerm.Update && !slices.Contains(permissions, moduleName+":update") {
-				permissions = append(permissions, moduleName+":update")
-			}
-			if modulePerm.Delete && !slices.Contains(permissions, moduleName+":delete") {
-				permissions = append(permissions, moduleName+":delete")
+		for resourceID, actions := range role.Permissions {
+			for action, perm := range actions {
+				if perm.Allowed {
+					p := resourceID + ":" + action
+					if !slices.Contains(permissions, p) {
+						permissions = append(permissions, p)
+					}
+				}
 			}
 		}
 	}

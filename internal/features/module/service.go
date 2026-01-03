@@ -17,9 +17,9 @@ import (
 type ModuleService interface {
 	CreateModule(ctx context.Context, module *Module) error
 	GetModuleByName(ctx context.Context, name string, userID primitive.ObjectID) (*Module, error)
-	ListModules(ctx context.Context, userID primitive.ObjectID) ([]Module, error)
-	UpdateModule(ctx context.Context, module *Module) error
-	DeleteModule(ctx context.Context, name string) error
+	ListModules(ctx context.Context, userID primitive.ObjectID, product string) ([]Module, error)
+	UpdateModule(ctx context.Context, module *Module, userID primitive.ObjectID) error
+	DeleteModule(ctx context.Context, name string, userID primitive.ObjectID) error
 }
 
 type ModuleServiceImpl struct {
@@ -69,8 +69,20 @@ func (s *ModuleServiceImpl) GetModuleByName(ctx context.Context, name string, us
 	}
 	s.appendSystemFields(m)
 
-	// Filter Fields based on FLS
+	// Permission Check
 	if !userID.IsZero() {
+		// 1. Global Read
+		allowedGlobal, err := s.RoleService.CheckPermission(ctx, userID, "modules", "read")
+		if err != nil || !allowedGlobal {
+			// 2. Specific Read
+			resourceID := fmt.Sprintf("%s.%s", m.Product, m.Name)
+			allowedSpecific, errSpec := s.RoleService.CheckPermission(ctx, userID, resourceID, "read")
+			if errSpec != nil || !allowedSpecific {
+				return nil, errors.New("access denied")
+			}
+		}
+
+		// Filter Fields based on FLS
 		perms, _ := s.RoleService.GetFieldPermissions(ctx, userID, name)
 		if perms != nil {
 			visibleFields := []ModuleField{}
@@ -89,15 +101,35 @@ func (s *ModuleServiceImpl) GetModuleByName(ctx context.Context, name string, us
 	return m, nil
 }
 
-func (s *ModuleServiceImpl) ListModules(ctx context.Context, userID primitive.ObjectID) ([]Module, error) {
-	modules, err := s.Repo.List(ctx)
+func (s *ModuleServiceImpl) ListModules(ctx context.Context, userID primitive.ObjectID, product string) ([]Module, error) {
+	modules, err := s.Repo.List(ctx, product)
 	if err != nil {
 		return nil, err
 	}
+	// Check for global "modules" read permission
+	canReadAll := false
+	if !userID.IsZero() {
+		allowed, err := s.RoleService.CheckPermission(ctx, userID, "modules", "read")
+		if err == nil && allowed {
+			canReadAll = true
+		}
+	}
+
+	filteredModules := make([]Module, 0, len(modules))
 	for i := range modules {
+		// Module Level Permission Check
+		if !userID.IsZero() && !canReadAll {
+			// Construct resource ID: e.g. "crm.leads"
+			resourceID := fmt.Sprintf("%s.%s", modules[i].Product, modules[i].Name)
+			allowed, err := s.RoleService.CheckPermission(ctx, userID, resourceID, "read")
+			if err != nil || !allowed {
+				continue // Skip module if no permission
+			}
+		}
+
 		s.appendSystemFields(&modules[i])
 
-		// Filter Fields
+		// Filter Fields (FLS)
 		if !userID.IsZero() {
 			perms, _ := s.RoleService.GetFieldPermissions(ctx, userID, modules[i].Name)
 			if perms != nil {
@@ -113,8 +145,9 @@ func (s *ModuleServiceImpl) ListModules(ctx context.Context, userID primitive.Ob
 				modules[i].Fields = visibleFields
 			}
 		}
+		filteredModules = append(filteredModules, modules[i])
 	}
-	return modules, nil
+	return filteredModules, nil
 }
 
 func (s *ModuleServiceImpl) appendSystemFields(m *Module) {
@@ -138,11 +171,23 @@ func (s *ModuleServiceImpl) appendSystemFields(m *Module) {
 	m.Fields = append(m.Fields, systemFields...)
 }
 
-func (s *ModuleServiceImpl) UpdateModule(ctx context.Context, m *Module) error {
+func (s *ModuleServiceImpl) UpdateModule(ctx context.Context, m *Module, userID primitive.ObjectID) error {
 	// Fetch existing module to compare fields
 	existingModule, err := s.Repo.FindByName(ctx, m.Name)
 	if err != nil {
 		return err
+	}
+
+	// Permission Check
+	if !userID.IsZero() {
+		allowedGlobal, err := s.RoleService.CheckPermission(ctx, userID, "modules", "update")
+		if err != nil || !allowedGlobal {
+			resourceID := fmt.Sprintf("%s.%s", existingModule.Product, existingModule.Name)
+			allowedSpecific, errSpec := s.RoleService.CheckPermission(ctx, userID, resourceID, "update")
+			if errSpec != nil || !allowedSpecific {
+				return errors.New("access denied")
+			}
+		}
 	}
 
 	// Identify removed fields
@@ -202,12 +247,25 @@ func (s *ModuleServiceImpl) UpdateModule(ctx context.Context, m *Module) error {
 	return err
 }
 
-func (s *ModuleServiceImpl) DeleteModule(ctx context.Context, name string) error {
+func (s *ModuleServiceImpl) DeleteModule(ctx context.Context, name string, userID primitive.ObjectID) error {
 	// 1. Check if System Module
 	m, err := s.Repo.FindByName(ctx, name)
 	if err != nil {
 		return err
 	}
+
+	// Permission Check
+	if !userID.IsZero() {
+		allowedGlobal, err := s.RoleService.CheckPermission(ctx, userID, "modules", "delete")
+		if err != nil || !allowedGlobal {
+			resourceID := fmt.Sprintf("%s.%s", m.Product, m.Name)
+			allowedSpecific, errSpec := s.RoleService.CheckPermission(ctx, userID, resourceID, "delete")
+			if errSpec != nil || !allowedSpecific {
+				return errors.New("access denied")
+			}
+		}
+	}
+
 	if m.IsSystem {
 		return errors.New("cannot delete system module")
 	}
@@ -226,11 +284,10 @@ func (s *ModuleServiceImpl) DeleteModule(ctx context.Context, name string) error
 		return fmt.Errorf("cannot delete module '%s', it is referenced by: %s module", name, strings.Join(depNames, ", "))
 	}
 
-	// 2. Data Cleanup (Drop Collection)
-	// We assume collection name matches module name.
-	if err := s.Repo.DropCollection(ctx, name); err != nil {
-		return fmt.Errorf("failed to drop module data: %w", err)
-	}
+	// 2. Data Cleanup now handled by Repo.Delete
+	// if err := s.Repo.DropCollection(ctx, name); err != nil {
+	// 	return fmt.Errorf("failed to drop module data: %w", err)
+	// }
 
 	// 3. Delete Metadata
 	err = s.Repo.Delete(ctx, name)
