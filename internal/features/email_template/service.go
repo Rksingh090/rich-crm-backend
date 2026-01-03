@@ -6,6 +6,7 @@ import (
 	"fmt"
 	common_models "go-crm/internal/common/models"
 	"go-crm/internal/features/audit"
+	"go-crm/internal/features/email"
 	"go-crm/internal/features/module"
 	"strings"
 )
@@ -18,19 +19,27 @@ type EmailTemplateService interface {
 	DeleteTemplate(ctx context.Context, id string) error
 	GetModuleFields(ctx context.Context, moduleName string) ([]module.ModuleField, error)
 	RenderTemplate(ctx context.Context, templateID string, record map[string]interface{}) (string, string, error)
+	SendTestEmail(ctx context.Context, templateID string, to string, testData map[string]interface{}) error
 }
 
 type EmailTemplateServiceImpl struct {
 	Repo         EmailTemplateRepository
 	ModuleRepo   module.ModuleRepository
 	AuditService audit.AuditService
+	EmailService email.EmailService
 }
 
-func NewEmailTemplateService(repo EmailTemplateRepository, moduleRepo module.ModuleRepository, auditService audit.AuditService) EmailTemplateService {
+func NewEmailTemplateService(
+	repo EmailTemplateRepository,
+	moduleRepo module.ModuleRepository,
+	auditService audit.AuditService,
+	emailService email.EmailService,
+) EmailTemplateService {
 	return &EmailTemplateServiceImpl{
 		Repo:         repo,
 		ModuleRepo:   moduleRepo,
 		AuditService: auditService,
+		EmailService: emailService,
 	}
 }
 
@@ -132,4 +141,13 @@ func (s *EmailTemplateServiceImpl) replacePlaceholders(text string, record map[s
 		text = strings.ReplaceAll(text, placeholder, replacement)
 	}
 	return text
+}
+
+func (s *EmailTemplateServiceImpl) SendTestEmail(ctx context.Context, templateID string, to string, testData map[string]interface{}) error {
+	subject, body, err := s.RenderTemplate(ctx, templateID, testData)
+	if err != nil {
+		return err
+	}
+
+	return s.EmailService.SendEmail(ctx, []string{to}, subject, body)
 }

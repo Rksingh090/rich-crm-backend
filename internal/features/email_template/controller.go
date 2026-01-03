@@ -89,3 +89,38 @@ func (c *EmailTemplateController) GetModuleFields(ctx *fiber.Ctx) error {
 
 	return ctx.JSON(fields)
 }
+
+type TestEmailRequest struct {
+	To       string                 `json:"to"`
+	TestData map[string]interface{} `json:"test_data"`
+}
+
+// SendTestEmail sends a test email using the specified template
+// @Summary Send a test email
+// @Description Renders the email template with provided test data and sends it to the specified recipient
+// @Tags EmailTemplates
+// @Accept json
+// @Produce json
+// @Param id path string true "Template ID"
+// @Param request body TestEmailRequest true "Test Email Details"
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /api/email-templates/{id}/test [post]
+func (c *EmailTemplateController) SendTestEmail(ctx *fiber.Ctx) error {
+	id := ctx.Params("id")
+	var req TestEmailRequest
+	if err := ctx.BodyParser(&req); err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	if req.To == "" {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "recipient email (to) is required"})
+	}
+
+	if err := c.Service.SendTestEmail(ctx.Context(), id, req.To, req.TestData); err != nil {
+		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	return ctx.JSON(fiber.Map{"message": "Test email sent successfully"})
+}

@@ -31,6 +31,7 @@ func (h *EmailTemplateApi) Setup(app *fiber.App) {
 	templates.Get("/:id", h.controller.Get)
 	templates.Put("/:id", h.controller.Update)
 	templates.Delete("/:id", h.controller.Delete)
+	templates.Post("/:id/test", h.controller.SendTestEmail)
 
 	templates.Get("/fields/:module", h.controller.GetModuleFields)
 }

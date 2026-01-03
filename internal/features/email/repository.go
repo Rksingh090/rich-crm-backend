@@ -1,31 +1,33 @@
-package emails
+package email
 
 import (
 	"context"
 	"time"
+
+	"go-crm/internal/database"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-type Repository struct {
+type EmailRepository struct {
 	col *mongo.Collection
 }
 
-func NewRepository(db *mongo.Database) *Repository {
-	return &Repository{
-		col: db.Collection("emails"),
+func NewEmailRepository(db *database.MongodbDB) *EmailRepository {
+	return &EmailRepository{
+		col: db.DB.Collection("emails"),
 	}
 }
 
-func (r *Repository) Create(ctx context.Context, email *Email) error {
+func (r *EmailRepository) Create(ctx context.Context, email *Email) error {
 	email.CreatedAt = time.Now()
 	_, err := r.col.InsertOne(ctx, email)
 	return err
 }
 
-func (r *Repository) UpdateStatus(
+func (r *EmailRepository) UpdateStatus(
 	ctx context.Context,
 	id primitive.ObjectID,
 	status EmailStatus,

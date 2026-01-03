@@ -168,6 +168,7 @@ func main() {
 			sync.NewSyncLogRepository,
 			chart.NewChartRepository,
 			dashboard.NewDashboardRepository,
+			email.NewEmailRepository,
 			email_template.NewEmailTemplateRepository,
 			bulk_operation.NewBulkOperationRepository,
 			saved_filter.NewSavedFilterRepository,

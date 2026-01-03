@@ -11,6 +11,8 @@ import (
 	"mime"
 	"net/smtp"
 	"path/filepath"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type EmailService interface {
@@ -20,11 +22,13 @@ type EmailService interface {
 
 type EmailServiceImpl struct {
 	SettingsService settings.SettingsService
+	Repo            *EmailRepository
 }
 
-func NewEmailService(settingsService settings.SettingsService) EmailService {
+func NewEmailService(settingsService settings.SettingsService, repo *EmailRepository) EmailService {
 	return &EmailServiceImpl{
 		SettingsService: settingsService,
+		Repo:            repo,
 	}
 }
 
@@ -49,6 +53,34 @@ func (s *EmailServiceImpl) SendEmail(ctx context.Context, to []string, subject, 
 		from = config.SMTPUser
 	}
 
+	// Try to get OrgID from context
+	var orgID primitive.ObjectID
+	if val := ctx.Value("orgId"); val != nil {
+		if id, ok := val.(primitive.ObjectID); ok {
+			orgID = id
+		} else if idStr, ok := val.(string); ok {
+			// Try parsing string
+			if oid, err := primitive.ObjectIDFromHex(idStr); err == nil {
+				orgID = oid
+			}
+		}
+	}
+
+	// Create email record
+	emailRecord := &Email{
+		ID:       primitive.NewObjectID(),
+		OrgID:    orgID,
+		From:     from,
+		To:       to,
+		Subject:  subject,
+		HtmlBody: body,
+		Status:   EmailQueued,
+	}
+
+	if s.Repo != nil {
+		_ = s.Repo.Create(ctx, emailRecord)
+	}
+
 	msg := []byte(fmt.Sprintf("To: %s\r\n"+
 		"Subject: %s\r\n"+
 		"\r\n"+
@@ -56,6 +88,18 @@ func (s *EmailServiceImpl) SendEmail(ctx context.Context, to []string, subject, 
 
 	log.Printf("Sending email to %v via %s...", to, addr)
 	err = smtp.SendMail(addr, auth, from, to, msg)
+
+	status := EmailSent
+	errMsg := ""
+	if err != nil {
+		status = EmailFailed
+		errMsg = err.Error()
+	}
+
+	if s.Repo != nil {
+		_ = s.Repo.UpdateStatus(ctx, emailRecord.ID, status, errMsg)
+	}
+
 	if err != nil {
 		return fmt.Errorf("failed to send email: %v", err)
 	}
