@@ -47,18 +47,19 @@ type QueryResponse struct {
 }
 
 // SchemaInfo represents module/table schema
+// SchemaInfo represents module/table schema
 type SchemaInfo struct {
-	Module string
-	Fields []FieldInfo
+	Module string      `json:"module"`
+	Fields []FieldInfo `json:"fields"`
 }
 
 // FieldInfo represents field metadata
 type FieldInfo struct {
-	Name         string
-	Type         string
-	Label        string
-	IsRequired   bool
-	IsPrimaryKey bool
+	Name         string `json:"name"`
+	Type         string `json:"type"`
+	Label        string `json:"label"`
+	IsRequired   bool   `json:"is_required"`
+	IsPrimaryKey bool   `json:"is_primary_key"`
 }
 
 // Connector interface for all data sources
