@@ -26,6 +26,17 @@ func NewTicketController(
 }
 
 // CreateTicket godoc
+// CreateTicket godoc
+// @Summary Create ticket
+// @Description Create a new support ticket
+// @Tags tickets
+// @Accept json
+// @Produce json
+// @Param ticket body Ticket true "Ticket Details"
+// @Success 201 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Router /api/tickets [post]
 func (ctrl *TicketController) CreateTicket(c *fiber.Ctx) error {
 	var ticket Ticket
 	if err := c.BodyParser(&ticket); err != nil {
@@ -62,6 +73,21 @@ func (ctrl *TicketController) CreateTicket(c *fiber.Ctx) error {
 }
 
 // ListTickets godoc
+// ListTickets godoc
+// @Summary List tickets
+// @Description List tickets with filtering and pagination
+// @Tags tickets
+// @Produce json
+// @Param page query int false "Page number"
+// @Param limit query int false "Items per page"
+// @Param status query string false "Filter by status"
+// @Param priority query string false "Filter by priority"
+// @Param channel query string false "Filter by channel"
+// @Param assigned_to query string false "Filter by assignee"
+// @Param search query string false "Search query"
+// @Success 200 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /api/tickets [get]
 func (ctrl *TicketController) ListTickets(c *fiber.Ctx) error {
 	page, _ := strconv.ParseInt(c.Query("page", "1"), 10, 64)
 	limit, _ := strconv.ParseInt(c.Query("limit", "10"), 10, 64)
@@ -107,6 +133,15 @@ func (ctrl *TicketController) ListTickets(c *fiber.Ctx) error {
 }
 
 // GetTicket godoc
+// GetTicket godoc
+// @Summary Get ticket
+// @Description Get a ticket by ID
+// @Tags tickets
+// @Produce json
+// @Param id path string true "Ticket ID"
+// @Success 200 {object} Ticket
+// @Failure 404 {object} map[string]interface{}
+// @Router /api/tickets/{id} [get]
 func (ctrl *TicketController) GetTicket(c *fiber.Ctx) error {
 	id := c.Params("id")
 
@@ -121,6 +156,17 @@ func (ctrl *TicketController) GetTicket(c *fiber.Ctx) error {
 }
 
 // UpdateTicket godoc
+// UpdateTicket godoc
+// @Summary Update ticket
+// @Description Update an existing ticket
+// @Tags tickets
+// @Accept json
+// @Produce json
+// @Param id path string true "Ticket ID"
+// @Param updates body map[string]interface{} true "Ticket Updates"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Router /api/tickets/{id} [put]
 func (ctrl *TicketController) UpdateTicket(c *fiber.Ctx) error {
 	id := c.Params("id")
 
@@ -157,6 +203,14 @@ func (ctrl *TicketController) UpdateTicket(c *fiber.Ctx) error {
 }
 
 // DeleteTicket godoc
+// DeleteTicket godoc
+// @Summary Delete ticket
+// @Description Delete a ticket by ID
+// @Tags tickets
+// @Param id path string true "Ticket ID"
+// @Success 200 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /api/tickets/{id} [delete]
 func (ctrl *TicketController) DeleteTicket(c *fiber.Ctx) error {
 	id := c.Params("id")
 
@@ -186,6 +240,17 @@ func (ctrl *TicketController) DeleteTicket(c *fiber.Ctx) error {
 }
 
 // UpdateStatus godoc
+// UpdateStatus godoc
+// @Summary Update ticket status
+// @Description Update the status of a ticket with a comment
+// @Tags tickets
+// @Accept json
+// @Produce json
+// @Param id path string true "Ticket ID"
+// @Param body body map[string]string true "Status Update {status, comment}"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Router /api/tickets/{id}/status [put]
 func (ctrl *TicketController) UpdateStatus(c *fiber.Ctx) error {
 	id := c.Params("id")
 
@@ -226,6 +291,17 @@ func (ctrl *TicketController) UpdateStatus(c *fiber.Ctx) error {
 }
 
 // AssignTicket godoc
+// AssignTicket godoc
+// @Summary Assign ticket
+// @Description Assign a ticket to a user
+// @Tags tickets
+// @Accept json
+// @Produce json
+// @Param id path string true "Ticket ID"
+// @Param body body map[string]string true "Assignment {assigned_to}"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Router /api/tickets/{id}/assign [put]
 func (ctrl *TicketController) AssignTicket(c *fiber.Ctx) error {
 	id := c.Params("id")
 
@@ -271,6 +347,17 @@ func (ctrl *TicketController) AssignTicket(c *fiber.Ctx) error {
 }
 
 // AddComment godoc
+// AddComment godoc
+// @Summary Add comment
+// @Description Add a comment to a ticket
+// @Tags tickets
+// @Accept json
+// @Produce json
+// @Param id path string true "Ticket ID"
+// @Param comment body TicketComment true "Comment Details"
+// @Success 201 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Router /api/tickets/{id}/comments [post]
 func (ctrl *TicketController) AddComment(c *fiber.Ctx) error {
 	id := c.Params("id")
 
@@ -309,6 +396,15 @@ func (ctrl *TicketController) AddComment(c *fiber.Ctx) error {
 }
 
 // ListComments godoc
+// ListComments godoc
+// @Summary List comments
+// @Description List comments for a ticket
+// @Tags tickets
+// @Produce json
+// @Param id path string true "Ticket ID"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Router /api/tickets/{id}/comments [get]
 func (ctrl *TicketController) ListComments(c *fiber.Ctx) error {
 	id := c.Params("id")
 
@@ -325,6 +421,16 @@ func (ctrl *TicketController) ListComments(c *fiber.Ctx) error {
 }
 
 // GetMyTickets godoc
+// GetMyTickets godoc
+// @Summary Get my tickets
+// @Description List tickets assigned to the current user
+// @Tags tickets
+// @Produce json
+// @Param page query int false "Page number"
+// @Param limit query int false "Items per page"
+// @Success 200 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /api/tickets/my-tickets [get]
 func (ctrl *TicketController) GetMyTickets(c *fiber.Ctx) error {
 	page, _ := strconv.ParseInt(c.Query("page", "1"), 10, 64)
 	limit, _ := strconv.ParseInt(c.Query("limit", "10"), 10, 64)
@@ -361,6 +467,18 @@ func (ctrl *TicketController) GetMyTickets(c *fiber.Ctx) error {
 }
 
 // GetCustomerTickets godoc
+// GetCustomerTickets godoc
+// @Summary Get customer tickets
+// @Description List tickets for a specific customer
+// @Tags tickets
+// @Produce json
+// @Param customerId path string true "Customer ID"
+// @Param page query int false "Page number"
+// @Param limit query int false "Items per page"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /api/tickets/customer/{customerId} [get]
 func (ctrl *TicketController) GetCustomerTickets(c *fiber.Ctx) error {
 	customerIDStr := c.Params("customerId")
 	customerID, err := primitive.ObjectIDFromHex(customerIDStr)
@@ -393,6 +511,16 @@ func (ctrl *TicketController) GetCustomerTickets(c *fiber.Ctx) error {
 // SLA Policy Controllers
 
 // CreateSLAPolicy godoc
+// CreateSLAPolicy godoc
+// @Summary Create SLA policy
+// @Description Create a new SLA policy
+// @Tags sla
+// @Accept json
+// @Produce json
+// @Param policy body SLAPolicy true "SLA Policy"
+// @Success 201 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Router /api/sla/policies [post]
 func (ctrl *TicketController) CreateSLAPolicy(c *fiber.Ctx) error {
 	var policy SLAPolicy
 	if err := c.BodyParser(&policy); err != nil {
@@ -414,6 +542,14 @@ func (ctrl *TicketController) CreateSLAPolicy(c *fiber.Ctx) error {
 }
 
 // ListSLAPolicies godoc
+// ListSLAPolicies godoc
+// @Summary List SLA policies
+// @Description List all SLA policies
+// @Tags sla
+// @Produce json
+// @Success 200 {array} SLAPolicy
+// @Failure 500 {object} map[string]interface{}
+// @Router /api/sla/policies [get]
 func (ctrl *TicketController) ListSLAPolicies(c *fiber.Ctx) error {
 	policies, err := ctrl.SLAService.ListPolicies(c.UserContext())
 	if err != nil {
@@ -428,6 +564,15 @@ func (ctrl *TicketController) ListSLAPolicies(c *fiber.Ctx) error {
 }
 
 // GetSLAPolicy godoc
+// GetSLAPolicy godoc
+// @Summary Get SLA policy
+// @Description Get an SLA policy by ID
+// @Tags sla
+// @Produce json
+// @Param id path string true "Policy ID"
+// @Success 200 {object} SLAPolicy
+// @Failure 404 {object} map[string]interface{}
+// @Router /api/sla/policies/{id} [get]
 func (ctrl *TicketController) GetSLAPolicy(c *fiber.Ctx) error {
 	id := c.Params("id")
 
@@ -442,6 +587,17 @@ func (ctrl *TicketController) GetSLAPolicy(c *fiber.Ctx) error {
 }
 
 // UpdateSLAPolicy godoc
+// UpdateSLAPolicy godoc
+// @Summary Update SLA policy
+// @Description Update an existing SLA policy
+// @Tags sla
+// @Accept json
+// @Produce json
+// @Param id path string true "Policy ID"
+// @Param updates body map[string]interface{} true "Policy Updates"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Router /api/sla/policies/{id} [put]
 func (ctrl *TicketController) UpdateSLAPolicy(c *fiber.Ctx) error {
 	id := c.Params("id")
 
@@ -464,6 +620,14 @@ func (ctrl *TicketController) UpdateSLAPolicy(c *fiber.Ctx) error {
 }
 
 // DeleteSLAPolicy godoc
+// DeleteSLAPolicy godoc
+// @Summary Delete SLA policy
+// @Description Delete an SLA policy by ID
+// @Tags sla
+// @Param id path string true "Policy ID"
+// @Success 200 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /api/sla/policies/{id} [delete]
 func (ctrl *TicketController) DeleteSLAPolicy(c *fiber.Ctx) error {
 	id := c.Params("id")
 
@@ -481,6 +645,16 @@ func (ctrl *TicketController) DeleteSLAPolicy(c *fiber.Ctx) error {
 // Escalation Rule Controllers
 
 // CreateEscalationRule godoc
+// CreateEscalationRule godoc
+// @Summary Create escalation rule
+// @Description Create a new escalation rule
+// @Tags escalation
+// @Accept json
+// @Produce json
+// @Param rule body EscalationRule true "Escalation Rule"
+// @Success 201 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Router /api/escalation/rules [post]
 func (ctrl *TicketController) CreateEscalationRule(c *fiber.Ctx) error {
 	var rule EscalationRule
 	if err := c.BodyParser(&rule); err != nil {
@@ -502,6 +676,14 @@ func (ctrl *TicketController) CreateEscalationRule(c *fiber.Ctx) error {
 }
 
 // ListEscalationRules godoc
+// ListEscalationRules godoc
+// @Summary List escalation rules
+// @Description List all escalation rules
+// @Tags escalation
+// @Produce json
+// @Success 200 {array} EscalationRule
+// @Failure 500 {object} map[string]interface{}
+// @Router /api/escalation/rules [get]
 func (ctrl *TicketController) ListEscalationRules(c *fiber.Ctx) error {
 	rules, err := ctrl.EscalationService.ListRules(c.UserContext())
 	if err != nil {
@@ -516,6 +698,15 @@ func (ctrl *TicketController) ListEscalationRules(c *fiber.Ctx) error {
 }
 
 // GetEscalationRule godoc
+// GetEscalationRule godoc
+// @Summary Get escalation rule
+// @Description Get an escalation rule by ID
+// @Tags escalation
+// @Produce json
+// @Param id path string true "Rule ID"
+// @Success 200 {object} EscalationRule
+// @Failure 404 {object} map[string]interface{}
+// @Router /api/escalation/rules/{id} [get]
 func (ctrl *TicketController) GetEscalationRule(c *fiber.Ctx) error {
 	id := c.Params("id")
 
@@ -530,6 +721,17 @@ func (ctrl *TicketController) GetEscalationRule(c *fiber.Ctx) error {
 }
 
 // UpdateEscalationRule godoc
+// UpdateEscalationRule godoc
+// @Summary Update escalation rule
+// @Description Update an existing escalation rule
+// @Tags escalation
+// @Accept json
+// @Produce json
+// @Param id path string true "Rule ID"
+// @Param updates body map[string]interface{} true "Rule Updates"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Router /api/escalation/rules/{id} [put]
 func (ctrl *TicketController) UpdateEscalationRule(c *fiber.Ctx) error {
 	id := c.Params("id")
 
@@ -552,6 +754,14 @@ func (ctrl *TicketController) UpdateEscalationRule(c *fiber.Ctx) error {
 }
 
 // DeleteEscalationRule godoc
+// DeleteEscalationRule godoc
+// @Summary Delete escalation rule
+// @Description Delete an escalation rule by ID
+// @Tags escalation
+// @Param id path string true "Rule ID"
+// @Success 200 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /api/escalation/rules/{id} [delete]
 func (ctrl *TicketController) DeleteEscalationRule(c *fiber.Ctx) error {
 	id := c.Params("id")
 

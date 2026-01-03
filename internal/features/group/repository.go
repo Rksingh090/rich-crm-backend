@@ -2,6 +2,7 @@ package group
 
 import (
 	"context"
+	"go-crm/internal/common/models"
 	"go-crm/internal/database"
 	"time"
 
@@ -38,8 +39,8 @@ func (r *GroupRepositoryImpl) Create(ctx context.Context, group *Group) error {
 	if group.Members == nil {
 		group.Members = []primitive.ObjectID{}
 	}
-	if group.ModulePermissions == nil {
-		group.ModulePermissions = make(map[string]ModulePermission)
+	if group.Permissions == nil {
+		group.Permissions = make(map[string]map[string]models.ActionPermission)
 	}
 
 	result, err := r.collection.InsertOne(ctx, group)
@@ -80,11 +81,11 @@ func (r *GroupRepositoryImpl) Update(ctx context.Context, id primitive.ObjectID,
 
 	update := bson.M{
 		"$set": bson.M{
-			"name":               group.Name,
-			"description":        group.Description,
-			"module_permissions": group.ModulePermissions,
-			"members":            group.Members,
-			"updated_at":         group.UpdatedAt,
+			"name":        group.Name,
+			"description": group.Description,
+			"permissions": group.Permissions,
+			"members":     group.Members,
+			"updated_at":  group.UpdatedAt,
 		},
 	}
 

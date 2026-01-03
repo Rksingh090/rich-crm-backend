@@ -17,6 +17,17 @@ func NewBulkOperationController(bulkService BulkOperationService) *BulkOperation
 	}
 }
 
+// PreviewBulkOperation godoc
+// @Summary Preview bulk operation
+// @Description Preview the effect of a bulk operation
+// @Tags bulk_operations
+// @Accept json
+// @Produce json
+// @Param request body map[string]interface{} true "Preview Request"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /api/bulk-operations/preview [post]
 func (c *BulkOperationController) PreviewBulkOperation(ctx *fiber.Ctx) error {
 	var req struct {
 		ModuleName string                 `json:"module_name"`
@@ -44,6 +55,17 @@ func (c *BulkOperationController) PreviewBulkOperation(ctx *fiber.Ctx) error {
 	})
 }
 
+// CreateBulkOperation godoc
+// @Summary Create bulk operation
+// @Description Create a new bulk operation job
+// @Tags bulk_operations
+// @Accept json
+// @Produce json
+// @Param operation body BulkOperation true "Bulk Operation"
+// @Success 201 {object} BulkOperation
+// @Failure 400 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /api/bulk-operations [post]
 func (c *BulkOperationController) CreateBulkOperation(ctx *fiber.Ctx) error {
 	var op BulkOperation
 	if err := ctx.BodyParser(&op); err != nil {
@@ -71,6 +93,15 @@ func (c *BulkOperationController) CreateBulkOperation(ctx *fiber.Ctx) error {
 	return ctx.Status(fiber.StatusCreated).JSON(op)
 }
 
+// ExecuteBulkOperation godoc
+// @Summary Execute bulk operation
+// @Description Trigger execution of a bulk operation
+// @Tags bulk_operations
+// @Produce json
+// @Param id path string true "Operation ID"
+// @Success 200 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Router /api/bulk-operations/{id}/execute [post]
 func (c *BulkOperationController) ExecuteBulkOperation(ctx *fiber.Ctx) error {
 	opID := ctx.Params("id")
 
@@ -88,6 +119,15 @@ func (c *BulkOperationController) ExecuteBulkOperation(ctx *fiber.Ctx) error {
 	return ctx.JSON(fiber.Map{"message": "Bulk operation started"})
 }
 
+// GetBulkOperation godoc
+// @Summary Get bulk operation
+// @Description Get details of a bulk operation
+// @Tags bulk_operations
+// @Produce json
+// @Param id path string true "Operation ID"
+// @Success 200 {object} BulkOperation
+// @Failure 404 {object} map[string]interface{}
+// @Router /api/bulk-operations/{id} [get]
 func (c *BulkOperationController) GetBulkOperation(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 
@@ -99,6 +139,15 @@ func (c *BulkOperationController) GetBulkOperation(ctx *fiber.Ctx) error {
 	return ctx.JSON(op)
 }
 
+// ListBulkOperations godoc
+// @Summary List bulk operations
+// @Description List all bulk operations for the current user
+// @Tags bulk_operations
+// @Produce json
+// @Success 200 {array} BulkOperation
+// @Failure 401 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /api/bulk-operations [get]
 func (c *BulkOperationController) ListBulkOperations(ctx *fiber.Ctx) error {
 	userIDStr, ok := ctx.Locals("user_id").(string)
 	if !ok {

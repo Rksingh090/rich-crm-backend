@@ -16,6 +16,17 @@ func NewSearchController(service SearchService) *SearchController {
 }
 
 // GlobalSearch godoc
+// GlobalSearch godoc
+// @Summary Global search
+// @Description Search across all modules
+// @Tags search
+// @Produce json
+// @Param q query string true "Search query"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /api/search [get]
 func (ctrl *SearchController) GlobalSearch(c *fiber.Ctx) error {
 	query := c.Query("q")
 

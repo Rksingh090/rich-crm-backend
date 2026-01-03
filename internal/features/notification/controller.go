@@ -18,6 +18,17 @@ func NewNotificationController(service NotificationService) *NotificationControl
 }
 
 // List godoc
+// List godoc
+// @Summary List notifications
+// @Description List user notifications with pagination
+// @Tags notifications
+// @Produce json
+// @Param page query int false "Page number"
+// @Param limit query int false "Items per page"
+// @Success 200 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /api/notifications [get]
 func (c *NotificationController) List(ctx *fiber.Ctx) error {
 	userIDStr := ctx.Locals("user_id").(string)
 	userID, err := primitive.ObjectIDFromHex(userIDStr)
@@ -42,6 +53,15 @@ func (c *NotificationController) List(ctx *fiber.Ctx) error {
 }
 
 // GetUnreadCount godoc
+// GetUnreadCount godoc
+// @Summary Get unread count
+// @Description Get the count of unread notifications
+// @Tags notifications
+// @Produce json
+// @Success 200 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /api/notifications/unread-count [get]
 func (c *NotificationController) GetUnreadCount(ctx *fiber.Ctx) error {
 	userIDStr := ctx.Locals("user_id").(string)
 	userID, err := primitive.ObjectIDFromHex(userIDStr)
@@ -58,6 +78,16 @@ func (c *NotificationController) GetUnreadCount(ctx *fiber.Ctx) error {
 }
 
 // MarkAsRead godoc
+// MarkAsRead godoc
+// @Summary Mark notification as read
+// @Description Mark a specific notification as read
+// @Tags notifications
+// @Produce json
+// @Param id path string true "Notification ID"
+// @Success 200 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /api/notifications/{id}/read [put]
 func (c *NotificationController) MarkAsRead(ctx *fiber.Ctx) error {
 	userIDStr := ctx.Locals("user_id").(string)
 	userID, err := primitive.ObjectIDFromHex(userIDStr)
@@ -74,6 +104,15 @@ func (c *NotificationController) MarkAsRead(ctx *fiber.Ctx) error {
 }
 
 // MarkAllAsRead godoc
+// MarkAllAsRead godoc
+// @Summary Mark all as read
+// @Description Mark all notifications as read for the user
+// @Tags notifications
+// @Produce json
+// @Success 200 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /api/notifications/read-all [put]
 func (c *NotificationController) MarkAllAsRead(ctx *fiber.Ctx) error {
 	userIDStr := ctx.Locals("user_id").(string)
 	userID, err := primitive.ObjectIDFromHex(userIDStr)

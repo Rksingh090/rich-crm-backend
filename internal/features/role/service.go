@@ -249,7 +249,7 @@ func (s *RoleServiceImpl) GetFieldPermissions(ctx context.Context, userID primit
 }
 
 func (s *RoleServiceImpl) GetAccessFilter(ctx context.Context, userID primitive.ObjectID, moduleName string, action string) (primitive.M, error) {
-	// 1. Get User to find roles
+	// 1. Get User
 	user, err := s.UserRepo.FindByID(ctx, userID.Hex())
 	if err != nil {
 		return nil, err
@@ -270,40 +270,26 @@ func (s *RoleServiceImpl) GetAccessFilter(ctx context.Context, userID primitive.
 	contextData := PrepareContextData(userID, orgID, userGroups)
 
 	for _, roleID := range user.Roles {
+		// Check Admin Bypass (Optional, but safe)
 		role, err := s.RoleRepo.FindByID(ctx, roleID.Hex())
+		if err == nil && (role.Name == "admin" || role.Name == "Super Admin") {
+			return primitive.M{}, nil // Full Access
+		}
+
+		// Fetch Permissions from Service (Source of Truth)
+		perms, err := s.PermissionService.GetPermissionsByRole(ctx, roleID.Hex())
 		if err != nil {
 			continue
 		}
 
-		// Check Admin
-		if role.Name == "admin" || role.Name == "Super Admin" {
-			return primitive.M{}, nil // Full Access
-		}
-
-		// Check Wildcard Module "*"
-		if wildResource, ok := role.Permissions["*"]; ok {
-			if perm, ok := wildResource[action]; ok {
-				if perm.Allowed {
-					if perm.Conditions == nil {
+		for _, p := range perms {
+			// Check Wildcard or Specific Resource
+			if p.Resource.ID == "*" || p.Resource.ID == moduleName {
+				if actionPerm, ok := p.Actions[action]; ok && actionPerm.Allowed {
+					if actionPerm.Conditions == nil {
 						hasFullAccess = true
 					} else {
-						cond, err := TranslateConditions(perm.Conditions, contextData)
-						if err == nil {
-							orConditions = append(orConditions, cond)
-						}
-					}
-				}
-			}
-		}
-
-		// Check Specific Module (Resource)
-		if resourcePerms, ok := role.Permissions[moduleName]; ok {
-			if perm, ok := resourcePerms[action]; ok {
-				if perm.Allowed {
-					if perm.Conditions == nil {
-						hasFullAccess = true
-					} else {
-						cond, err := TranslateConditions(perm.Conditions, contextData)
+						cond, err := TranslateConditions(actionPerm.Conditions, contextData)
 						if err == nil {
 							orConditions = append(orConditions, cond)
 						}
@@ -329,42 +315,23 @@ func (s *RoleServiceImpl) GetAccessFilter(ctx context.Context, userID primitive.
 }
 
 func (s *RoleServiceImpl) CheckPermission(ctx context.Context, userID primitive.ObjectID, resourceID string, action string) (bool, error) {
-	// 1. Get User
-	user, err := s.UserRepo.FindByID(ctx, userID.Hex())
+	// Use PermissionService to get effective permissions (RBAC/ABAC source of truth)
+	effectivePerms, err := s.PermissionService.GetUserEffectivePermissions(ctx, userID)
 	if err != nil {
 		return false, err
 	}
-	if user == nil {
-		return false, fmt.Errorf("user not found")
-	}
 
-	// 2. Iterate Roles
-	for _, roleID := range user.Roles {
-		role, err := s.RoleRepo.FindByID(ctx, roleID.Hex())
-		if err != nil || role == nil {
-			continue
-		}
-
-		if role.Name == "admin" || role.Name == "Super Admin" {
+	// 1. Check Wildcard Resource "*"
+	if wildPerm, ok := effectivePerms["*"]; ok {
+		if p, ok := wildPerm.Actions[action]; ok && p.Allowed {
 			return true, nil
 		}
+	}
 
-		// Check Wildcard
-		if wildResource, ok := role.Permissions["*"]; ok {
-			if perm, ok := wildResource[action]; ok {
-				if perm.Allowed {
-					return true, nil
-				}
-			}
-		}
-
-		// Check Specific Resource
-		if resourcePerms, ok := role.Permissions[resourceID]; ok {
-			if perm, ok := resourcePerms[action]; ok {
-				if perm.Allowed {
-					return true, nil
-				}
-			}
+	// 2. Check Specific Resource
+	if resPerm, ok := effectivePerms[resourceID]; ok {
+		if p, ok := resPerm.Actions[action]; ok && p.Allowed {
+			return true, nil
 		}
 	}
 

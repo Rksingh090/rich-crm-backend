@@ -34,15 +34,16 @@ func (s *ResourceServiceImpl) ListResources(ctx context.Context) ([]Resource, er
 
 func (s *ResourceServiceImpl) SyncResources(ctx context.Context, resources []Resource) error {
 	for _, res := range resources {
-		// Auto-generate ID from product.key if not provided
-		if res.ID == "" {
-			res.ID = res.Product + "." + res.Key
+		// Populate ResourceID if missing (legacy support or new convention)
+		if res.ResourceID == "" {
+			res.ResourceID = res.Product + "." + res.Key
 		}
 
-		// Try to find existing resource (may not have tenant_id yet)
-		existing, err := s.repo.FindByID(ctx, res.ID)
+		// Try to find existing resource by ResourceID (unique string identifier)
+		existing, err := s.repo.FindByResourceID(ctx, res.ResourceID)
 		if err == nil && existing != nil {
 			// Update existing resource
+			res.ID = existing.ID             // Keep the existing ObjectID
 			res.TenantID = existing.TenantID // Preserve existing tenant_id if set
 			res.CreatedAt = existing.CreatedAt
 			res.UpdatedAt = time.Now()
@@ -52,6 +53,9 @@ func (s *ResourceServiceImpl) SyncResources(ctx context.Context, resources []Res
 			}
 		} else {
 			// Create new resource
+			if res.ID.IsZero() {
+				res.ID = primitive.NewObjectID()
+			}
 			res.CreatedAt = time.Now()
 			res.UpdatedAt = time.Now()
 			if err := s.repo.Create(ctx, &res); err != nil {
@@ -90,7 +94,7 @@ func (s *ResourceServiceImpl) GetSidebar(ctx context.Context, userID string) ([]
 		// Assuming RoleService has a CheckPermission method that takes userID
 		// We will need to implement/expose this.
 		// For now, using a placeholder logic or assuming the method exists.
-		allowed, err := s.roleService.CheckPermission(ctx, uID, res.ID, "read")
+		allowed, err := s.roleService.CheckPermission(ctx, uID, res.ResourceID, "read")
 		if err != nil {
 			continue
 		}

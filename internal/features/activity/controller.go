@@ -14,6 +14,17 @@ func NewActivityController(activityService ActivityService) *ActivityController 
 	return &ActivityController{ActivityService: activityService}
 }
 
+// GetCalendarEvents godoc
+// @Summary      Get calendar events
+// @Description  Retrieve activity events within a specific date range
+// @Tags         activity
+// @Accept       json
+// @Produce      json
+// @Param        start  query     string  true  "Start date (YYYY-MM-DD)"
+// @Param        end    query     string  true  "End date (YYYY-MM-DD)"
+// @Success      200    {array}   interface{}
+// @Failure      400    {object}  map[string]string
+// @Router       /api/activities/calendar [get]
 func (c *ActivityController) GetCalendarEvents(ctx *fiber.Ctx) error {
 	startStr := ctx.Query("start")
 	endStr := ctx.Query("end")

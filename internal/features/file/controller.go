@@ -30,6 +30,22 @@ func NewFileController(fileService FileService, cfg *config.Config) *FileControl
 	}
 }
 
+// UploadFile godoc
+// @Summary Upload file
+// @Description Upload a file associated with a module and record
+// @Tags files
+// @Accept multipart/form-data
+// @Produce json
+// @Param file formData file true "File to upload"
+// @Param module_name formData string true "Module Name"
+// @Param record_id formData string true "Record ID"
+// @Param description formData string false "File Description"
+// @Param is_shared formData boolean false "Shared status"
+// @Success 201 {object} File
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /api/files/upload [post]
 func (ctrl *FileController) UploadFile(c *fiber.Ctx) error {
 	userIDStr := c.Locals("user_id").(string)
 	userID, err := primitive.ObjectIDFromHex(userIDStr)
@@ -92,6 +108,16 @@ func (ctrl *FileController) UploadFile(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(fileRecord)
 }
 
+// GetFilesByRecord godoc
+// @Summary List record files
+// @Description Get all files associated with a specific record
+// @Tags files
+// @Produce json
+// @Param module path string true "Module Name"
+// @Param recordId path string true "Record ID"
+// @Success 200 {array} File
+// @Failure 500 {object} map[string]interface{}
+// @Router /api/files/{module}/{recordId} [get]
 func (ctrl *FileController) GetFilesByRecord(c *fiber.Ctx) error {
 	moduleName := c.Params("module")
 	recordID := c.Params("recordId")
@@ -106,6 +132,14 @@ func (ctrl *FileController) GetFilesByRecord(c *fiber.Ctx) error {
 	return c.JSON(files)
 }
 
+// GetSharedFiles godoc
+// @Summary List shared files
+// @Description Get all files marked as shared
+// @Tags files
+// @Produce json
+// @Success 200 {array} File
+// @Failure 500 {object} map[string]interface{}
+// @Router /api/files/shared [get]
 func (ctrl *FileController) GetSharedFiles(c *fiber.Ctx) error {
 	files, err := ctrl.FileService.GetSharedFiles(c.UserContext())
 	if err != nil {
@@ -117,6 +151,14 @@ func (ctrl *FileController) GetSharedFiles(c *fiber.Ctx) error {
 	return c.JSON(files)
 }
 
+// DownloadFile godoc
+// @Summary Download file
+// @Description Download a file by ID
+// @Tags files
+// @Param id path string true "File ID"
+// @Success 200 {file} file "File content"
+// @Failure 404 {object} map[string]interface{}
+// @Router /api/files/download/{id} [get]
 func (ctrl *FileController) DownloadFile(c *fiber.Ctx) error {
 	fileID := c.Params("id")
 
@@ -130,6 +172,15 @@ func (ctrl *FileController) DownloadFile(c *fiber.Ctx) error {
 	return c.Download(file.Path, file.OriginalFilename)
 }
 
+// DeleteFile godoc
+// @Summary Delete file
+// @Description Delete a file by ID
+// @Tags files
+// @Param id path string true "File ID"
+// @Success 200 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Failure 403 {object} map[string]interface{}
+// @Router /api/files/{id} [delete]
 func (ctrl *FileController) DeleteFile(c *fiber.Ctx) error {
 	fileID := c.Params("id")
 

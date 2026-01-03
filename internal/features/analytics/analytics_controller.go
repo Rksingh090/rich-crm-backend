@@ -79,7 +79,7 @@ func (c *AnalyticsController) ListMetrics(ctx *fiber.Ctx) error {
 // @Produce json
 // @Param id path string true "Metric ID"
 // @Param updates body map[string]interface{} true "Updates"
-// @Success 200 {object} fiber.Map
+// @Success 200 {object} map[string]interface{}
 // @Router /api/analytics/metrics/{id} [put]
 func (c *AnalyticsController) UpdateMetric(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
@@ -100,7 +100,7 @@ func (c *AnalyticsController) UpdateMetric(ctx *fiber.Ctx) error {
 // @Summary Delete metric
 // @Tags analytics
 // @Param id path string true "Metric ID"
-// @Success 200 {object} fiber.Map
+// @Success 200 {object} map[string]interface{}
 // @Router /api/analytics/metrics/{id} [delete]
 func (c *AnalyticsController) DeleteMetric(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")

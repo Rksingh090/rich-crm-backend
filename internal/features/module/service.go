@@ -15,7 +15,7 @@ import (
 )
 
 type ModuleService interface {
-	CreateModule(ctx context.Context, module *Module) error
+	CreateModule(ctx context.Context, module *Module, userID primitive.ObjectID) error
 	GetModuleByName(ctx context.Context, name string, userID primitive.ObjectID) (*Module, error)
 	ListModules(ctx context.Context, userID primitive.ObjectID, product string) ([]Module, error)
 	UpdateModule(ctx context.Context, module *Module, userID primitive.ObjectID) error
@@ -36,7 +36,15 @@ func NewModuleService(repo ModuleRepository, roleService role.RoleService, audit
 	}
 }
 
-func (s *ModuleServiceImpl) CreateModule(ctx context.Context, m *Module) error {
+func (s *ModuleServiceImpl) CreateModule(ctx context.Context, m *Module, userID primitive.ObjectID) error {
+	// Permission Check (Global Create)
+	if !userID.IsZero() {
+		allowed, err := s.RoleService.CheckPermission(ctx, userID, "modules", "create")
+		if err != nil || !allowed {
+			return errors.New("access denied")
+		}
+	}
+
 	// Basic Validation
 	if m.Name == "" || m.Label == "" {
 		return errors.New("module name and label are required")

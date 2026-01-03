@@ -25,7 +25,7 @@ const docTemplate = `{
     "paths": {
         "/api/activities/calendar": {
             "get": {
-                "description": "Fetch events within a date range",
+                "description": "Retrieve activity events within a specific date range",
                 "consumes": [
                     "application/json"
                 ],
@@ -33,20 +33,20 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "activities"
+                    "activity"
                 ],
-                "summary": "Get calendar events (tasks, calls, meetings)",
+                "summary": "Get calendar events",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Start Date (YYYY-MM-DD)",
+                        "description": "Start date (YYYY-MM-DD)",
                         "name": "start",
                         "in": "query",
                         "required": true
                     },
                     {
                         "type": "string",
-                        "description": "End Date (YYYY-MM-DD)",
+                        "description": "End date (YYYY-MM-DD)",
                         "name": "end",
                         "in": "query",
                         "required": true
@@ -57,9 +57,15 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "type": "array",
-                            "items": {
-                                "type": "object",
-                                "additionalProperties": true
+                            "items": {}
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
                             }
                         }
                     }
@@ -123,30 +129,53 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/automation": {
+        "/api/analytics/dashboards/{id}/metrics": {
             "get": {
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "automation"
+                    "analytics"
                 ],
-                "summary": "List automation rules",
+                "summary": "Get dashboard metrics",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Module ID",
-                        "name": "module_id",
-                        "in": "query"
+                        "description": "Dashboard ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "$ref": "#/definitions/analytics.MetricResult"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/analytics/metrics": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "analytics"
+                ],
+                "summary": "List metrics",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/models.AutomationRule"
+                                "$ref": "#/definitions/analytics.Metric"
                             }
                         }
                     }
@@ -160,17 +189,17 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "automation"
+                    "analytics"
                 ],
-                "summary": "Create a new automation rule",
+                "summary": "Create metric",
                 "parameters": [
                     {
-                        "description": "Rule",
-                        "name": "rule",
+                        "description": "Metric",
+                        "name": "metric",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.AutomationRule"
+                            "$ref": "#/definitions/analytics.Metric"
                         }
                     }
                 ],
@@ -178,14 +207,744 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/models.AutomationRule"
+                            "$ref": "#/definitions/analytics.Metric"
                         }
                     }
                 }
             }
         },
-        "/api/automation/{id}": {
+        "/api/analytics/metrics/{id}": {
             "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "analytics"
+                ],
+                "summary": "Get metric",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Metric ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/analytics.Metric"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "analytics"
+                ],
+                "summary": "Update metric",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Metric ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Updates",
+                        "name": "updates",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "analytics"
+                ],
+                "summary": "Delete metric",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Metric ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/analytics/metrics/{id}/calculate": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "analytics"
+                ],
+                "summary": "Calculate metric",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Metric ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Additional Filters",
+                        "name": "filters",
+                        "in": "body",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/analytics.MetricResult"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/analytics/metrics/{id}/history": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "analytics"
+                ],
+                "summary": "Get metric history",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Metric ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Start time",
+                        "name": "start",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "End time",
+                        "name": "end",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/analytics.MetricDataPoint"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/approvals/workflows": {
+            "get": {
+                "description": "List all approval workflows",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "approvals"
+                ],
+                "summary": "List all workflows",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/approval.ApprovalWorkflow"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Create a new approval workflow configuration",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "approvals"
+                ],
+                "summary": "Create a new approval workflow",
+                "parameters": [
+                    {
+                        "description": "Workflow Configuration",
+                        "name": "workflow",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/approval.ApprovalWorkflow"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Workflow created successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/approvals/workflows/module/{moduleId}": {
+            "get": {
+                "description": "Get the active approval workflow for a specific module",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "approvals"
+                ],
+                "summary": "Get workflow by module",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Module ID",
+                        "name": "moduleId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/approval.ApprovalWorkflow"
+                        }
+                    },
+                    "404": {
+                        "description": "No active workflow found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/approvals/workflows/{id}": {
+            "get": {
+                "description": "Get a specific approval workflow by its ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "approvals"
+                ],
+                "summary": "Get workflow by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Workflow ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/approval.ApprovalWorkflow"
+                        }
+                    },
+                    "404": {
+                        "description": "Workflow not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Update an existing approval workflow configuration",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "approvals"
+                ],
+                "summary": "Update an approval workflow",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Workflow ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Workflow Configuration",
+                        "name": "workflow",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/approval.ApprovalWorkflow"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Workflow updated successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Delete an approval workflow configuration",
+                "tags": [
+                    "approvals"
+                ],
+                "summary": "Delete an approval workflow",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Workflow ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/approvals/{module}/{id}/approve": {
+            "post": {
+                "description": "Approve a record for the current step in the workflow",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "approvals"
+                ],
+                "summary": "Approve a record",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Module Name",
+                        "name": "module",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Record ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Approval Comment",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Record approved successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/approvals/{module}/{id}/reject": {
+            "post": {
+                "description": "Reject a record for the current step in the workflow",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "approvals"
+                ],
+                "summary": "Reject a record",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Module Name",
+                        "name": "module",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Record ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Rejection Comment",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Record rejected successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/audit/logs": {
+            "get": {
+                "description": "Retrieve a list of audit logs with optional filtering",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "audit"
+                ],
+                "summary": "List audit logs",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by module",
+                        "name": "module",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by record ID",
+                        "name": "record_id",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/automation/rules": {
+            "get": {
+                "description": "List all automation rules, optionally filtered by module",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "automation"
+                ],
+                "summary": "List automation rules",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by Module ID",
+                        "name": "module_id",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/automation.AutomationRule"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Create a new automation rule",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "automation"
+                ],
+                "summary": "Create automation rule",
+                "parameters": [
+                    {
+                        "description": "Automation Rule",
+                        "name": "rule",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/automation.AutomationRule"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/automation.AutomationRule"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/automation/rules/{id}": {
+            "get": {
+                "description": "Get an automation rule by ID",
                 "produces": [
                     "application/json"
                 ],
@@ -206,18 +965,20 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.AutomationRule"
+                            "$ref": "#/definitions/automation.AutomationRule"
                         }
                     },
                     "404": {
-                        "description": "Rule not found",
+                        "description": "Not Found",
                         "schema": {
-                            "type": "string"
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
             },
             "put": {
+                "description": "Update an existing automation rule",
                 "consumes": [
                     "application/json"
                 ],
@@ -237,12 +998,12 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "Rule Update",
+                        "description": "Automation Rule",
                         "name": "rule",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.AutomationRule"
+                            "$ref": "#/definitions/automation.AutomationRule"
                         }
                     }
                 ],
@@ -250,12 +1011,27 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.AutomationRule"
+                            "$ref": "#/definitions/automation.AutomationRule"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
             },
             "delete": {
+                "description": "Delete an automation rule by ID",
                 "tags": [
                     "automation"
                 ],
@@ -272,32 +1048,55 @@ const docTemplate = `{
                 "responses": {
                     "204": {
                         "description": "No Content"
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
                     }
                 }
             }
         },
-        "/api/bulk/operations": {
+        "/api/bulk-operations": {
             "get": {
+                "description": "List all bulk operations for the current user",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "Bulk Operations"
+                    "bulk_operations"
                 ],
-                "summary": "List user's bulk operations",
+                "summary": "List bulk operations",
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/models.BulkOperation"
+                                "$ref": "#/definitions/bulk_operation.BulkOperation"
                             }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
             },
             "post": {
+                "description": "Create a new bulk operation job",
                 "consumes": [
                     "application/json"
                 ],
@@ -305,7 +1104,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Bulk Operations"
+                    "bulk_operations"
                 ],
                 "summary": "Create bulk operation",
                 "parameters": [
@@ -315,7 +1114,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.BulkOperation"
+                            "$ref": "#/definitions/bulk_operation.BulkOperation"
                         }
                     }
                 ],
@@ -323,21 +1122,86 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/models.BulkOperation"
+                            "$ref": "#/definitions/bulk_operation.BulkOperation"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
             }
         },
-        "/api/bulk/operations/{id}": {
-            "get": {
+        "/api/bulk-operations/preview": {
+            "post": {
+                "description": "Preview the effect of a bulk operation",
+                "consumes": [
+                    "application/json"
+                ],
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "Bulk Operations"
+                    "bulk_operations"
                 ],
-                "summary": "Get bulk operation status",
+                "summary": "Preview bulk operation",
+                "parameters": [
+                    {
+                        "description": "Preview Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/bulk-operations/{id}": {
+            "get": {
+                "description": "Get details of a bulk operation",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "bulk_operations"
+                ],
+                "summary": "Get bulk operation",
                 "parameters": [
                     {
                         "type": "string",
@@ -351,16 +1215,27 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.BulkOperation"
+                            "$ref": "#/definitions/bulk_operation.BulkOperation"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
             }
         },
-        "/api/bulk/operations/{id}/execute": {
+        "/api/bulk-operations/{id}/execute": {
             "post": {
+                "description": "Trigger execution of a bulk operation",
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
-                    "Bulk Operations"
+                    "bulk_operations"
                 ],
                 "summary": "Execute bulk operation",
                 "parameters": [
@@ -379,37 +1254,9 @@ const docTemplate = `{
                             "type": "object",
                             "additionalProperties": true
                         }
-                    }
-                }
-            }
-        },
-        "/api/bulk/preview": {
-            "post": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Bulk Operations"
-                ],
-                "summary": "Preview bulk operation",
-                "parameters": [
-                    {
-                        "description": "Preview request",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
+                    },
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -420,26 +1267,35 @@ const docTemplate = `{
         },
         "/api/charts": {
             "get": {
+                "description": "List all available charts",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "Charts"
+                    "charts"
                 ],
-                "summary": "List all charts",
+                "summary": "List charts",
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/models.Chart"
+                                "$ref": "#/definitions/chart.Chart"
                             }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
             },
             "post": {
+                "description": "Create a new chart configuration",
                 "consumes": [
                     "application/json"
                 ],
@@ -447,17 +1303,17 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Charts"
+                    "charts"
                 ],
-                "summary": "Create a new chart",
+                "summary": "Create chart",
                 "parameters": [
                     {
-                        "description": "Chart Definition",
+                        "description": "Chart Configuration",
                         "name": "chart",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.Chart"
+                            "$ref": "#/definitions/chart.Chart"
                         }
                     }
                 ],
@@ -465,7 +1321,21 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/models.Chart"
+                            "$ref": "#/definitions/chart.Chart"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
@@ -473,13 +1343,14 @@ const docTemplate = `{
         },
         "/api/charts/{id}": {
             "get": {
+                "description": "Get a chart configuration by ID",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "Charts"
+                    "charts"
                 ],
-                "summary": "Get a chart by ID",
+                "summary": "Get chart",
                 "parameters": [
                     {
                         "type": "string",
@@ -493,12 +1364,20 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.Chart"
+                            "$ref": "#/definitions/chart.Chart"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
             },
             "put": {
+                "description": "Update an existing chart configuration",
                 "consumes": [
                     "application/json"
                 ],
@@ -506,9 +1385,9 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Charts"
+                    "charts"
                 ],
-                "summary": "Update a chart",
+                "summary": "Update chart",
                 "parameters": [
                     {
                         "type": "string",
@@ -518,12 +1397,12 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "Chart Update",
+                        "description": "Chart Configuration",
                         "name": "chart",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.Chart"
+                            "$ref": "#/definitions/chart.Chart"
                         }
                     }
                 ],
@@ -531,16 +1410,31 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.Chart"
+                            "$ref": "#/definitions/chart.Chart"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
             },
             "delete": {
+                "description": "Delete a chart configuration",
                 "tags": [
-                    "Charts"
+                    "charts"
                 ],
-                "summary": "Delete a chart",
+                "summary": "Delete chart",
                 "parameters": [
                     {
                         "type": "string",
@@ -553,17 +1447,25 @@ const docTemplate = `{
                 "responses": {
                     "204": {
                         "description": "No Content"
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
                     }
                 }
             }
         },
         "/api/charts/{id}/data": {
             "get": {
+                "description": "Get the calculated data for a chart",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "Charts"
+                    "charts"
                 ],
                 "summary": "Get chart data",
                 "parameters": [
@@ -579,17 +1481,23 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "type": "object"
-                            }
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
             }
         },
-        "/api/cron-jobs": {
+        "/api/cron/jobs": {
             "get": {
+                "description": "List all cron jobs with optional filtering",
                 "produces": [
                     "application/json"
                 ],
@@ -617,13 +1525,21 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/models.CronJob"
+                                "$ref": "#/definitions/cron_feature.CronJob"
                             }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
             },
             "post": {
+                "description": "Create a new cron job",
                 "consumes": [
                     "application/json"
                 ],
@@ -633,15 +1549,15 @@ const docTemplate = `{
                 "tags": [
                     "cron"
                 ],
-                "summary": "Create a new cron job",
+                "summary": "Create cron job",
                 "parameters": [
                     {
                         "description": "Cron Job",
-                        "name": "cronJob",
+                        "name": "job",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.CronJob"
+                            "$ref": "#/definitions/cron_feature.CronJob"
                         }
                     }
                 ],
@@ -649,25 +1565,40 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/models.CronJob"
+                            "$ref": "#/definitions/cron_feature.CronJob"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
             }
         },
-        "/api/cron-jobs/{id}": {
+        "/api/cron/jobs/{id}": {
             "get": {
+                "description": "Get a cron job by ID",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "cron"
                 ],
-                "summary": "Get cron job by ID",
+                "summary": "Get cron job",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Cron Job ID",
+                        "description": "Job ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -677,18 +1608,27 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.CronJob"
+                            "$ref": "#/definitions/cron_feature.CronJob"
                         }
                     },
                     "404": {
-                        "description": "Cron job not found",
+                        "description": "Not Found",
                         "schema": {
-                            "type": "string"
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
             },
             "put": {
+                "description": "Update an existing cron job",
                 "consumes": [
                     "application/json"
                 ],
@@ -702,18 +1642,18 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Cron Job ID",
+                        "description": "Job ID",
                         "name": "id",
                         "in": "path",
                         "required": true
                     },
                     {
-                        "description": "Cron Job Update",
-                        "name": "cronJob",
+                        "description": "Cron Job",
+                        "name": "job",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.CronJob"
+                            "$ref": "#/definitions/cron_feature.CronJob"
                         }
                     }
                 ],
@@ -721,12 +1661,27 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.CronJob"
+                            "$ref": "#/definitions/cron_feature.CronJob"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
             },
             "delete": {
+                "description": "Delete a cron job by ID",
                 "tags": [
                     "cron"
                 ],
@@ -734,7 +1689,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Cron Job ID",
+                        "description": "Job ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -743,20 +1698,31 @@ const docTemplate = `{
                 "responses": {
                     "204": {
                         "description": "No Content"
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
                     }
                 }
             }
         },
-        "/api/cron-jobs/{id}/execute": {
+        "/api/cron/jobs/{id}/execute": {
             "post": {
+                "description": "Manually trigger a cron job execution",
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "cron"
                 ],
-                "summary": "Manually execute a cron job",
+                "summary": "Execute cron job",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Cron Job ID",
+                        "description": "Job ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -767,35 +1733,40 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
             }
         },
-        "/api/cron-jobs/{id}/logs": {
+        "/api/cron/jobs/{id}/logs": {
             "get": {
+                "description": "Get execution logs for a cron job",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "cron"
                 ],
-                "summary": "Get execution logs for a cron job",
+                "summary": "Get cron job logs",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Cron Job ID",
+                        "description": "Job ID",
                         "name": "id",
                         "in": "path",
                         "required": true
                     },
                     {
                         "type": "integer",
-                        "default": 50,
-                        "description": "Limit number of logs",
+                        "description": "Max logs to return",
                         "name": "limit",
                         "in": "query"
                     }
@@ -806,8 +1777,16 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/models.CronJobLog"
+                                "type": "object",
+                                "additionalProperties": true
                             }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
@@ -815,12 +1794,12 @@ const docTemplate = `{
         },
         "/api/dashboards": {
             "get": {
-                "description": "Get all dashboards for the current user",
+                "description": "List all dashboards for the current user",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "dashboards"
+                    "dashboard"
                 ],
                 "summary": "List dashboards",
                 "responses": {
@@ -829,14 +1808,28 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/models.DashboardConfig"
+                                "$ref": "#/definitions/dashboard.DashboardConfig"
                             }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
             },
             "post": {
-                "description": "Create a new custom dashboard configuration",
+                "description": "Create a new dashboard configuration",
                 "consumes": [
                     "application/json"
                 ],
@@ -844,17 +1837,17 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "dashboards"
+                    "dashboard"
                 ],
                 "summary": "Create dashboard",
                 "parameters": [
                     {
-                        "description": "Dashboard configuration",
+                        "description": "Dashboard Config",
                         "name": "dashboard",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.DashboardConfig"
+                            "$ref": "#/definitions/dashboard.DashboardConfig"
                         }
                     }
                 ],
@@ -862,7 +1855,28 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/models.DashboardConfig"
+                            "$ref": "#/definitions/dashboard.DashboardConfig"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
@@ -870,12 +1884,12 @@ const docTemplate = `{
         },
         "/api/dashboards/{id}": {
             "get": {
-                "description": "Get dashboard configuration by ID",
+                "description": "Get a dashboard configuration by ID",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "dashboards"
+                    "dashboard"
                 ],
                 "summary": "Get dashboard",
                 "parameters": [
@@ -891,13 +1905,27 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.DashboardConfig"
+                            "$ref": "#/definitions/dashboard.DashboardConfig"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
             },
             "put": {
-                "description": "Update dashboard configuration",
+                "description": "Update an existing dashboard configuration",
                 "consumes": [
                     "application/json"
                 ],
@@ -905,7 +1933,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "dashboards"
+                    "dashboard"
                 ],
                 "summary": "Update dashboard",
                 "parameters": [
@@ -917,12 +1945,12 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "Dashboard configuration",
+                        "description": "Dashboard Config",
                         "name": "dashboard",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.DashboardConfig"
+                            "$ref": "#/definitions/dashboard.DashboardConfig"
                         }
                     }
                 ],
@@ -930,15 +1958,36 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.DashboardConfig"
+                            "$ref": "#/definitions/dashboard.DashboardConfig"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
             },
             "delete": {
-                "description": "Delete a dashboard by ID",
+                "description": "Delete a dashboard configuration",
                 "tags": [
-                    "dashboards"
+                    "dashboard"
                 ],
                 "summary": "Delete dashboard",
                 "parameters": [
@@ -953,18 +2002,32 @@ const docTemplate = `{
                 "responses": {
                     "204": {
                         "description": "No Content"
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
                     }
                 }
             }
         },
         "/api/dashboards/{id}/data": {
             "get": {
-                "description": "Fetch data for all widgets in a dashboard",
+                "description": "Get usage data for a dashboard",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "dashboards"
+                    "dashboard"
                 ],
                 "summary": "Get dashboard data",
                 "parameters": [
@@ -983,15 +2046,32 @@ const docTemplate = `{
                             "type": "object",
                             "additionalProperties": true
                         }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
                     }
                 }
             }
         },
-        "/api/dashboards/{id}/set-default": {
+        "/api/dashboards/{id}/default": {
             "post": {
-                "description": "Set a dashboard as the default dashboard for the current user",
+                "description": "Set the default dashboard for the current user",
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
-                    "dashboards"
+                    "dashboard"
                 ],
                 "summary": "Set default dashboard",
                 "parameters": [
@@ -1005,19 +2085,614 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK"
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
                     }
                 }
             }
         },
-        "/api/escalation-rules": {
+        "/api/data-sources": {
             "get": {
-                "description": "Get all escalation rules",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "escalation-rules"
+                    "data-sources"
+                ],
+                "summary": "List data sources",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/analytics.DataSource"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "data-sources"
+                ],
+                "summary": "Create data source",
+                "parameters": [
+                    {
+                        "description": "Data Source",
+                        "name": "dataSource",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/analytics.DataSource"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/analytics.DataSource"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/data-sources/query": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "data-sources"
+                ],
+                "summary": "Query data source",
+                "parameters": [
+                    {
+                        "description": "Query Request",
+                        "name": "query",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/connectors.QueryRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/connectors.QueryResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/data-sources/query/multi": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "data-sources"
+                ],
+                "summary": "Query multiple data sources",
+                "parameters": [
+                    {
+                        "description": "Query Requests",
+                        "name": "queries",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/connectors.QueryRequest"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "$ref": "#/definitions/connectors.QueryResponse"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/data-sources/{id}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "data-sources"
+                ],
+                "summary": "Get data source",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Data Source ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/analytics.DataSource"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "data-sources"
+                ],
+                "summary": "Update data source",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Data Source ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Updates",
+                        "name": "updates",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "data-sources"
+                ],
+                "summary": "Delete data source",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Data Source ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/data-sources/{id}/schema/{module}": {
+            "get": {
+                "tags": [
+                    "data-sources"
+                ],
+                "summary": "Get data source schema",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Data Source ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Module/Table Name",
+                        "name": "module",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/connectors.SchemaInfo"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/data-sources/{id}/test": {
+            "post": {
+                "tags": [
+                    "data-sources"
+                ],
+                "summary": "Test data source connection",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Data Source ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/email-templates": {
+            "get": {
+                "description": "List all email templates, optionally filtered by module",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "email_templates"
+                ],
+                "summary": "List email templates",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by module",
+                        "name": "module",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/email_template.EmailTemplate"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Create a new email template",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "email_templates"
+                ],
+                "summary": "Create email template",
+                "parameters": [
+                    {
+                        "description": "Email Template",
+                        "name": "template",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/email_template.EmailTemplate"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/email_template.EmailTemplate"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/email-templates/modules/{module}/fields": {
+            "get": {
+                "description": "Get available placeholders/fields for a module",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "email_templates"
+                ],
+                "summary": "Get module fields",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Module Name",
+                        "name": "module",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/email-templates/{id}": {
+            "get": {
+                "description": "Get an email template by ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "email_templates"
+                ],
+                "summary": "Get email template",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Template ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/email_template.EmailTemplate"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Update an existing email template",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "email_templates"
+                ],
+                "summary": "Update email template",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Template ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Email Template",
+                        "name": "template",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/email_template.EmailTemplate"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/email_template.EmailTemplate"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Delete an email template by ID",
+                "tags": [
+                    "email_templates"
+                ],
+                "summary": "Delete email template",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Template ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/email-templates/{id}/test": {
+            "post": {
+                "description": "Renders the email template with provided test data and sends it to the specified recipient",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "EmailTemplates"
+                ],
+                "summary": "Send a test email",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Template ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Test Email Details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/email_template.TestEmailRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/escalation/rules": {
+            "get": {
+                "description": "List all escalation rules",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "escalation"
                 ],
                 "summary": "List escalation rules",
                 "responses": {
@@ -1026,8 +2701,15 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/models.EscalationRule"
+                                "$ref": "#/definitions/ticket.EscalationRule"
                             }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
@@ -1041,17 +2723,17 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "escalation-rules"
+                    "escalation"
                 ],
                 "summary": "Create escalation rule",
                 "parameters": [
                     {
-                        "description": "Escalation Rule Data",
-                        "name": "input",
+                        "description": "Escalation Rule",
+                        "name": "rule",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.EscalationRule"
+                            "$ref": "#/definitions/ticket.EscalationRule"
                         }
                     }
                 ],
@@ -1064,22 +2746,23 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Invalid request",
+                        "description": "Bad Request",
                         "schema": {
-                            "type": "string"
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
             }
         },
-        "/api/escalation-rules/{id}": {
+        "/api/escalation/rules/{id}": {
             "get": {
                 "description": "Get an escalation rule by ID",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "escalation-rules"
+                    "escalation"
                 ],
                 "summary": "Get escalation rule",
                 "parameters": [
@@ -1095,19 +2778,20 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.EscalationRule"
+                            "$ref": "#/definitions/ticket.EscalationRule"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "type": "string"
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
             },
             "put": {
-                "description": "Update an escalation rule by ID",
+                "description": "Update an existing escalation rule",
                 "consumes": [
                     "application/json"
                 ],
@@ -1115,7 +2799,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "escalation-rules"
+                    "escalation"
                 ],
                 "summary": "Update escalation rule",
                 "parameters": [
@@ -1127,8 +2811,8 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "Update Data",
-                        "name": "input",
+                        "description": "Rule Updates",
+                        "name": "updates",
                         "in": "body",
                         "required": true,
                         "schema": {
@@ -1142,26 +2826,22 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "additionalProperties": true
                         }
                     },
                     "400": {
-                        "description": "Invalid input",
+                        "description": "Bad Request",
                         "schema": {
-                            "type": "string"
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
             },
             "delete": {
                 "description": "Delete an escalation rule by ID",
-                "produces": [
-                    "application/json"
-                ],
                 "tags": [
-                    "escalation-rules"
+                    "escalation"
                 ],
                 "summary": "Delete escalation rule",
                 "parameters": [
@@ -1178,15 +2858,14 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "additionalProperties": true
                         }
                     },
-                    "400": {
-                        "description": "Invalid input",
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
-                            "type": "string"
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
@@ -1194,21 +2873,18 @@ const docTemplate = `{
         },
         "/api/extensions": {
             "get": {
-                "description": "Get all available marketplace extensions",
-                "consumes": [
-                    "application/json"
-                ],
+                "description": "List extensions with optional installation filter",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "extensions"
                 ],
-                "summary": "List Extensions",
+                "summary": "List extensions",
                 "parameters": [
                     {
                         "type": "boolean",
-                        "description": "Only show installed extensions",
+                        "description": "Filter by installed status",
                         "name": "installed",
                         "in": "query"
                     }
@@ -1219,14 +2895,21 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/models.Extension"
+                                "$ref": "#/definitions/extension.Extension"
                             }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
             },
             "post": {
-                "description": "Create a new marketplace extension (Admin only)",
+                "description": "Create a new extension",
                 "consumes": [
                     "application/json"
                 ],
@@ -1236,15 +2919,15 @@ const docTemplate = `{
                 "tags": [
                     "extensions"
                 ],
-                "summary": "Create Extension",
+                "summary": "Create extension",
                 "parameters": [
                     {
-                        "description": "Extension Data",
+                        "description": "Extension Details",
                         "name": "extension",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.Extension"
+                            "$ref": "#/definitions/extension.Extension"
                         }
                     }
                 ],
@@ -1252,7 +2935,14 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/models.Extension"
+                            "$ref": "#/definitions/extension.Extension"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
@@ -1260,17 +2950,14 @@ const docTemplate = `{
         },
         "/api/extensions/{id}": {
             "get": {
-                "description": "Get a specific extension by ID",
-                "consumes": [
-                    "application/json"
-                ],
+                "description": "Get an extension by ID",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "extensions"
                 ],
-                "summary": "Get Extension",
+                "summary": "Get extension",
                 "parameters": [
                     {
                         "type": "string",
@@ -1284,7 +2971,14 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.Extension"
+                            "$ref": "#/definitions/extension.Extension"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
@@ -1293,16 +2987,13 @@ const docTemplate = `{
         "/api/extensions/{id}/install": {
             "post": {
                 "description": "Install an extension by ID",
-                "consumes": [
-                    "application/json"
-                ],
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "extensions"
                 ],
-                "summary": "Install Extension",
+                "summary": "Install extension",
                 "parameters": [
                     {
                         "type": "string",
@@ -1317,9 +3008,14 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
@@ -1328,16 +3024,13 @@ const docTemplate = `{
         "/api/extensions/{id}/uninstall": {
             "post": {
                 "description": "Uninstall an extension by ID",
-                "consumes": [
-                    "application/json"
-                ],
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "extensions"
                 ],
-                "summary": "Uninstall Extension",
+                "summary": "Uninstall extension",
                 "parameters": [
                     {
                         "type": "string",
@@ -1352,210 +3045,69 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "additionalProperties": true
                         }
-                    }
-                }
-            }
-        },
-        "/api/filters": {
-            "get": {
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Saved Filters"
-                ],
-                "summary": "List user's saved filters",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Module name",
-                        "name": "module",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.SavedFilter"
-                            }
-                        }
-                    }
-                }
-            },
-            "post": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Saved Filters"
-                ],
-                "summary": "Create saved filter",
-                "parameters": [
-                    {
-                        "description": "Saved Filter",
-                        "name": "filter",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/models.SavedFilter"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/models.SavedFilter"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/filters/public": {
-            "get": {
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Saved Filters"
-                ],
-                "summary": "List public filters",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Module name",
-                        "name": "module",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.SavedFilter"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/api/filters/{id}": {
-            "get": {
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Saved Filters"
-                ],
-                "summary": "Get saved filter",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Filter ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/models.SavedFilter"
-                        }
-                    }
-                }
-            },
-            "put": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Saved Filters"
-                ],
-                "summary": "Update saved filter",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Filter ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
                     },
-                    {
-                        "description": "Saved Filter",
-                        "name": "filter",
-                        "in": "body",
-                        "required": true,
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/models.SavedFilter"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/models.SavedFilter"
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
-            },
-            "delete": {
+            }
+        },
+        "/api/files/download/{id}": {
+            "get": {
+                "description": "Download a file by ID",
                 "tags": [
-                    "Saved Filters"
+                    "files"
                 ],
-                "summary": "Delete saved filter",
+                "summary": "Download file",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Filter ID",
+                        "description": "File ID",
                         "name": "id",
                         "in": "path",
                         "required": true
                     }
                 ],
                 "responses": {
-                    "204": {
-                        "description": "No Content"
+                    "200": {
+                        "description": "File content",
+                        "schema": {
+                            "type": "file"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
                     }
                 }
             }
         },
-        "/api/groups": {
+        "/api/files/shared": {
             "get": {
-                "description": "Retrieve all groups",
+                "description": "Get all files marked as shared",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "groups"
+                    "files"
                 ],
-                "summary": "Get all groups",
+                "summary": "List shared files",
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/models.Group"
+                                "$ref": "#/definitions/file.File"
                             }
                         }
                     },
@@ -1563,15 +3115,209 @@ const docTemplate = `{
                         "description": "Internal Server Error",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/files/upload": {
+            "post": {
+                "description": "Upload a file associated with a module and record",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "files"
+                ],
+                "summary": "Upload file",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "File to upload",
+                        "name": "file",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Module Name",
+                        "name": "module_name",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Record ID",
+                        "name": "record_id",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "File Description",
+                        "name": "description",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Shared status",
+                        "name": "is_shared",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/file.File"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/files/{id}": {
+            "delete": {
+                "description": "Delete a file by ID",
+                "tags": [
+                    "files"
+                ],
+                "summary": "Delete file",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "File ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/files/{module}/{recordId}": {
+            "get": {
+                "description": "Get all files associated with a specific record",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "files"
+                ],
+                "summary": "List record files",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Module Name",
+                        "name": "module",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Record ID",
+                        "name": "recordId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/file.File"
                             }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/groups": {
+            "get": {
+                "description": "List all user groups",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "groups"
+                ],
+                "summary": "List groups",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/group.Group"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
             },
             "post": {
-                "description": "Create a new group with permissions",
+                "description": "Create a new user group",
                 "consumes": [
                     "application/json"
                 ],
@@ -1581,15 +3327,15 @@ const docTemplate = `{
                 "tags": [
                     "groups"
                 ],
-                "summary": "Create a new group",
+                "summary": "Create group",
                 "parameters": [
                     {
-                        "description": "Group object",
+                        "description": "Group Details",
                         "name": "group",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.Group"
+                            "$ref": "#/definitions/group.Group"
                         }
                     }
                 ],
@@ -1597,16 +3343,14 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/models.Group"
+                            "$ref": "#/definitions/group.Group"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "additionalProperties": true
                         }
                     }
                 }
@@ -1614,14 +3358,14 @@ const docTemplate = `{
         },
         "/api/groups/{id}": {
             "get": {
-                "description": "Retrieve a specific group",
+                "description": "Get a group by ID",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "groups"
                 ],
-                "summary": "Get a group by ID",
+                "summary": "Get group",
                 "parameters": [
                     {
                         "type": "string",
@@ -1635,22 +3379,27 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.Group"
+                            "$ref": "#/definitions/group.Group"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "additionalProperties": true
                         }
                     }
                 }
             },
             "put": {
-                "description": "Update group details and permissions",
+                "description": "Update an existing group",
                 "consumes": [
                     "application/json"
                 ],
@@ -1660,7 +3409,7 @@ const docTemplate = `{
                 "tags": [
                     "groups"
                 ],
-                "summary": "Update a group",
+                "summary": "Update group",
                 "parameters": [
                     {
                         "type": "string",
@@ -1670,12 +3419,12 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "Group object",
+                        "description": "Group Details",
                         "name": "group",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.Group"
+                            "$ref": "#/definitions/group.Group"
                         }
                     }
                 ],
@@ -1684,31 +3433,24 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "additionalProperties": true
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "additionalProperties": true
                         }
                     }
                 }
             },
             "delete": {
                 "description": "Delete a group by ID",
-                "produces": [
-                    "application/json"
-                ],
                 "tags": [
                     "groups"
                 ],
-                "summary": "Delete a group",
+                "summary": "Delete group",
                 "parameters": [
                     {
                         "type": "string",
@@ -1723,18 +3465,14 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "additionalProperties": true
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "additionalProperties": true
                         }
                     }
                 }
@@ -1752,7 +3490,7 @@ const docTemplate = `{
                 "tags": [
                     "groups"
                 ],
-                "summary": "Add member to group",
+                "summary": "Add group member",
                 "parameters": [
                     {
                         "type": "string",
@@ -1762,7 +3500,7 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "User ID",
+                        "description": "User ID Object {user_id: ...}",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -1779,36 +3517,29 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "additionalProperties": true
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "additionalProperties": true
                         }
                     }
                 }
             }
         },
-        "/api/groups/{id}/members/{userId}": {
+        "/api/groups/{id}/members/{user_id}": {
             "delete": {
                 "description": "Remove a user from a group",
-                "consumes": [
-                    "application/json"
-                ],
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "groups"
                 ],
-                "summary": "Remove member from group",
+                "summary": "Remove group member",
                 "parameters": [
                     {
                         "type": "string",
@@ -1830,18 +3561,14 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "additionalProperties": true
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "additionalProperties": true
                         }
                     }
                 }
@@ -1849,26 +3576,42 @@ const docTemplate = `{
         },
         "/api/import/jobs": {
             "get": {
+                "description": "List all import jobs for the current user",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "Import"
+                    "import"
                 ],
-                "summary": "List user's import jobs",
+                "summary": "List import jobs",
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/models.ImportJob"
+                                "$ref": "#/definitions/import_feature.ImportJob"
                             }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
             },
             "post": {
+                "description": "Create a new data import job",
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -1876,27 +3619,27 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Import"
+                    "import"
                 ],
-                "summary": "Create import job with file upload",
+                "summary": "Create import job",
                 "parameters": [
                     {
                         "type": "file",
-                        "description": "File to import",
+                        "description": "Import File",
                         "name": "file",
                         "in": "formData",
                         "required": true
                     },
                     {
                         "type": "string",
-                        "description": "Module name",
+                        "description": "Module Name",
                         "name": "module",
                         "in": "formData",
                         "required": true
                     },
                     {
                         "type": "string",
-                        "description": "Column mapping JSON",
+                        "description": "Column Mapping JSON",
                         "name": "mapping",
                         "in": "formData",
                         "required": true
@@ -1906,7 +3649,28 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/models.ImportJob"
+                            "$ref": "#/definitions/import_feature.ImportJob"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
@@ -1914,13 +3678,14 @@ const docTemplate = `{
         },
         "/api/import/jobs/{id}": {
             "get": {
+                "description": "Get details of an import job",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "Import"
+                    "import"
                 ],
-                "summary": "Get import job status",
+                "summary": "Get import job",
                 "parameters": [
                     {
                         "type": "string",
@@ -1934,7 +3699,14 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.ImportJob"
+                            "$ref": "#/definitions/import_feature.ImportJob"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
@@ -1942,8 +3714,12 @@ const docTemplate = `{
         },
         "/api/import/jobs/{id}/execute": {
             "post": {
+                "description": "Start processing an import job",
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
-                    "Import"
+                    "import"
                 ],
                 "summary": "Execute import job",
                 "parameters": [
@@ -1957,13 +3733,25 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK"
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
                     }
                 }
             }
         },
-        "/api/import/preview": {
+        "/api/import/upload": {
             "post": {
+                "description": "Upload a CSV/Excel file and preview its content",
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -1971,20 +3759,20 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Import"
+                    "import"
                 ],
-                "summary": "Upload file and preview import data",
+                "summary": "Upload import file",
                 "parameters": [
                     {
                         "type": "file",
-                        "description": "File to import (CSV or Excel)",
+                        "description": "Import File",
                         "name": "file",
                         "in": "formData",
                         "required": true
                     },
                     {
                         "type": "string",
-                        "description": "Module name",
+                        "description": "Module Name",
                         "name": "module",
                         "in": "formData",
                         "required": true
@@ -1994,7 +3782,22 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.ImportPreview"
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
@@ -2020,7 +3823,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/controllers.LoginRequest"
+                            "$ref": "#/definitions/auth.LoginRequest"
                         }
                     }
                 ],
@@ -2028,7 +3831,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/controllers.AuthResponse"
+                            "$ref": "#/definitions/auth.AuthResponse"
                         }
                     },
                     "400": {
@@ -2048,28 +3851,7 @@ const docTemplate = `{
         },
         "/api/modules": {
             "get": {
-                "description": "Get a list of all defined modules",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "modules"
-                ],
-                "summary": "List all modules",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.Module"
-                            }
-                        }
-                    }
-                }
-            },
-            "post": {
-                "description": "Create a dynamic module with fields",
+                "description": "List all available modules, optionally filtered by product",
                 "consumes": [
                     "application/json"
                 ],
@@ -2079,72 +3861,76 @@ const docTemplate = `{
                 "tags": [
                     "modules"
                 ],
-                "summary": "Create a new module definition",
+                "summary": "List all modules",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by product",
+                        "name": "product",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of modules",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/module.Module"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to fetch modules",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Create a new module definition",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "modules"
+                ],
+                "summary": "Create a new module",
                 "parameters": [
                     {
                         "description": "Module Definition",
-                        "name": "input",
+                        "name": "module",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.Module"
+                            "$ref": "#/definitions/module.Module"
                         }
                     }
                 ],
                 "responses": {
                     "201": {
-                        "description": "Module created",
+                        "description": "Module created successfully",
                         "schema": {
-                            "type": "string"
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     },
                     "400": {
-                        "description": "Invalid request",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/modules/{module}/records/{id}": {
-            "get": {
-                "description": "Get a record by ID",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "records"
-                ],
-                "summary": "Get a single record",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Module Name",
-                        "name": "module",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Record ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
+                        "description": "Invalid request body or validation error",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "type": "string"
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     }
                 }
@@ -2152,7 +3938,10 @@ const docTemplate = `{
         },
         "/api/modules/{name}": {
             "get": {
-                "description": "Get specific module definition including fields",
+                "description": "Get a module definition by its name",
+                "consumes": [
+                    "application/json"
+                ],
                 "produces": [
                     "application/json"
                 ],
@@ -2171,21 +3960,24 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Module details",
                         "schema": {
-                            "$ref": "#/definitions/models.Module"
+                            "$ref": "#/definitions/module.Module"
                         }
                     },
                     "404": {
                         "description": "Module not found",
                         "schema": {
-                            "type": "string"
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     }
                 }
             },
             "put": {
-                "description": "Update schema for a module",
+                "description": "Update an existing module definition",
                 "consumes": [
                     "application/json"
                 ],
@@ -2195,7 +3987,7 @@ const docTemplate = `{
                 "tags": [
                     "modules"
                 ],
-                "summary": "Update a module definition",
+                "summary": "Update a module",
                 "parameters": [
                     {
                         "type": "string",
@@ -2206,17 +3998,17 @@ const docTemplate = `{
                     },
                     {
                         "description": "Module Definition",
-                        "name": "input",
+                        "name": "module",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.Module"
+                            "$ref": "#/definitions/module.Module"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Module updated successfully",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -2225,15 +4017,27 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Invalid input",
+                        "description": "Invalid request body",
                         "schema": {
-                            "type": "string"
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     }
                 }
             },
             "delete": {
-                "description": "Delete a module and its definition",
+                "description": "Delete a module definition",
                 "consumes": [
                     "application/json"
                 ],
@@ -2255,7 +4059,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Module deleted successfully",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -2263,221 +4067,13 @@ const docTemplate = `{
                             }
                         }
                     },
-                    "400": {
-                        "description": "Invalid input",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/modules/{name}/records": {
-            "get": {
-                "description": "Get records with pagination and filters",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "records"
-                ],
-                "summary": "List records from a module",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Module Name",
-                        "name": "name",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Page number (default 1)",
-                        "name": "page",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Records per page (default 10)",
-                        "name": "limit",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "type": "object",
-                                "additionalProperties": true
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid input",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "description": "Insert data into a dynamic module with validation",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "records"
-                ],
-                "summary": "Create a record in a module",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Module Name",
-                        "name": "name",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Record Data",
-                        "name": "input",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid request",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "404": {
-                        "description": "Module not found",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/modules/{name}/records/{id}": {
-            "put": {
-                "description": "Update a record in a module",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "records"
-                ],
-                "summary": "Update a record",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Module Name",
-                        "name": "name",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Record ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Record Data",
-                        "name": "input",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
+                    "500": {
+                        "description": "Internal server error",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
                                 "type": "string"
                             }
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid input",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "description": "Delete a record from a module",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "records"
-                ],
-                "summary": "Delete a record",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Module Name",
-                        "name": "name",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Record ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid input",
-                        "schema": {
-                            "type": "string"
                         }
                     }
                 }
@@ -2485,15 +4081,12 @@ const docTemplate = `{
         },
         "/api/notifications": {
             "get": {
-                "description": "Get a list of notifications for the current user",
-                "consumes": [
-                    "application/json"
-                ],
+                "description": "List user notifications with pagination",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "Notifications"
+                    "notifications"
                 ],
                 "summary": "List notifications",
                 "parameters": [
@@ -2522,34 +4115,27 @@ const docTemplate = `{
                         "description": "Unauthorized",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "additionalProperties": true
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "additionalProperties": true
                         }
                     }
                 }
             }
         },
-        "/api/notifications/mark-all-read": {
-            "post": {
-                "description": "Mark all notifications for the current user as read",
-                "consumes": [
-                    "application/json"
-                ],
+        "/api/notifications/read-all": {
+            "put": {
+                "description": "Mark all notifications as read for the user",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "Notifications"
+                    "notifications"
                 ],
                 "summary": "Mark all as read",
                 "responses": {
@@ -2557,27 +4143,21 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "additionalProperties": true
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "additionalProperties": true
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "additionalProperties": true
                         }
                     }
                 }
@@ -2585,15 +4165,12 @@ const docTemplate = `{
         },
         "/api/notifications/unread-count": {
             "get": {
-                "description": "Get the number of unread notifications",
-                "consumes": [
-                    "application/json"
-                ],
+                "description": "Get the count of unread notifications",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "Notifications"
+                    "notifications"
                 ],
                 "summary": "Get unread count",
                 "responses": {
@@ -2608,18 +4185,14 @@ const docTemplate = `{
                         "description": "Unauthorized",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "additionalProperties": true
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "additionalProperties": true
                         }
                     }
                 }
@@ -2628,14 +4201,11 @@ const docTemplate = `{
         "/api/notifications/{id}/read": {
             "put": {
                 "description": "Mark a specific notification as read",
-                "consumes": [
-                    "application/json"
-                ],
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "Notifications"
+                    "notifications"
                 ],
                 "summary": "Mark notification as read",
                 "parameters": [
@@ -2652,54 +4222,29 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "additionalProperties": true
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "additionalProperties": true
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "additionalProperties": true
                         }
                     }
                 }
             }
         },
-        "/api/reports": {
-            "get": {
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Reports"
-                ],
-                "summary": "List all reports",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.Report"
-                            }
-                        }
-                    }
-                }
-            },
+        "/api/permissions": {
             "post": {
+                "description": "Create a new permission assignment for a role",
                 "consumes": [
                     "application/json"
                 ],
@@ -2707,17 +4252,17 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Reports"
+                    "permissions"
                 ],
-                "summary": "Create a new report",
+                "summary": "Create a new permission",
                 "parameters": [
                     {
-                        "description": "Report Definition",
-                        "name": "report",
+                        "description": "Permission object",
+                        "name": "permission",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.Report"
+                            "$ref": "#/definitions/permission.Permission"
                         }
                     }
                 ],
@@ -2725,14 +4270,27 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/models.Report"
+                            "$ref": "#/definitions/permission.Permission"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to create permission",
+                        "schema": {
+                            "type": "string"
                         }
                     }
                 }
             }
         },
-        "/api/reports/cross-module": {
+        "/api/permissions/assign": {
             "post": {
+                "description": "Assign a resource to a role with specific actions and conditions",
                 "consumes": [
                     "application/json"
                 ],
@@ -2740,17 +4298,17 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Reports"
+                    "permissions"
                 ],
-                "summary": "Run a cross-module report",
+                "summary": "Assign a resource to a role",
                 "parameters": [
                     {
-                        "description": "Cross Module Configuration",
+                        "description": "Assignment request",
                         "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.CrossModuleConfig"
+                            "$ref": "#/definitions/permission.AssignResourceRequest"
                         }
                     }
                 ],
@@ -2758,74 +4316,49 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "type": "object"
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
                             }
                         }
-                    }
-                }
-            }
-        },
-        "/api/reports/export-excel": {
-            "post": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                ],
-                "tags": [
-                    "Reports"
-                ],
-                "summary": "Export data to Excel",
-                "parameters": [
-                    {
-                        "description": "Export Request",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
+                    },
+                    "400": {
+                        "description": "Invalid request body",
                         "schema": {
-                            "type": "object"
+                            "type": "string"
                         }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
+                    },
+                    "500": {
+                        "description": "Failed to assign resource",
                         "schema": {
-                            "type": "file"
+                            "type": "string"
                         }
                     }
                 }
             }
         },
-        "/api/reports/pivot": {
-            "post": {
-                "consumes": [
-                    "application/json"
-                ],
+        "/api/permissions/resource": {
+            "get": {
+                "description": "Get all permissions for a specific resource",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "Reports"
+                    "permissions"
                 ],
-                "summary": "Run a pivot table report",
+                "summary": "Get permissions for a resource",
                 "parameters": [
                     {
-                        "description": "Pivot Configuration",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/models.PivotConfig"
-                        }
+                        "type": "string",
+                        "description": "Resource type",
+                        "name": "type",
+                        "in": "query",
+                        "required": true
                     },
                     {
                         "type": "string",
-                        "description": "Module Name",
-                        "name": "module",
+                        "description": "Resource ID",
+                        "name": "id",
                         "in": "query",
                         "required": true
                     }
@@ -2834,7 +4367,716 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "object"
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/permission.Permission"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to get permissions",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/permissions/revoke": {
+            "post": {
+                "description": "Remove a resource assignment from a role",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "permissions"
+                ],
+                "summary": "Revoke a resource from a role",
+                "parameters": [
+                    {
+                        "description": "Revoke request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/permission.RevokeResourceRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to revoke resource",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/permissions/role/{roleId}": {
+            "get": {
+                "description": "Get all permissions assigned to a specific role",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "permissions"
+                ],
+                "summary": "Get permissions for a role",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Role ID",
+                        "name": "roleId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/permission.Permission"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to get permissions",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/permissions/user/{userId}/effective": {
+            "get": {
+                "description": "Get aggregated permissions from all user's roles",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "permissions"
+                ],
+                "summary": "Get effective permissions for a user",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User ID",
+                        "name": "userId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "$ref": "#/definitions/permission.Permission"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid user ID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to get permissions",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/permissions/{id}": {
+            "put": {
+                "description": "Update an existing permission",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "permissions"
+                ],
+                "summary": "Update a permission",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Permission ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Permission object",
+                        "name": "permission",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/permission.Permission"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to update permission",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Delete a permission",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "permissions"
+                ],
+                "summary": "Delete a permission",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Permission ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to delete permission",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/records/{name}": {
+            "get": {
+                "description": "List records in a module with filtering, sorting, and pagination",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "records"
+                ],
+                "summary": "List records",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Module Name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort field",
+                        "name": "sort_by",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort order (asc/desc)",
+                        "name": "sort_order",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Create a new record in a module",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "records"
+                ],
+                "summary": "Create record",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Module Name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Record Data",
+                        "name": "record",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/records/{name}/{id}": {
+            "get": {
+                "description": "Get a record by ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "records"
+                ],
+                "summary": "Get record",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Module Name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Record ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Update an existing record",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "records"
+                ],
+                "summary": "Update record",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Module Name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Record ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Record Data",
+                        "name": "record",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Delete a record by ID",
+                "tags": [
+                    "records"
+                ],
+                "summary": "Delete record",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Module Name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Record ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/reports": {
+            "get": {
+                "description": "List all reports",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "reports"
+                ],
+                "summary": "List reports",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/report.Report"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Create a new report configuration",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "reports"
+                ],
+                "summary": "Create report",
+                "parameters": [
+                    {
+                        "description": "Report Config",
+                        "name": "report",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/report.Report"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/report.Report"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/reports/cross-module": {
+            "post": {
+                "description": "Execute a report spanning multiple modules",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "reports"
+                ],
+                "summary": "Run cross-module report",
+                "parameters": [
+                    {
+                        "description": "Cross-Module Configuration",
+                        "name": "config",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/report.CrossModuleConfig"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/reports/export/excel": {
+            "post": {
+                "description": "Export raw data to an Excel file",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                ],
+                "tags": [
+                    "reports"
+                ],
+                "summary": "Export to Excel",
+                "parameters": [
+                    {
+                        "description": "Excel Export Request (data, columns)",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Excel file",
+                        "schema": {
+                            "type": "file"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/reports/pivot": {
+            "post": {
+                "description": "Execute a pivot table report",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "reports"
+                ],
+                "summary": "Run pivot report",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Module Name",
+                        "name": "module",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "description": "Pivot Configuration",
+                        "name": "config",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/report.PivotConfig"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
@@ -2842,13 +5084,14 @@ const docTemplate = `{
         },
         "/api/reports/{id}": {
             "get": {
+                "description": "Get a report by ID",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "Reports"
+                    "reports"
                 ],
-                "summary": "Get a report by ID",
+                "summary": "Get report",
                 "parameters": [
                     {
                         "type": "string",
@@ -2862,12 +5105,20 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.Report"
+                            "$ref": "#/definitions/report.Report"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
             },
             "put": {
+                "description": "Update an existing report configuration",
                 "consumes": [
                     "application/json"
                 ],
@@ -2875,9 +5126,9 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Reports"
+                    "reports"
                 ],
-                "summary": "Update a report",
+                "summary": "Update report",
                 "parameters": [
                     {
                         "type": "string",
@@ -2887,12 +5138,12 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "Report Update",
+                        "description": "Report Config",
                         "name": "report",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.Report"
+                            "$ref": "#/definitions/report.Report"
                         }
                     }
                 ],
@@ -2900,16 +5151,31 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.Report"
+                            "$ref": "#/definitions/report.Report"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
             },
             "delete": {
+                "description": "Delete a report by ID",
                 "tags": [
-                    "Reports"
+                    "reports"
                 ],
-                "summary": "Delete a report",
+                "summary": "Delete report",
                 "parameters": [
                     {
                         "type": "string",
@@ -2922,19 +5188,27 @@ const docTemplate = `{
                 "responses": {
                     "204": {
                         "description": "No Content"
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
                     }
                 }
             }
         },
         "/api/reports/{id}/export": {
             "get": {
+                "description": "Export report results to a file (CSV)",
                 "produces": [
                     "text/csv"
                 ],
                 "tags": [
-                    "Reports"
+                    "reports"
                 ],
-                "summary": "Export a report to CSV",
+                "summary": "Export report",
                 "parameters": [
                     {
                         "type": "string",
@@ -2945,30 +5219,38 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Format (default: csv)",
+                        "description": "Export format (default: csv)",
                         "name": "format",
                         "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Report file",
                         "schema": {
                             "type": "file"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
             }
         },
         "/api/reports/{id}/run": {
-            "get": {
+            "post": {
+                "description": "Execute a report and get the results",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "Reports"
+                    "reports"
                 ],
-                "summary": "Run a report and return JSON data",
+                "summary": "Run report",
                 "parameters": [
                     {
                         "type": "string",
@@ -2984,16 +5266,29 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "type": "object"
+                                "type": "object",
+                                "additionalProperties": true
                             }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
             }
         },
-        "/api/search": {
+        "/api/resources": {
             "get": {
-                "description": "Search across modules, pages, and records",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get all resources for the current tenant (admin only)",
                 "consumes": [
                     "application/json"
                 ],
@@ -3001,14 +5296,150 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "search"
+                    "Resources"
                 ],
-                "summary": "Global Search",
+                "summary": "List all resources",
+                "responses": {
+                    "200": {
+                        "description": "List of all resources",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/resource.Resource"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/resources/sidebar": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get resources filtered for sidebar display, optionally filtered by product (crm, erp, analytics)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Resources"
+                ],
+                "summary": "Get sidebar resources",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Search Query",
-                        "name": "q",
+                        "default": "crm",
+                        "description": "Product filter (e.g., crm, erp, analytics)",
+                        "name": "product",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of sidebar resources grouped by category",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/resource.Resource"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/saved-filters": {
+            "post": {
+                "description": "Save a new filter configuration",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "saved_filters"
+                ],
+                "summary": "Create saved filter",
+                "parameters": [
+                    {
+                        "description": "Filter Details",
+                        "name": "filter",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/saved_filter.SavedFilter"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/saved_filter.SavedFilter"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/saved-filters/public": {
+            "get": {
+                "description": "List shared/public filters for a module",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "saved_filters"
+                ],
+                "summary": "List public filters",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Module Name",
+                        "name": "module",
                         "in": "query",
                         "required": true
                     }
@@ -3019,38 +5450,65 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/service.SearchResult"
+                                "$ref": "#/definitions/saved_filter.SavedFilter"
                             }
                         }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
                     }
                 }
             }
         },
-        "/api/sla-metrics/overview": {
+        "/api/saved-filters/user": {
             "get": {
-                "description": "Retrieve aggregated SLA performance metrics including compliance rate, averages, etc.",
-                "consumes": [
-                    "application/json"
-                ],
+                "description": "List stored filters for the current user and module",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "SLA Metrics"
+                    "saved_filters"
                 ],
-                "summary": "Get SLA overview metrics",
+                "summary": "List user filters",
                 "parameters": [
                     {
-                        "type": "integer",
-                        "default": 30,
-                        "description": "Number of days to analyze",
-                        "name": "days",
-                        "in": "query"
+                        "type": "string",
+                        "description": "Module Name",
+                        "name": "module",
+                        "in": "query",
+                        "required": true
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/saved_filter.SavedFilter"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -3066,49 +5524,43 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/sla-metrics/trends": {
+        "/api/saved-filters/{id}": {
             "get": {
-                "description": "Retrieve historical SLA performance data for trend analysis",
-                "consumes": [
-                    "application/json"
-                ],
+                "description": "Get a saved filter by ID",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "SLA Metrics"
+                    "saved_filters"
                 ],
-                "summary": "Get SLA performance trends",
+                "summary": "Get saved filter",
                 "parameters": [
                     {
-                        "type": "integer",
-                        "default": 30,
-                        "description": "Number of days to analyze",
-                        "name": "days",
-                        "in": "query"
+                        "type": "string",
+                        "description": "Filter ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/saved_filter.SavedFilter"
                         }
                     },
-                    "500": {
-                        "description": "Internal Server Error",
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
                         }
                     }
                 }
-            }
-        },
-        "/api/sla-metrics/violations": {
-            "get": {
-                "description": "Retrieve list of all tickets currently in SLA breach status",
+            },
+            "put": {
+                "description": "Update an existing saved filter",
                 "consumes": [
                     "application/json"
                 ],
@@ -3116,12 +5568,71 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "SLA Metrics"
+                    "saved_filters"
                 ],
-                "summary": "Get active SLA violations",
+                "summary": "Update saved filter",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Filter Details",
+                        "name": "filter",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/saved_filter.SavedFilter"
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/saved_filter.SavedFilter"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Delete a saved filter by ID",
+                "tags": [
+                    "saved_filters"
+                ],
+                "summary": "Delete saved filter",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -3137,14 +5648,287 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/sla-policies": {
+        "/api/search": {
             "get": {
-                "description": "Get all SLA policies",
+                "description": "Search across all modules",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "sla-policies"
+                    "search"
+                ],
+                "summary": "Global search",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Search query",
+                        "name": "q",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/settings/email": {
+            "get": {
+                "description": "Get the current email settings",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "settings"
+                ],
+                "summary": "Get email configuration",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/settings.EmailConfig"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Update the email settings",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "settings"
+                ],
+                "summary": "Update email configuration",
+                "parameters": [
+                    {
+                        "description": "Email Configuration",
+                        "name": "config",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/settings.EmailConfig"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/settings/file-sharing": {
+            "get": {
+                "description": "Get the file sharing settings",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "settings"
+                ],
+                "summary": "Get file sharing configuration",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/settings.FileSharingConfig"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Update the file sharing settings",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "settings"
+                ],
+                "summary": "Update file sharing configuration",
+                "parameters": [
+                    {
+                        "description": "File Sharing Configuration",
+                        "name": "config",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/settings.FileSharingConfig"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/settings/general": {
+            "get": {
+                "description": "Get the general system settings",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "settings"
+                ],
+                "summary": "Get general configuration",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/settings.GeneralConfig"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Update the general system settings",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "settings"
+                ],
+                "summary": "Update general configuration",
+                "parameters": [
+                    {
+                        "description": "General Configuration",
+                        "name": "config",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/settings.GeneralConfig"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/sla/policies": {
+            "get": {
+                "description": "List all SLA policies",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sla"
                 ],
                 "summary": "List SLA policies",
                 "responses": {
@@ -3153,8 +5937,15 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/models.SLAPolicy"
+                                "$ref": "#/definitions/ticket.SLAPolicy"
                             }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
@@ -3168,17 +5959,17 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "sla-policies"
+                    "sla"
                 ],
                 "summary": "Create SLA policy",
                 "parameters": [
                     {
-                        "description": "SLA Policy Data",
-                        "name": "input",
+                        "description": "SLA Policy",
+                        "name": "policy",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.SLAPolicy"
+                            "$ref": "#/definitions/ticket.SLAPolicy"
                         }
                     }
                 ],
@@ -3191,22 +5982,23 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Invalid request",
+                        "description": "Bad Request",
                         "schema": {
-                            "type": "string"
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
             }
         },
-        "/api/sla-policies/{id}": {
+        "/api/sla/policies/{id}": {
             "get": {
                 "description": "Get an SLA policy by ID",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "sla-policies"
+                    "sla"
                 ],
                 "summary": "Get SLA policy",
                 "parameters": [
@@ -3222,19 +6014,20 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.SLAPolicy"
+                            "$ref": "#/definitions/ticket.SLAPolicy"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "type": "string"
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
             },
             "put": {
-                "description": "Update an SLA policy by ID",
+                "description": "Update an existing SLA policy",
                 "consumes": [
                     "application/json"
                 ],
@@ -3242,7 +6035,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "sla-policies"
+                    "sla"
                 ],
                 "summary": "Update SLA policy",
                 "parameters": [
@@ -3254,8 +6047,8 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "Update Data",
-                        "name": "input",
+                        "description": "Policy Updates",
+                        "name": "updates",
                         "in": "body",
                         "required": true,
                         "schema": {
@@ -3269,26 +6062,22 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "additionalProperties": true
                         }
                     },
                     "400": {
-                        "description": "Invalid input",
+                        "description": "Bad Request",
                         "schema": {
-                            "type": "string"
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
             },
             "delete": {
                 "description": "Delete an SLA policy by ID",
-                "produces": [
-                    "application/json"
-                ],
                 "tags": [
-                    "sla-policies"
+                    "sla"
                 ],
                 "summary": "Delete SLA policy",
                 "parameters": [
@@ -3305,15 +6094,14 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "additionalProperties": true
                         }
                     },
-                    "400": {
-                        "description": "Invalid input",
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
-                            "type": "string"
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
@@ -3321,28 +6109,35 @@ const docTemplate = `{
         },
         "/api/sync/settings": {
             "get": {
-                "description": "Get a list of all data sync settings",
+                "description": "List all synchronization configurations",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "sync"
                 ],
-                "summary": "List all sync settings",
+                "summary": "List sync settings",
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/models.SyncSetting"
+                                "$ref": "#/definitions/sync.SyncSetting"
                             }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
             },
             "post": {
-                "description": "Register a new external DB sync setting",
+                "description": "Create a new synchronization configuration",
                 "consumes": [
                     "application/json"
                 ],
@@ -3352,21 +6147,27 @@ const docTemplate = `{
                 "tags": [
                     "sync"
                 ],
-                "summary": "Create a new sync setting",
+                "summary": "Create sync setting",
                 "parameters": [
                     {
-                        "description": "Sync Setting Data",
-                        "name": "input",
+                        "description": "Sync Setting",
+                        "name": "setting",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.SyncSetting"
+                            "$ref": "#/definitions/sync.SyncSetting"
                         }
                     }
                 ],
                 "responses": {
                     "201": {
                         "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/sync.SyncSetting"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -3377,18 +6178,18 @@ const docTemplate = `{
         },
         "/api/sync/settings/{id}": {
             "get": {
-                "description": "Get a sync setting by ID",
+                "description": "Get a sync configuration by ID",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "sync"
                 ],
-                "summary": "Get a sync setting",
+                "summary": "Get sync setting",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Sync Setting ID",
+                        "description": "Setting ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -3398,13 +6199,20 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.SyncSetting"
+                            "$ref": "#/definitions/sync.SyncSetting"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
             },
             "put": {
-                "description": "Update a sync setting by ID",
+                "description": "Update an existing sync configuration",
                 "consumes": [
                     "application/json"
                 ],
@@ -3414,18 +6222,18 @@ const docTemplate = `{
                 "tags": [
                     "sync"
                 ],
-                "summary": "Update a sync setting",
+                "summary": "Update sync setting",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Sync Setting ID",
+                        "description": "Setting ID",
                         "name": "id",
                         "in": "path",
                         "required": true
                     },
                     {
-                        "description": "Update Data",
-                        "name": "input",
+                        "description": "Sync Setting Updates",
+                        "name": "setting",
                         "in": "body",
                         "required": true,
                         "schema": {
@@ -3439,26 +6247,28 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
             },
             "delete": {
-                "description": "Delete a sync setting by ID",
-                "produces": [
-                    "application/json"
-                ],
+                "description": "Delete a sync configuration by ID",
                 "tags": [
                     "sync"
                 ],
-                "summary": "Delete a sync setting",
+                "summary": "Delete sync setting",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Sync Setting ID",
+                        "description": "Setting ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -3469,9 +6279,14 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
@@ -3479,7 +6294,7 @@ const docTemplate = `{
         },
         "/api/sync/settings/{id}/logs": {
             "get": {
-                "description": "Get history of sync jobs for a setting",
+                "description": "List logs for a specific sync setting",
                 "produces": [
                     "application/json"
                 ],
@@ -3490,7 +6305,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Sync Setting ID",
+                        "description": "Setting ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -3502,8 +6317,16 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/models.SyncLog"
+                                "type": "object",
+                                "additionalProperties": true
                             }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
@@ -3511,18 +6334,18 @@ const docTemplate = `{
         },
         "/api/sync/settings/{id}/run": {
             "post": {
-                "description": "Trigger a sync job manually for a setting",
+                "description": "Manually trigger a synchronization job",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "sync"
                 ],
-                "summary": "Run sync manually",
+                "summary": "Run sync",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Sync Setting ID",
+                        "description": "Setting ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -3533,9 +6356,14 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
@@ -3543,10 +6371,7 @@ const docTemplate = `{
         },
         "/api/tickets": {
             "get": {
-                "description": "Get tickets with filtering and pagination",
-                "consumes": [
-                    "application/json"
-                ],
+                "description": "List tickets with filtering and pagination",
                 "produces": [
                     "application/json"
                 ],
@@ -3557,13 +6382,13 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "Page number (default 1)",
+                        "description": "Page number",
                         "name": "page",
                         "in": "query"
                     },
                     {
                         "type": "integer",
-                        "description": "Records per page (default 10)",
+                        "description": "Items per page",
                         "name": "limit",
                         "in": "query"
                     },
@@ -3587,7 +6412,13 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Search by ticket number, subject, or customer",
+                        "description": "Filter by assignee",
+                        "name": "assigned_to",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search query",
                         "name": "search",
                         "in": "query"
                     }
@@ -3596,16 +6427,15 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.Ticket"
-                            }
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
-                    "400": {
-                        "description": "Invalid input",
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
-                            "type": "string"
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
@@ -3621,15 +6451,15 @@ const docTemplate = `{
                 "tags": [
                     "tickets"
                 ],
-                "summary": "Create a new ticket",
+                "summary": "Create ticket",
                 "parameters": [
                     {
-                        "description": "Ticket Data",
-                        "name": "input",
+                        "description": "Ticket Details",
+                        "name": "ticket",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.Ticket"
+                            "$ref": "#/definitions/ticket.Ticket"
                         }
                     }
                 ],
@@ -3642,9 +6472,17 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Invalid request",
+                        "description": "Bad Request",
                         "schema": {
-                            "type": "string"
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
@@ -3652,7 +6490,7 @@ const docTemplate = `{
         },
         "/api/tickets/customer/{customerId}": {
             "get": {
-                "description": "Get all tickets for a specific customer",
+                "description": "List tickets for a specific customer",
                 "produces": [
                     "application/json"
                 ],
@@ -3670,13 +6508,13 @@ const docTemplate = `{
                     },
                     {
                         "type": "integer",
-                        "description": "Page number (default 1)",
+                        "description": "Page number",
                         "name": "page",
                         "in": "query"
                     },
                     {
                         "type": "integer",
-                        "description": "Records per page (default 10)",
+                        "description": "Items per page",
                         "name": "limit",
                         "in": "query"
                     }
@@ -3685,24 +6523,30 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.Ticket"
-                            }
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "400": {
-                        "description": "Invalid input",
+                        "description": "Bad Request",
                         "schema": {
-                            "type": "string"
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
             }
         },
-        "/api/tickets/my": {
+        "/api/tickets/my-tickets": {
             "get": {
-                "description": "Get tickets assigned to the current user",
+                "description": "List tickets assigned to the current user",
                 "produces": [
                     "application/json"
                 ],
@@ -3713,13 +6557,13 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "Page number (default 1)",
+                        "description": "Page number",
                         "name": "page",
                         "in": "query"
                     },
                     {
                         "type": "integer",
-                        "description": "Records per page (default 10)",
+                        "description": "Items per page",
                         "name": "limit",
                         "in": "query"
                     }
@@ -3728,16 +6572,15 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.Ticket"
-                            }
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
-                    "400": {
-                        "description": "Invalid input",
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
-                            "type": "string"
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
@@ -3752,7 +6595,7 @@ const docTemplate = `{
                 "tags": [
                     "tickets"
                 ],
-                "summary": "Get a ticket",
+                "summary": "Get ticket",
                 "parameters": [
                     {
                         "type": "string",
@@ -3766,19 +6609,20 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.Ticket"
+                            "$ref": "#/definitions/ticket.Ticket"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "type": "string"
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
             },
             "put": {
-                "description": "Update a ticket by ID",
+                "description": "Update an existing ticket",
                 "consumes": [
                     "application/json"
                 ],
@@ -3788,7 +6632,7 @@ const docTemplate = `{
                 "tags": [
                     "tickets"
                 ],
-                "summary": "Update a ticket",
+                "summary": "Update ticket",
                 "parameters": [
                     {
                         "type": "string",
@@ -3798,8 +6642,8 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "Update Data",
-                        "name": "input",
+                        "description": "Ticket Updates",
+                        "name": "updates",
                         "in": "body",
                         "required": true,
                         "schema": {
@@ -3813,28 +6657,24 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "additionalProperties": true
                         }
                     },
                     "400": {
-                        "description": "Invalid input",
+                        "description": "Bad Request",
                         "schema": {
-                            "type": "string"
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
             },
             "delete": {
                 "description": "Delete a ticket by ID",
-                "produces": [
-                    "application/json"
-                ],
                 "tags": [
                     "tickets"
                 ],
-                "summary": "Delete a ticket",
+                "summary": "Delete ticket",
                 "parameters": [
                     {
                         "type": "string",
@@ -3849,22 +6689,21 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "additionalProperties": true
                         }
                     },
-                    "400": {
-                        "description": "Invalid input",
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
-                            "type": "string"
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
             }
         },
         "/api/tickets/{id}/assign": {
-            "patch": {
+            "put": {
                 "description": "Assign a ticket to a user",
                 "consumes": [
                     "application/json"
@@ -3885,13 +6724,15 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "Assignment Data",
-                        "name": "input",
+                        "description": "Assignment {assigned_to}",
+                        "name": "body",
                         "in": "body",
                         "required": true,
                         "schema": {
                             "type": "object",
-                            "additionalProperties": true
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     }
                 ],
@@ -3900,15 +6741,14 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "additionalProperties": true
                         }
                     },
                     "400": {
-                        "description": "Invalid input",
+                        "description": "Bad Request",
                         "schema": {
-                            "type": "string"
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
@@ -3916,101 +6756,14 @@ const docTemplate = `{
         },
         "/api/tickets/{id}/comments": {
             "get": {
-                "description": "Get all comments for a ticket",
+                "description": "List comments for a ticket",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "tickets"
                 ],
-                "summary": "List ticket comments",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Ticket ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.TicketComment"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid input",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "description": "Add a comment or note to a ticket",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "tickets"
-                ],
-                "summary": "Add comment to ticket",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Ticket ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Comment Data",
-                        "name": "input",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/models.TicketComment"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid input",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/tickets/{id}/sla-status": {
-            "get": {
-                "description": "Retrieve detailed SLA status information for a specific ticket",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "SLA Metrics"
-                ],
-                "summary": "Get ticket SLA status",
+                "summary": "List comments",
                 "parameters": [
                     {
                         "type": "string",
@@ -4034,16 +6787,49 @@ const docTemplate = `{
                             "type": "object",
                             "additionalProperties": true
                         }
+                    }
+                }
+            },
+            "post": {
+                "description": "Add a comment to a ticket",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tickets"
+                ],
+                "summary": "Add comment",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Ticket ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
                     },
-                    "404": {
-                        "description": "Not Found",
+                    {
+                        "description": "Comment Details",
+                        "name": "comment",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/ticket.TicketComment"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
                         }
                     },
-                    "500": {
-                        "description": "Internal Server Error",
+                    "400": {
+                        "description": "Bad Request",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -4053,8 +6839,8 @@ const docTemplate = `{
             }
         },
         "/api/tickets/{id}/status": {
-            "patch": {
-                "description": "Update the status of a ticket",
+            "put": {
+                "description": "Update the status of a ticket with a comment",
                 "consumes": [
                     "application/json"
                 ],
@@ -4074,13 +6860,15 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "Status Data",
-                        "name": "input",
+                        "description": "Status Update {status, comment}",
+                        "name": "body",
                         "in": "body",
                         "required": true,
                         "schema": {
                             "type": "object",
-                            "additionalProperties": true
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     }
                 ],
@@ -4089,15 +6877,14 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "additionalProperties": true
                         }
                     },
                     "400": {
-                        "description": "Invalid input",
+                        "description": "Bad Request",
                         "schema": {
-                            "type": "string"
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
@@ -4105,28 +6892,35 @@ const docTemplate = `{
         },
         "/api/webhooks": {
             "get": {
-                "description": "Get a list of all webhooks",
+                "description": "List all webhooks",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "webhooks"
                 ],
-                "summary": "List all webhooks",
+                "summary": "List webhooks",
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/models.Webhook"
+                                "$ref": "#/definitions/webhook.Webhook"
                             }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
             },
             "post": {
-                "description": "Register a new webhook url",
+                "description": "Create a new webhook",
                 "consumes": [
                     "application/json"
                 ],
@@ -4136,15 +6930,15 @@ const docTemplate = `{
                 "tags": [
                     "webhooks"
                 ],
-                "summary": "Create a new webhook",
+                "summary": "Create webhook",
                 "parameters": [
                     {
-                        "description": "Webhook Data",
-                        "name": "input",
+                        "description": "Webhook Details",
+                        "name": "webhook",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.Webhook"
+                            "$ref": "#/definitions/webhook.Webhook"
                         }
                     }
                 ],
@@ -4157,9 +6951,10 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Invalid request",
+                        "description": "Bad Request",
                         "schema": {
-                            "type": "string"
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
@@ -4174,7 +6969,7 @@ const docTemplate = `{
                 "tags": [
                     "webhooks"
                 ],
-                "summary": "Get a webhook",
+                "summary": "Get webhook",
                 "parameters": [
                     {
                         "type": "string",
@@ -4188,19 +6983,20 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.Webhook"
+                            "$ref": "#/definitions/webhook.Webhook"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "type": "string"
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
             },
             "put": {
-                "description": "Update a webhook by ID",
+                "description": "Update an existing webhook",
                 "consumes": [
                     "application/json"
                 ],
@@ -4210,7 +7006,7 @@ const docTemplate = `{
                 "tags": [
                     "webhooks"
                 ],
-                "summary": "Update a webhook",
+                "summary": "Update webhook",
                 "parameters": [
                     {
                         "type": "string",
@@ -4220,8 +7016,8 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "Update Data",
-                        "name": "input",
+                        "description": "Webhook Updates",
+                        "name": "updates",
                         "in": "body",
                         "required": true,
                         "schema": {
@@ -4235,28 +7031,24 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "additionalProperties": true
                         }
                     },
                     "400": {
-                        "description": "Invalid input",
+                        "description": "Bad Request",
                         "schema": {
-                            "type": "string"
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
             },
             "delete": {
                 "description": "Delete a webhook by ID",
-                "produces": [
-                    "application/json"
-                ],
                 "tags": [
                     "webhooks"
                 ],
-                "summary": "Delete a webhook",
+                "summary": "Delete webhook",
                 "parameters": [
                     {
                         "type": "string",
@@ -4271,181 +7063,14 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid input",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/approvals/{module}/{id}/approve": {
-            "post": {
-                "description": "Approve the current step for a record",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "approvals"
-                ],
-                "summary": "Approve a record",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Module Name",
-                        "name": "module",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Record ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Comment",
-                        "name": "input",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/approvals/{module}/{id}/reject": {
-            "post": {
-                "description": "Reject the current step for a record",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "approvals"
-                ],
-                "summary": "Reject a record",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Module Name",
-                        "name": "module",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Record ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Comment",
-                        "name": "input",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/audit-logs": {
-            "get": {
-                "description": "Get audit logs with pagination",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "audit"
-                ],
-                "summary": "List audit logs",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Page number (default 1)",
-                        "name": "page",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Logs per page (default 20)",
-                        "name": "limit",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.AuditLog"
-                            }
+                            "additionalProperties": true
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "type": "string"
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
@@ -4467,123 +7092,6 @@ const docTemplate = `{
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/files/shared": {
-            "get": {
-                "description": "Get all organization-wide shared documents",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "files"
-                ],
-                "summary": "Get shared files",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.File"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/files/{id}": {
-            "delete": {
-                "description": "Delete a file by ID",
-                "tags": [
-                    "files"
-                ],
-                "summary": "Delete a file",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "File ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/files/{id}/download": {
-            "get": {
-                "description": "Download a file by ID",
-                "produces": [
-                    "application/octet-stream"
-                ],
-                "tags": [
-                    "files"
-                ],
-                "summary": "Download a file",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "File ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK"
-                    }
-                }
-            }
-        },
-        "/files/{module}/{recordId}": {
-            "get": {
-                "description": "Get all files attached to a specific record",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "files"
-                ],
-                "summary": "Get files by record",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Module name",
-                        "name": "module",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Record ID",
-                        "name": "recordId",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.File"
-                            }
                         }
                     }
                 }
@@ -4629,7 +7137,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/controllers.RegisterRequest"
+                            "$ref": "#/definitions/auth.RegisterRequest"
                         }
                     }
                 ],
@@ -4674,7 +7182,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/models.Role"
+                                "$ref": "#/definitions/role.Role"
                             }
                         }
                     },
@@ -4705,7 +7213,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.Role"
+                            "$ref": "#/definitions/role.Role"
                         }
                     }
                 ],
@@ -4713,7 +7221,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/models.Role"
+                            "$ref": "#/definitions/role.Role"
                         }
                     },
                     "400": {
@@ -4754,7 +7262,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.Role"
+                            "$ref": "#/definitions/role.Role"
                         }
                     },
                     "404": {
@@ -4797,7 +7305,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.Role"
+                            "$ref": "#/definitions/role.Role"
                         }
                     }
                 ],
@@ -4805,7 +7313,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.Role"
+                            "$ref": "#/definitions/role.Role"
                         }
                     },
                     "400": {
@@ -4855,271 +7363,6 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Bad Request",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/settings/email": {
-            "get": {
-                "description": "Get current SMTP settings",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "settings"
-                ],
-                "summary": "Get Email Configuration",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/models.EmailConfig"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            },
-            "put": {
-                "description": "Update SMTP settings",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "settings"
-                ],
-                "summary": "Update Email Configuration",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/settings/file-sharing": {
-            "get": {
-                "description": "Get current file sharing settings",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "settings"
-                ],
-                "summary": "Get file sharing configuration",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/models.FileSharingConfig"
-                        }
-                    }
-                }
-            },
-            "put": {
-                "description": "Update file sharing settings (admin only)",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "settings"
-                ],
-                "summary": "Update file sharing configuration",
-                "parameters": [
-                    {
-                        "description": "File Sharing Configuration",
-                        "name": "config",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/models.FileSharingConfig"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/settings/general": {
-            "get": {
-                "description": "Get system general settings",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "settings"
-                ],
-                "summary": "Get General Configuration",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/models.GeneralConfig"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            },
-            "put": {
-                "description": "Update system general settings",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "settings"
-                ],
-                "summary": "Update General Configuration",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/upload": {
-            "post": {
-                "description": "Upload a file and get a URL (Metadata stored in DB)",
-                "consumes": [
-                    "multipart/form-data"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "files"
-                ],
-                "summary": "Upload a file",
-                "parameters": [
-                    {
-                        "type": "file",
-                        "description": "File to upload",
-                        "name": "file",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Module name (optional)",
-                        "name": "module_name",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Record ID (optional)",
-                        "name": "record_id",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "boolean",
-                        "description": "Is shared document (optional)",
-                        "name": "is_shared",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "string",
-                        "description": "File description (optional)",
-                        "name": "description",
-                        "in": "formData"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/models.File"
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid input",
                         "schema": {
                             "type": "string"
                         }
@@ -5203,7 +7446,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/controllers.CreateUserRequest"
+                            "$ref": "#/definitions/user.CreateUserRequest"
                         }
                     }
                 ],
@@ -5295,7 +7538,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/controllers.UpdateUserRequest"
+                            "$ref": "#/definitions/user.UpdateUserRequest"
                         }
                     }
                 ],
@@ -5390,7 +7633,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/controllers.UpdateUserRolesRequest"
+                            "$ref": "#/definitions/user.UpdateUserRolesRequest"
                         }
                     }
                 ],
@@ -5446,7 +7689,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/controllers.UpdateUserStatusRequest"
+                            "$ref": "#/definitions/user.UpdateUserStatusRequest"
                         }
                     }
                 ],
@@ -5474,432 +7717,129 @@ const docTemplate = `{
                     }
                 }
             }
-        },
-        "/workflows": {
-            "get": {
-                "description": "List all approval workflows",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "approvals"
-                ],
-                "summary": "List all workflows",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.ApprovalWorkflow"
-                            }
-                        }
-                    }
-                }
-            },
-            "post": {
-                "description": "Create a new approval workflow for a module",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "approvals"
-                ],
-                "summary": "Create approval workflow",
-                "parameters": [
-                    {
-                        "description": "Workflow Input",
-                        "name": "input",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/models.ApprovalWorkflow"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid request body",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "500": {
-                        "description": "Failed to create workflow",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/workflows/module/{moduleId}": {
-            "get": {
-                "description": "Get the active workflow for a specific module",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "approvals"
-                ],
-                "summary": "Get workflow by module",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Module ID (hex)",
-                        "name": "moduleId",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/models.ApprovalWorkflow"
-                        }
-                    },
-                    "404": {
-                        "description": "Workflow not found",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/workflows/{id}": {
-            "get": {
-                "description": "Get a specific workflow by its ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "approvals"
-                ],
-                "summary": "Get workflow by ID",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Workflow ID (hex)",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/models.ApprovalWorkflow"
-                        }
-                    },
-                    "404": {
-                        "description": "Workflow not found",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            },
-            "put": {
-                "description": "Update an existing approval workflow",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "approvals"
-                ],
-                "summary": "Update approval workflow",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Workflow ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Workflow Input",
-                        "name": "input",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/models.ApprovalWorkflow"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid request body",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "500": {
-                        "description": "Failed to update workflow",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "description": "Delete an existing approval workflow",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "approvals"
-                ],
-                "summary": "Delete approval workflow",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Workflow ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "No Content",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "500": {
-                        "description": "Failed to delete workflow",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/ws": {
-            "get": {
-                "description": "WebSocket connection handler",
-                "tags": [
-                    "websocket"
-                ],
-                "summary": "WebSocket Endpoint",
-                "responses": {}
-            }
         }
     },
     "definitions": {
-        "controllers.AuthResponse": {
+        "analytics.DataSource": {
             "type": "object",
             "properties": {
-                "token": {
+                "config": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "created_by": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_active": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "type": {
+                    "description": "\"crm\", \"erp\", \"postgresql\", \"mysql\", \"mongodb\"",
+                    "type": "string"
+                },
+                "updated_at": {
                     "type": "string"
                 }
             }
         },
-        "controllers.CreateUserRequest": {
+        "analytics.Metric": {
             "type": "object",
             "properties": {
-                "email": {
+                "aggregation_type": {
+                    "description": "\"sum\", \"avg\", \"count\", \"min\", \"max\"",
                     "type": "string"
                 },
-                "first_name": {
+                "created_at": {
                     "type": "string"
                 },
-                "last_name": {
+                "created_by": {
                     "type": "string"
                 },
-                "password": {
+                "data_source_id": {
+                    "description": "Reference to DataSource ID (string to support external IDs if needed, but likely ObjectID hex)",
                     "type": "string"
                 },
-                "phone": {
+                "description": {
                     "type": "string"
                 },
-                "reports_to": {
+                "field": {
+                    "description": "Field to aggregate",
                     "type": "string"
                 },
-                "status": {
-                    "type": "string"
+                "filters": {
+                    "type": "object",
+                    "additionalProperties": true
                 },
-                "username": {
-                    "type": "string"
-                }
-            }
-        },
-        "controllers.LoginRequest": {
-            "type": "object",
-            "properties": {
-                "password": {
-                    "type": "string"
-                },
-                "username": {
-                    "type": "string"
-                }
-            }
-        },
-        "controllers.RegisterRequest": {
-            "type": "object",
-            "properties": {
-                "email": {
-                    "type": "string"
-                },
-                "password": {
-                    "type": "string"
-                },
-                "username": {
-                    "type": "string"
-                }
-            }
-        },
-        "controllers.UpdateUserRequest": {
-            "type": "object",
-            "properties": {
-                "email": {
-                    "type": "string"
-                },
-                "first_name": {
-                    "type": "string"
-                },
-                "last_name": {
-                    "type": "string"
-                },
-                "phone": {
-                    "type": "string"
-                },
-                "reports_to": {
-                    "type": "string"
-                },
-                "status": {
-                    "type": "string"
-                },
-                "username": {
-                    "type": "string"
-                }
-            }
-        },
-        "controllers.UpdateUserRolesRequest": {
-            "type": "object",
-            "properties": {
-                "role_ids": {
+                "group_by": {
                     "type": "array",
                     "items": {
                         "type": "string"
                     }
-                }
-            }
-        },
-        "controllers.UpdateUserStatusRequest": {
-            "type": "object",
-            "properties": {
-                "status": {
+                },
+                "id": {
+                    "type": "string"
+                },
+                "module": {
+                    "description": "Table/Module name",
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "updated_at": {
                     "type": "string"
                 }
             }
         },
-        "models.ActionType": {
-            "type": "string",
-            "enum": [
-                "send_email",
-                "create_task",
-                "update_field",
-                "webhook",
-                "run_script",
-                "send_notification",
-                "send_sms",
-                "generate_pdf",
-                "data_sync",
-                "send_report"
-            ],
-            "x-enum-comments": {
-                "ActionCreateTask": "Creates a record in \"tasks\" module",
-                "ActionDataSync": "Trigger data synchronization",
-                "ActionGeneratePDF": "Generate PDF document",
-                "ActionRunScript": "Runs a registered Go script",
-                "ActionSendNotification": "In-app notification",
-                "ActionSendReport": "Send internal report via email",
-                "ActionSendSMS": "Send SMS message",
-                "ActionWebhook": "Custom HTTP trigger"
-            },
-            "x-enum-descriptions": [
-                "",
-                "Creates a record in \"tasks\" module",
-                "",
-                "Custom HTTP trigger",
-                "Runs a registered Go script",
-                "In-app notification",
-                "Send SMS message",
-                "Generate PDF document",
-                "Trigger data synchronization",
-                "Send internal report via email"
-            ],
-            "x-enum-varnames": [
-                "ActionSendEmail",
-                "ActionCreateTask",
-                "ActionUpdateField",
-                "ActionWebhook",
-                "ActionRunScript",
-                "ActionSendNotification",
-                "ActionSendSMS",
-                "ActionGeneratePDF",
-                "ActionDataSync",
-                "ActionSendReport"
-            ]
+        "analytics.MetricDataPoint": {
+            "type": "object",
+            "properties": {
+                "label": {
+                    "type": "string"
+                },
+                "timestamp": {
+                    "type": "string"
+                },
+                "value": {
+                    "type": "number"
+                }
+            }
         },
-        "models.AggregationType": {
-            "type": "string",
-            "enum": [
-                "count",
-                "sum",
-                "avg",
-                "min",
-                "max"
-            ],
-            "x-enum-varnames": [
-                "AggregationTypeCount",
-                "AggregationTypeSum",
-                "AggregationTypeAvg",
-                "AggregationTypeMin",
-                "AggregationTypeMax"
-            ]
+        "analytics.MetricResult": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "description": "Raw data if needed",
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": true
+                    }
+                },
+                "metric_id": {
+                    "type": "string"
+                },
+                "timestamp": {
+                    "type": "string"
+                },
+                "value": {
+                    "description": "Single value or array depending on grouping"
+                }
+            }
         },
-        "models.ApprovalStep": {
+        "approval.ApprovalStep": {
             "type": "object",
             "properties": {
                 "approver_roles": {
@@ -5930,7 +7870,7 @@ const docTemplate = `{
                 }
             }
         },
-        "models.ApprovalWorkflow": {
+        "approval.ApprovalWorkflow": {
             "type": "object",
             "properties": {
                 "active": {
@@ -5940,10 +7880,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "criteria": {
-                    "description": "Use RuleCondition from automation or duplicate if strictly decoupled",
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/models.RuleCondition"
+                        "$ref": "#/definitions/approval.RuleCondition"
                     }
                 },
                 "id": {
@@ -5963,95 +7902,99 @@ const docTemplate = `{
                 "steps": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/models.ApprovalStep"
+                        "$ref": "#/definitions/approval.ApprovalStep"
                     }
+                },
+                "tenant_id": {
+                    "type": "string"
                 },
                 "updated_at": {
                     "type": "string"
                 }
             }
         },
-        "models.AuditAction": {
-            "type": "string",
-            "enum": [
-                "CREATE",
-                "UPDATE",
-                "DELETE",
-                "LOGIN",
-                "AUTOMATION",
-                "WORKFLOW",
-                "SYNC",
-                "CRON",
-                "SETTINGS",
-                "TEMPLATE",
-                "WEBHOOK",
-                "GROUP",
-                "REPORT",
-                "CHART",
-                "DASHBOARD"
-            ],
-            "x-enum-varnames": [
-                "AuditActionCreate",
-                "AuditActionUpdate",
-                "AuditActionDelete",
-                "AuditActionLogin",
-                "AuditActionAutomation",
-                "AuditActionWorkflow",
-                "AuditActionSync",
-                "AuditActionCron",
-                "AuditActionSettings",
-                "AuditActionTemplate",
-                "AuditActionWebhook",
-                "AuditActionGroup",
-                "AuditActionReport",
-                "AuditActionChart",
-                "AuditActionDashboard"
-            ]
-        },
-        "models.AuditLog": {
+        "approval.RuleCondition": {
             "type": "object",
             "properties": {
-                "action": {
-                    "$ref": "#/definitions/models.AuditAction"
-                },
-                "actor_id": {
-                    "description": "User ID who performed the action",
+                "field": {
                     "type": "string"
                 },
-                "actor_name": {
-                    "description": "Populated Name of the actor",
+                "operator": {
                     "type": "string"
                 },
-                "changes": {
-                    "description": "For updates: field -\u003e {old, new}",
-                    "type": "object",
-                    "additionalProperties": {
-                        "$ref": "#/definitions/models.Change"
-                    }
-                },
-                "id": {
-                    "type": "string"
-                },
-                "module": {
-                    "description": "The module/collection name",
-                    "type": "string"
-                },
-                "record_id": {
-                    "description": "The ID of the record being modified",
-                    "type": "string"
-                },
-                "timestamp": {
+                "value": {}
+            }
+        },
+        "auth.AuthResponse": {
+            "type": "object",
+            "properties": {
+                "token": {
                     "type": "string"
                 }
             }
         },
-        "models.AutomationRule": {
+        "auth.LoginRequest": {
+            "type": "object",
+            "properties": {
+                "password": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "auth.RegisterRequest": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "org_name": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "automation.ActionType": {
+            "type": "string",
+            "enum": [
+                "send_email",
+                "create_task",
+                "update_field",
+                "webhook",
+                "run_script",
+                "send_notification",
+                "send_sms",
+                "generate_pdf",
+                "data_sync",
+                "send_report"
+            ],
+            "x-enum-varnames": [
+                "ActionSendEmail",
+                "ActionCreateTask",
+                "ActionUpdateField",
+                "ActionWebhook",
+                "ActionRunScript",
+                "ActionSendNotification",
+                "ActionSendSMS",
+                "ActionGeneratePDF",
+                "ActionDataSync",
+                "ActionSendReport"
+            ]
+        },
+        "automation.AutomationRule": {
             "type": "object",
             "properties": {
                 "actions": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/models.RuleAction"
+                        "$ref": "#/definitions/automation.RuleAction"
                     }
                 },
                 "active": {
@@ -6060,7 +8003,7 @@ const docTemplate = `{
                 "conditions": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/models.RuleCondition"
+                        "$ref": "#/definitions/automation.RuleCondition"
                     }
                 },
                 "created_at": {
@@ -6070,14 +8013,15 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "module_id": {
-                    "description": "Target Module Name or ID",
                     "type": "string"
                 },
                 "name": {
                     "type": "string"
                 },
+                "tenant_id": {
+                    "type": "string"
+                },
                 "trigger_type": {
-                    "description": "\"create\", \"update\", \"delete\"",
                     "type": "string"
                 },
                 "updated_at": {
@@ -6085,7 +8029,48 @@ const docTemplate = `{
                 }
             }
         },
-        "models.BulkError": {
+        "automation.RuleAction": {
+            "type": "object",
+            "properties": {
+                "config": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "type": {
+                    "$ref": "#/definitions/automation.ActionType"
+                }
+            }
+        },
+        "automation.RuleCondition": {
+            "type": "object",
+            "properties": {
+                "field": {
+                    "type": "string"
+                },
+                "operator": {
+                    "$ref": "#/definitions/automation.ValidationOperator"
+                },
+                "value": {}
+            }
+        },
+        "automation.ValidationOperator": {
+            "type": "string",
+            "enum": [
+                "equals",
+                "not_equals",
+                "contains",
+                "gt",
+                "lt"
+            ],
+            "x-enum-varnames": [
+                "OperatorEquals",
+                "OperatorNotEquals",
+                "OperatorContains",
+                "OperatorGreaterThan",
+                "OperatorLessThan"
+            ]
+        },
+        "bulk_operation.BulkError": {
             "type": "object",
             "properties": {
                 "message": {
@@ -6096,7 +8081,7 @@ const docTemplate = `{
                 }
             }
         },
-        "models.BulkOperation": {
+        "bulk_operation.BulkOperation": {
             "type": "object",
             "properties": {
                 "completed_at": {
@@ -6111,7 +8096,7 @@ const docTemplate = `{
                 "errors": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/models.BulkError"
+                        "$ref": "#/definitions/bulk_operation.BulkError"
                     }
                 },
                 "filters": {
@@ -6128,7 +8113,7 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "status": {
-                    "$ref": "#/definitions/models.BulkOperationStatus"
+                    "$ref": "#/definitions/bulk_operation.BulkOperationStatus"
                 },
                 "success_count": {
                     "type": "integer"
@@ -6137,12 +8122,7 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "type": {
-                    "description": "\"update\" or \"delete\"",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/models.BulkOperationType"
-                        }
-                    ]
+                    "$ref": "#/definitions/bulk_operation.BulkOperationType"
                 },
                 "updated_at": {
                     "type": "string"
@@ -6156,7 +8136,7 @@ const docTemplate = `{
                 }
             }
         },
-        "models.BulkOperationStatus": {
+        "bulk_operation.BulkOperationStatus": {
             "type": "string",
             "enum": [
                 "pending",
@@ -6171,7 +8151,7 @@ const docTemplate = `{
                 "BulkStatusFailed"
             ]
         },
-        "models.BulkOperationType": {
+        "bulk_operation.BulkOperationType": {
             "type": "string",
             "enum": [
                 "update",
@@ -6182,26 +8162,31 @@ const docTemplate = `{
                 "BulkTypeDelete"
             ]
         },
-        "models.Change": {
-            "type": "object",
-            "properties": {
-                "new": {},
-                "old": {}
-            }
+        "chart.AggregationType": {
+            "type": "string",
+            "enum": [
+                "count",
+                "sum",
+                "avg",
+                "min",
+                "max"
+            ],
+            "x-enum-varnames": [
+                "AggregationTypeCount",
+                "AggregationTypeSum",
+                "AggregationTypeAvg",
+                "AggregationTypeMin",
+                "AggregationTypeMax"
+            ]
         },
-        "models.Chart": {
+        "chart.Chart": {
             "type": "object",
             "properties": {
                 "aggregation_type": {
-                    "description": "count, sum, avg, etc.",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/models.AggregationType"
-                        }
-                    ]
+                    "$ref": "#/definitions/chart.AggregationType"
                 },
                 "chart_type": {
-                    "$ref": "#/definitions/models.ChartType"
+                    "$ref": "#/definitions/chart.ChartType"
                 },
                 "created_at": {
                     "type": "string"
@@ -6213,26 +8198,26 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "module_id": {
-                    "description": "The module to query",
                     "type": "string"
                 },
                 "name": {
+                    "type": "string"
+                },
+                "tenant_id": {
                     "type": "string"
                 },
                 "updated_at": {
                     "type": "string"
                 },
                 "x_axis_field": {
-                    "description": "Field to group by",
                     "type": "string"
                 },
                 "y_axis_field": {
-                    "description": "Field to aggregate (optional for count)",
                     "type": "string"
                 }
             }
         },
-        "models.ChartType": {
+        "chart.ChartType": {
             "type": "string",
             "enum": [
                 "bar",
@@ -6259,132 +8244,258 @@ const docTemplate = `{
                 "ChartTypeStackedArea"
             ]
         },
-        "models.CronJob": {
-            "description": "Cron job configuration for scheduled automation",
+        "connectors.AggregationConfig": {
+            "type": "object",
+            "properties": {
+                "groupBy": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "metrics": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/connectors.MetricConfig"
+                    }
+                }
+            }
+        },
+        "connectors.FieldInfo": {
+            "type": "object",
+            "properties": {
+                "is_primary_key": {
+                    "type": "boolean"
+                },
+                "is_required": {
+                    "type": "boolean"
+                },
+                "label": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "connectors.MetricConfig": {
+            "type": "object",
+            "properties": {
+                "alias": {
+                    "type": "string"
+                },
+                "field": {
+                    "type": "string"
+                },
+                "function": {
+                    "description": "\"sum\", \"avg\", \"count\", \"min\", \"max\"",
+                    "type": "string"
+                }
+            }
+        },
+        "connectors.QueryRequest": {
+            "type": "object",
+            "properties": {
+                "aggregation": {
+                    "description": "Optional aggregation",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/connectors.AggregationConfig"
+                        }
+                    ]
+                },
+                "fields": {
+                    "description": "Fields to retrieve",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "filters": {
+                    "description": "Filter conditions",
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "limit": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "module": {
+                    "description": "Module/table name",
+                    "type": "string"
+                },
+                "offset": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "sort": {
+                    "description": "Sort order (1 for ASC, -1 for DESC)",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "integer"
+                    }
+                },
+                "source": {
+                    "description": "Data source ID",
+                    "type": "string"
+                }
+            }
+        },
+        "connectors.QueryResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": true
+                    }
+                },
+                "timestamp": {
+                    "type": "string"
+                },
+                "totalCount": {
+                    "type": "integer",
+                    "format": "int64"
+                }
+            }
+        },
+        "connectors.SchemaInfo": {
+            "type": "object",
+            "properties": {
+                "fields": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/connectors.FieldInfo"
+                    }
+                },
+                "module": {
+                    "type": "string"
+                }
+            }
+        },
+        "cron_feature.ActionType": {
+            "type": "string",
+            "enum": [
+                "send_email",
+                "create_task",
+                "update_field",
+                "webhook",
+                "run_script",
+                "send_notification",
+                "send_sms",
+                "generate_pdf",
+                "data_sync",
+                "send_report"
+            ],
+            "x-enum-varnames": [
+                "ActionSendEmail",
+                "ActionCreateTask",
+                "ActionUpdateField",
+                "ActionWebhook",
+                "ActionRunScript",
+                "ActionSendNotification",
+                "ActionSendSMS",
+                "ActionGeneratePDF",
+                "ActionDataSync",
+                "ActionSendReport"
+            ]
+        },
+        "cron_feature.CronJob": {
             "type": "object",
             "properties": {
                 "actions": {
-                    "description": "Actions to execute (reusing automation action types)",
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/models.RuleAction"
+                        "$ref": "#/definitions/cron_feature.RuleAction"
                     }
                 },
                 "active": {
-                    "description": "Whether the job is active",
-                    "type": "boolean",
-                    "example": true
+                    "type": "boolean"
                 },
                 "conditions": {
-                    "description": "Conditions to filter records (optional, for record-based jobs)",
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/models.RuleCondition"
+                        "$ref": "#/definitions/cron_feature.RuleCondition"
                     }
                 },
                 "created_at": {
                     "type": "string"
                 },
                 "created_by": {
-                    "description": "Audit fields",
-                    "type": "string",
-                    "example": "507f1f77bcf86cd799439011"
+                    "type": "string"
                 },
                 "description": {
-                    "type": "string",
-                    "example": "Send daily reminder for uncontacted leads"
+                    "type": "string"
                 },
                 "id": {
-                    "type": "string",
-                    "example": "507f1f77bcf86cd799439011"
+                    "type": "string"
                 },
                 "last_run": {
-                    "description": "Execution tracking",
                     "type": "string"
                 },
                 "module_id": {
-                    "description": "Optional module to target for record-based operations",
-                    "type": "string",
-                    "example": "leads"
+                    "type": "string"
                 },
                 "name": {
-                    "type": "string",
-                    "example": "Daily Lead Reminder"
+                    "type": "string"
                 },
                 "next_run": {
                     "type": "string"
                 },
                 "schedule": {
-                    "description": "Cron expression (e.g., \"0 0 * * *\" for daily at midnight)",
-                    "type": "string",
-                    "example": "0 0 * * *"
+                    "type": "string"
                 },
                 "updated_at": {
                     "type": "string"
                 }
             }
         },
-        "models.CronJobLog": {
-            "description": "Execution log for a cron job",
+        "cron_feature.RuleAction": {
             "type": "object",
             "properties": {
-                "created_at": {
-                    "type": "string"
+                "config": {
+                    "type": "object",
+                    "additionalProperties": true
                 },
-                "cron_job_id": {
-                    "type": "string"
-                },
-                "cron_job_name": {
-                    "description": "Denormalized for easier querying",
-                    "type": "string"
-                },
-                "end_time": {
-                    "type": "string"
-                },
-                "error": {
-                    "description": "Error and output details",
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "output": {
-                    "description": "JSON or text output",
-                    "type": "string"
-                },
-                "records_affected": {
-                    "type": "integer"
-                },
-                "records_processed": {
-                    "type": "integer"
-                },
-                "start_time": {
-                    "description": "Execution timing",
-                    "type": "string"
-                },
-                "status": {
-                    "description": "Execution results",
-                    "type": "string"
+                "type": {
+                    "$ref": "#/definitions/cron_feature.ActionType"
                 }
             }
         },
-        "models.CrossModuleConfig": {
+        "cron_feature.RuleCondition": {
             "type": "object",
             "properties": {
-                "base_module": {
-                    "description": "Primary module",
+                "field": {
                     "type": "string"
                 },
-                "joins": {
-                    "description": "Related modules to join",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/models.ModuleJoin"
-                    }
-                }
+                "operator": {
+                    "$ref": "#/definitions/cron_feature.ValidationOperator"
+                },
+                "value": {}
             }
         },
-        "models.DashboardConfig": {
+        "cron_feature.ValidationOperator": {
+            "type": "string",
+            "enum": [
+                "equals",
+                "not_equals",
+                "contains",
+                "gt",
+                "lt"
+            ],
+            "x-enum-varnames": [
+                "OperatorEquals",
+                "OperatorNotEquals",
+                "OperatorContains",
+                "OperatorGreaterThan",
+                "OperatorLessThan"
+            ]
+        },
+        "dashboard.DashboardConfig": {
             "type": "object",
             "properties": {
                 "created_at": {
@@ -6397,15 +8508,1064 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "is_default": {
-                    "description": "Default dashboard for user",
                     "type": "boolean"
                 },
                 "is_shared": {
-                    "description": "Shared with other users",
                     "type": "boolean"
                 },
                 "layout": {
-                    "description": "grid, vertical, etc.",
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "tenant_id": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "string"
+                },
+                "widgets": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dashboard.DashboardWidget"
+                    }
+                }
+            }
+        },
+        "dashboard.DashboardWidget": {
+            "type": "object",
+            "properties": {
+                "config": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "id": {
+                    "type": "string"
+                },
+                "module_name": {
+                    "type": "string"
+                },
+                "position": {
+                    "$ref": "#/definitions/dashboard.WidgetPosition"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "dashboard.WidgetPosition": {
+            "type": "object",
+            "properties": {
+                "height": {
+                    "type": "integer"
+                },
+                "width": {
+                    "type": "integer"
+                },
+                "x": {
+                    "type": "integer"
+                },
+                "y": {
+                    "type": "integer"
+                }
+            }
+        },
+        "email_template.EmailTemplate": {
+            "type": "object",
+            "properties": {
+                "body": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "created_by": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_active": {
+                    "type": "boolean"
+                },
+                "module_name": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "subject": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "email_template.TestEmailRequest": {
+            "type": "object",
+            "properties": {
+                "test_data": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "to": {
+                    "type": "string"
+                }
+            }
+        },
+        "extension.Extension": {
+            "type": "object",
+            "properties": {
+                "base_url": {
+                    "type": "string"
+                },
+                "capabilities": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/extension.ExtensionCapability"
+                    }
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "icon": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "installed": {
+                    "type": "boolean"
+                },
+                "installed_at": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "permissions": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "publisher": {
+                    "type": "string"
+                },
+                "settings": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "status": {
+                    "$ref": "#/definitions/extension.ExtensionStatus"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "string"
+                },
+                "webhook_url": {
+                    "type": "string"
+                },
+                "widget_url": {
+                    "type": "string"
+                }
+            }
+        },
+        "extension.ExtensionCapability": {
+            "type": "string",
+            "enum": [
+                "widget",
+                "webhook",
+                "api"
+            ],
+            "x-enum-varnames": [
+                "CapabilityWidget",
+                "CapabilityWebhook",
+                "CapabilityAPI"
+            ]
+        },
+        "extension.ExtensionStatus": {
+            "type": "string",
+            "enum": [
+                "active",
+                "inactive",
+                "pending"
+            ],
+            "x-enum-varnames": [
+                "ExtensionStatusActive",
+                "ExtensionStatusInactive",
+                "ExtensionStatusPending"
+            ]
+        },
+        "file.File": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_shared": {
+                    "type": "boolean"
+                },
+                "mime_type": {
+                    "type": "string"
+                },
+                "module_name": {
+                    "type": "string"
+                },
+                "original_filename": {
+                    "type": "string"
+                },
+                "path": {
+                    "type": "string"
+                },
+                "record_id": {
+                    "type": "string"
+                },
+                "size": {
+                    "type": "integer"
+                },
+                "storage_type": {
+                    "description": "local, s3, etc.",
+                    "type": "string"
+                },
+                "uploaded_by": {
+                    "type": "string"
+                },
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "group.Group": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_system": {
+                    "description": "Prevent deletion of system groups",
+                    "type": "boolean"
+                },
+                "members": {
+                    "description": "User IDs",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "module_permissions": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/definitions/group.ModulePermission"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "group.ModulePermission": {
+            "type": "object",
+            "properties": {
+                "delete": {
+                    "$ref": "#/definitions/models.ActionPermission"
+                },
+                "read": {
+                    "$ref": "#/definitions/models.ActionPermission"
+                },
+                "write": {
+                    "$ref": "#/definitions/models.ActionPermission"
+                }
+            }
+        },
+        "import_feature.ImportError": {
+            "type": "object",
+            "properties": {
+                "field": {
+                    "type": "string"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "row": {
+                    "type": "integer"
+                }
+            }
+        },
+        "import_feature.ImportJob": {
+            "type": "object",
+            "properties": {
+                "column_mapping": {
+                    "description": "CSV column -\u003e field mapping",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "completed_at": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "error_count": {
+                    "type": "integer"
+                },
+                "errors": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/import_feature.ImportError"
+                    }
+                },
+                "file_name": {
+                    "type": "string"
+                },
+                "file_path": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "module_name": {
+                    "type": "string"
+                },
+                "processed_records": {
+                    "type": "integer"
+                },
+                "status": {
+                    "$ref": "#/definitions/import_feature.ImportStatus"
+                },
+                "success_count": {
+                    "type": "integer"
+                },
+                "total_records": {
+                    "type": "integer"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "import_feature.ImportStatus": {
+            "type": "string",
+            "enum": [
+                "pending",
+                "processing",
+                "completed",
+                "failed"
+            ],
+            "x-enum-varnames": [
+                "ImportStatusPending",
+                "ImportStatusProcessing",
+                "ImportStatusCompleted",
+                "ImportStatusFailed"
+            ]
+        },
+        "models.ActionPermission": {
+            "type": "object",
+            "properties": {
+                "allowed": {
+                    "type": "boolean"
+                },
+                "conditions": {
+                    "$ref": "#/definitions/models.PermissionGroup"
+                }
+            }
+        },
+        "models.FieldType": {
+            "type": "string",
+            "enum": [
+                "text",
+                "number",
+                "date",
+                "boolean",
+                "lookup",
+                "email",
+                "phone",
+                "file",
+                "url",
+                "textarea",
+                "select",
+                "multiselect",
+                "currency",
+                "image"
+            ],
+            "x-enum-varnames": [
+                "FieldTypeText",
+                "FieldTypeNumber",
+                "FieldTypeDate",
+                "FieldTypeBoolean",
+                "FieldTypeLookup",
+                "FieldTypeEmail",
+                "FieldTypePhone",
+                "FieldTypeFile",
+                "FieldTypeURL",
+                "FieldTypeTextArea",
+                "FieldTypeSelect",
+                "FieldTypeMultiSelect",
+                "FieldTypeCurrency",
+                "FieldTypeImage"
+            ]
+        },
+        "models.LookupDef": {
+            "type": "object",
+            "properties": {
+                "lookup_label": {
+                    "description": "Target Field to display in UI",
+                    "type": "string"
+                },
+                "lookup_module": {
+                    "description": "Target Entity/Module Name",
+                    "type": "string"
+                },
+                "value_field": {
+                    "description": "Target Field to store",
+                    "type": "string"
+                }
+            }
+        },
+        "models.ModuleField": {
+            "type": "object",
+            "properties": {
+                "is_system": {
+                    "type": "boolean"
+                },
+                "label": {
+                    "type": "string"
+                },
+                "lookup": {
+                    "$ref": "#/definitions/models.LookupDef"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "options": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.SelectOptions"
+                    }
+                },
+                "required": {
+                    "type": "boolean"
+                },
+                "type": {
+                    "$ref": "#/definitions/models.FieldType"
+                }
+            }
+        },
+        "models.PermissionGroup": {
+            "type": "object",
+            "properties": {
+                "groups": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.PermissionGroup"
+                    }
+                },
+                "operator": {
+                    "description": "\"AND\" | \"OR\"",
+                    "type": "string"
+                },
+                "rules": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.PermissionRule"
+                    }
+                }
+            }
+        },
+        "models.PermissionRule": {
+            "type": "object",
+            "properties": {
+                "field": {
+                    "type": "string"
+                },
+                "operator": {
+                    "description": "eq, ne, gt, lt, gte, lte, in, nin, contains",
+                    "type": "string"
+                },
+                "type": {
+                    "$ref": "#/definitions/models.RuleType"
+                },
+                "value": {}
+            }
+        },
+        "models.Product": {
+            "type": "string",
+            "enum": [
+                "crm",
+                "erp",
+                "analytics",
+                "reporting"
+            ],
+            "x-enum-varnames": [
+                "ProductCRM",
+                "ProductERP",
+                "ProductAnalytics",
+                "ProductReporting"
+            ]
+        },
+        "models.RuleType": {
+            "type": "string",
+            "enum": [
+                "static",
+                "variable"
+            ],
+            "x-enum-varnames": [
+                "RuleTypeStatic",
+                "RuleTypeVariable"
+            ]
+        },
+        "models.SelectOptions": {
+            "type": "object",
+            "properties": {
+                "label": {
+                    "type": "string"
+                },
+                "value": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.User": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "first_name": {
+                    "type": "string"
+                },
+                "groups": {
+                    "description": "User groups for ABAC (e.g., [\"sales_team_west\", \"managers\"])",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "id": {
+                    "type": "string"
+                },
+                "last_login": {
+                    "type": "string"
+                },
+                "last_name": {
+                    "type": "string"
+                },
+                "phone": {
+                    "type": "string"
+                },
+                "reports_to": {
+                    "description": "Manager ID",
+                    "type": "string"
+                },
+                "roles": {
+                    "description": "References to Role IDs",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "status": {
+                    "description": "active, inactive, suspended",
+                    "type": "string"
+                },
+                "tenant_id": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "module.Module": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "fields": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.ModuleField"
+                    }
+                },
+                "id": {
+                    "type": "string"
+                },
+                "indexes": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "is_system": {
+                    "type": "boolean"
+                },
+                "label": {
+                    "type": "string"
+                },
+                "name": {
+                    "description": "Slug/Internal Name",
+                    "type": "string"
+                },
+                "product": {
+                    "$ref": "#/definitions/models.Product"
+                },
+                "slug": {
+                    "type": "string"
+                },
+                "tenant_id": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "permission.AssignResourceRequest": {
+            "type": "object",
+            "required": [
+                "actions",
+                "resource_id",
+                "role_id"
+            ],
+            "properties": {
+                "actions": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/definitions/models.ActionPermission"
+                    }
+                },
+                "field_rules": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "resource_id": {
+                    "type": "string"
+                },
+                "role_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "permission.Permission": {
+            "type": "object",
+            "properties": {
+                "actions": {
+                    "description": "Action -\u003e Permission with conditions",
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/definitions/models.ActionPermission"
+                    }
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "field_rules": {
+                    "description": "Field -\u003e \"read_write\" | \"read_only\" | \"none\"",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "id": {
+                    "type": "string"
+                },
+                "resource": {
+                    "$ref": "#/definitions/permission.ResourceRef"
+                },
+                "role_id": {
+                    "type": "string"
+                },
+                "tenant_id": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "permission.ResourceRef": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "description": "Resource identifier (e.g., \"crm.leads\", \"crm.settings\")",
+                    "type": "string"
+                },
+                "type": {
+                    "description": "\"module\", \"page\", \"setting\", \"report\", \"cron\", etc.",
+                    "type": "string"
+                }
+            }
+        },
+        "permission.RevokeResourceRequest": {
+            "type": "object",
+            "required": [
+                "resource_id",
+                "role_id"
+            ],
+            "properties": {
+                "resource_id": {
+                    "type": "string"
+                },
+                "role_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "report.CrossModuleConfig": {
+            "type": "object",
+            "properties": {
+                "base_module": {
+                    "description": "Primary module",
+                    "type": "string"
+                },
+                "joins": {
+                    "description": "Related modules to join",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/report.ModuleJoin"
+                    }
+                }
+            }
+        },
+        "report.ModuleJoin": {
+            "type": "object",
+            "properties": {
+                "fields": {
+                    "description": "Fields to include from this module",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "lookup_field": {
+                    "description": "Field in base module that references this module",
+                    "type": "string"
+                },
+                "module_name": {
+                    "description": "Related module name",
+                    "type": "string"
+                }
+            }
+        },
+        "report.PivotConfig": {
+            "type": "object",
+            "properties": {
+                "aggregation": {
+                    "description": "count, sum, avg, min, max",
+                    "type": "string"
+                },
+                "column_fields": {
+                    "description": "Fields to group by for columns",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "row_fields": {
+                    "description": "Fields to group by for rows",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "value_field": {
+                    "description": "Field to aggregate",
+                    "type": "string"
+                }
+            }
+        },
+        "report.Report": {
+            "type": "object",
+            "properties": {
+                "chart_type": {
+                    "description": "bar, line, pie, table",
+                    "type": "string"
+                },
+                "columns": {
+                    "description": "List of field names to display",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "created_by": {
+                    "type": "string"
+                },
+                "cross_module_config": {
+                    "$ref": "#/definitions/report.CrossModuleConfig"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "filters": {
+                    "description": "Stored query filters",
+                    "type": "object",
+                    "additionalProperties": {}
+                },
+                "id": {
+                    "type": "string"
+                },
+                "module_id": {
+                    "description": "The module this report is based on",
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "pivot_config": {
+                    "$ref": "#/definitions/report.PivotConfig"
+                },
+                "report_type": {
+                    "description": "standard, pivot, cross_module",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/report.ReportType"
+                        }
+                    ]
+                },
+                "tenant_id": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "updated_by": {
+                    "type": "string"
+                }
+            }
+        },
+        "report.ReportType": {
+            "type": "string",
+            "enum": [
+                "standard",
+                "pivot",
+                "cross_module"
+            ],
+            "x-enum-varnames": [
+                "ReportTypeStandard",
+                "ReportTypePivot",
+                "ReportTypeCrossModule"
+            ]
+        },
+        "resource.Resource": {
+            "type": "object",
+            "properties": {
+                "actions": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "configurable": {
+                    "type": "boolean"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "icon": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "key": {
+                    "type": "string"
+                },
+                "label": {
+                    "type": "string"
+                },
+                "product": {
+                    "type": "string"
+                },
+                "route": {
+                    "type": "string"
+                },
+                "tenant_id": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "ui": {
+                    "$ref": "#/definitions/resource.ResourceUI"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "resource.ResourceUI": {
+            "type": "object",
+            "properties": {
+                "group": {
+                    "type": "string"
+                },
+                "group_order": {
+                    "type": "integer"
+                },
+                "location": {
+                    "type": "string"
+                },
+                "order": {
+                    "type": "integer"
+                },
+                "sidebar": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "role.Role": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "field_permissions": {
+                    "description": "Module -\u003e Field -\u003e \"read_write\" | \"read_only\" | \"none\"",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_system": {
+                    "description": "Prevent deletion of system roles",
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "permissions": {
+                    "description": "Resource -\u003e Action -\u003e Permission",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "$ref": "#/definitions/models.ActionPermission"
+                        }
+                    }
+                },
+                "tenant_id": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "saved_filter.FilterCondition": {
+            "type": "object",
+            "properties": {
+                "field": {
+                    "type": "string"
+                },
+                "operator": {
+                    "description": "eq, ne, gt, lt, gte, lte, contains, in, etc.",
+                    "type": "string"
+                },
+                "value": {}
+            }
+        },
+        "saved_filter.FilterCriteria": {
+            "type": "object",
+            "properties": {
+                "conditions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/saved_filter.FilterCondition"
+                    }
+                },
+                "groups": {
+                    "description": "Nested groups",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/saved_filter.FilterCriteria"
+                    }
+                },
+                "logic": {
+                    "description": "\"AND\" or \"OR\"",
+                    "type": "string"
+                }
+            }
+        },
+        "saved_filter.SavedFilter": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "criteria": {
+                    "$ref": "#/definitions/saved_filter.FilterCriteria"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_default": {
+                    "type": "boolean"
+                },
+                "is_public": {
+                    "type": "boolean"
+                },
+                "module_name": {
                     "type": "string"
                 },
                 "name": {
@@ -6416,51 +9576,10 @@ const docTemplate = `{
                 },
                 "user_id": {
                     "type": "string"
-                },
-                "widgets": {
-                    "description": "Widget configurations",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/models.DashboardWidget"
-                    }
                 }
             }
         },
-        "models.DashboardWidget": {
-            "type": "object",
-            "properties": {
-                "config": {
-                    "description": "Widget-specific config",
-                    "type": "object",
-                    "additionalProperties": true
-                },
-                "id": {
-                    "description": "Unique widget ID",
-                    "type": "string"
-                },
-                "module_name": {
-                    "description": "Source module",
-                    "type": "string"
-                },
-                "position": {
-                    "description": "Grid position",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/models.WidgetPosition"
-                        }
-                    ]
-                },
-                "title": {
-                    "description": "Widget title",
-                    "type": "string"
-                },
-                "type": {
-                    "description": "metric, chart, table, etc.",
-                    "type": "string"
-                }
-            }
-        },
-        "models.EmailConfig": {
+        "settings.EmailConfig": {
             "type": "object",
             "properties": {
                 "from_email": {
@@ -6487,304 +9606,7 @@ const docTemplate = `{
                 }
             }
         },
-        "models.EscalationHistoryEntry": {
-            "description": "History entry for ticket escalations",
-            "type": "object",
-            "properties": {
-                "escalated_at": {
-                    "type": "string",
-                    "example": "2024-01-14T10:00:00Z"
-                },
-                "escalated_by": {
-                    "description": "System or User",
-                    "type": "string",
-                    "example": "507f1f77bcf86cd799439011"
-                },
-                "escalated_to": {
-                    "type": "string",
-                    "example": "507f1f77bcf86cd799439011"
-                },
-                "level": {
-                    "type": "integer",
-                    "example": 1
-                },
-                "reason": {
-                    "type": "string",
-                    "example": "SLA breach detected"
-                },
-                "rule_id": {
-                    "type": "string",
-                    "example": "507f1f77bcf86cd799439011"
-                }
-            }
-        },
-        "models.EscalationRule": {
-            "description": "Rule for automatic ticket escalation based on conditions",
-            "type": "object",
-            "properties": {
-                "condition_type": {
-                    "description": "\"sla_breach\", \"no_response\", \"no_update\"",
-                    "type": "string",
-                    "example": "no_response"
-                },
-                "created_at": {
-                    "type": "string",
-                    "example": "2024-01-01T00:00:00Z"
-                },
-                "description": {
-                    "type": "string",
-                    "example": "Escalate high priority tickets with no response after 30 minutes"
-                },
-                "escalate_after": {
-                    "description": "Minutes after creation/last update",
-                    "type": "integer",
-                    "example": 30
-                },
-                "escalate_to": {
-                    "description": "Escalation Action",
-                    "type": "string",
-                    "example": "507f1f77bcf86cd799439011"
-                },
-                "escalate_to_type": {
-                    "description": "\"user\" or \"group\"",
-                    "type": "string",
-                    "example": "user"
-                },
-                "id": {
-                    "type": "string",
-                    "example": "507f1f77bcf86cd799439011"
-                },
-                "is_active": {
-                    "description": "Status",
-                    "type": "boolean",
-                    "example": true
-                },
-                "name": {
-                    "type": "string",
-                    "example": "High Priority No Response"
-                },
-                "notify_emails": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    },
-                    "example": [
-                        "manager@example.com",
-                        "support@example.com"
-                    ]
-                },
-                "priority": {
-                    "description": "Conditions",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/models.TicketPriority"
-                        }
-                    ],
-                    "example": "high"
-                },
-                "status": {
-                    "description": "Apply to specific status",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/models.TicketStatus"
-                        }
-                    ],
-                    "example": "open"
-                },
-                "updated_at": {
-                    "type": "string",
-                    "example": "2024-01-13T10:00:00Z"
-                }
-            }
-        },
-        "models.Extension": {
-            "type": "object",
-            "properties": {
-                "base_url": {
-                    "description": "Implementation details",
-                    "type": "string"
-                },
-                "capabilities": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/models.ExtensionCapability"
-                    }
-                },
-                "created_at": {
-                    "type": "string"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "icon": {
-                    "description": "URL or base64",
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "installed": {
-                    "type": "boolean"
-                },
-                "installed_at": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "permissions": {
-                    "description": "Required scopes",
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "publisher": {
-                    "type": "string"
-                },
-                "settings": {
-                    "description": "App-specific config",
-                    "type": "object",
-                    "additionalProperties": true
-                },
-                "status": {
-                    "$ref": "#/definitions/models.ExtensionStatus"
-                },
-                "updated_at": {
-                    "type": "string"
-                },
-                "version": {
-                    "type": "string"
-                },
-                "webhook_url": {
-                    "type": "string"
-                },
-                "widget_url": {
-                    "description": "iFrame URL",
-                    "type": "string"
-                }
-            }
-        },
-        "models.ExtensionCapability": {
-            "type": "string",
-            "enum": [
-                "widget",
-                "webhook",
-                "api"
-            ],
-            "x-enum-comments": {
-                "CapabilityAPI": "Data integration",
-                "CapabilityWebhook": "Real-time events",
-                "CapabilityWidget": "UI integration"
-            },
-            "x-enum-descriptions": [
-                "UI integration",
-                "Real-time events",
-                "Data integration"
-            ],
-            "x-enum-varnames": [
-                "CapabilityWidget",
-                "CapabilityWebhook",
-                "CapabilityAPI"
-            ]
-        },
-        "models.ExtensionStatus": {
-            "type": "string",
-            "enum": [
-                "active",
-                "inactive",
-                "pending"
-            ],
-            "x-enum-varnames": [
-                "ExtensionStatusActive",
-                "ExtensionStatusInactive",
-                "ExtensionStatusPending"
-            ]
-        },
-        "models.FieldType": {
-            "type": "string",
-            "enum": [
-                "text",
-                "number",
-                "date",
-                "boolean",
-                "lookup",
-                "email",
-                "phone",
-                "file",
-                "url",
-                "textarea",
-                "select",
-                "multiselect",
-                "currency"
-            ],
-            "x-enum-varnames": [
-                "FieldTypeText",
-                "FieldTypeNumber",
-                "FieldTypeDate",
-                "FieldTypeBoolean",
-                "FieldTypeLookup",
-                "FieldTypeEmail",
-                "FieldTypePhone",
-                "FieldTypeFile",
-                "FieldTypeURL",
-                "FieldTypeTextArea",
-                "FieldTypeSelect",
-                "FieldTypeMultiSelect",
-                "FieldTypeCurrency"
-            ]
-        },
-        "models.File": {
-            "type": "object",
-            "properties": {
-                "created_at": {
-                    "type": "string"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "group": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "is_shared": {
-                    "type": "boolean"
-                },
-                "mime_type": {
-                    "type": "string"
-                },
-                "module_name": {
-                    "description": "File sharing fields",
-                    "type": "string"
-                },
-                "original_filename": {
-                    "type": "string"
-                },
-                "path": {
-                    "description": "Server file path",
-                    "type": "string"
-                },
-                "record_id": {
-                    "type": "string"
-                },
-                "size": {
-                    "type": "integer"
-                },
-                "unique_filename": {
-                    "type": "string"
-                },
-                "uploaded_by": {
-                    "type": "string"
-                },
-                "url": {
-                    "description": "Public Web URL",
-                    "type": "string"
-                }
-            }
-        },
-        "models.FileSharingConfig": {
+        "settings.FileSharingConfig": {
             "type": "object",
             "properties": {
                 "allow_shared_documents": {
@@ -6814,42 +9636,7 @@ const docTemplate = `{
                 }
             }
         },
-        "models.FilterCondition": {
-            "type": "object",
-            "properties": {
-                "field": {
-                    "type": "string"
-                },
-                "operator": {
-                    "description": "eq, ne, gt, lt, gte, lte, contains, in, etc.",
-                    "type": "string"
-                },
-                "value": {}
-            }
-        },
-        "models.FilterCriteria": {
-            "type": "object",
-            "properties": {
-                "conditions": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/models.FilterCondition"
-                    }
-                },
-                "groups": {
-                    "description": "Nested groups",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/models.FilterCriteria"
-                    }
-                },
-                "logic": {
-                    "description": "\"AND\" or \"OR\"",
-                    "type": "string"
-                }
-            }
-        },
-        "models.GeneralConfig": {
+        "settings.GeneralConfig": {
             "type": "object",
             "properties": {
                 "app_name": {
@@ -6872,272 +9659,7 @@ const docTemplate = `{
                 }
             }
         },
-        "models.Group": {
-            "type": "object",
-            "properties": {
-                "created_at": {
-                    "type": "string"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "is_system": {
-                    "description": "Prevent deletion of system groups",
-                    "type": "boolean"
-                },
-                "members": {
-                    "description": "User IDs",
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "module_permissions": {
-                    "type": "object",
-                    "additionalProperties": {
-                        "$ref": "#/definitions/models.ModulePermission"
-                    }
-                },
-                "name": {
-                    "type": "string"
-                },
-                "updated_at": {
-                    "type": "string"
-                }
-            }
-        },
-        "models.ImportError": {
-            "type": "object",
-            "properties": {
-                "field": {
-                    "type": "string"
-                },
-                "message": {
-                    "type": "string"
-                },
-                "row": {
-                    "type": "integer"
-                }
-            }
-        },
-        "models.ImportJob": {
-            "type": "object",
-            "properties": {
-                "column_mapping": {
-                    "description": "CSV column -\u003e field mapping",
-                    "type": "object",
-                    "additionalProperties": {
-                        "type": "string"
-                    }
-                },
-                "completed_at": {
-                    "type": "string"
-                },
-                "created_at": {
-                    "type": "string"
-                },
-                "error_count": {
-                    "type": "integer"
-                },
-                "errors": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/models.ImportError"
-                    }
-                },
-                "file_name": {
-                    "type": "string"
-                },
-                "file_path": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "module_name": {
-                    "type": "string"
-                },
-                "processed_records": {
-                    "type": "integer"
-                },
-                "status": {
-                    "$ref": "#/definitions/models.ImportStatus"
-                },
-                "success_count": {
-                    "type": "integer"
-                },
-                "total_records": {
-                    "type": "integer"
-                },
-                "updated_at": {
-                    "type": "string"
-                },
-                "user_id": {
-                    "type": "string"
-                }
-            }
-        },
-        "models.ImportPreview": {
-            "type": "object",
-            "properties": {
-                "headers": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "module_fields": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/models.ModuleField"
-                    }
-                },
-                "sample_data": {
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "additionalProperties": true
-                    }
-                },
-                "total_rows": {
-                    "type": "integer"
-                }
-            }
-        },
-        "models.ImportStatus": {
-            "type": "string",
-            "enum": [
-                "pending",
-                "processing",
-                "completed",
-                "failed"
-            ],
-            "x-enum-varnames": [
-                "ImportStatusPending",
-                "ImportStatusProcessing",
-                "ImportStatusCompleted",
-                "ImportStatusFailed"
-            ]
-        },
-        "models.LookupDef": {
-            "type": "object",
-            "properties": {
-                "lookup_label": {
-                    "description": "Target Field to display in UI (e.g. name)",
-                    "type": "string"
-                },
-                "lookup_module": {
-                    "description": "Target Module Name",
-                    "type": "string"
-                },
-                "value_field": {
-                    "description": "Target Field to store (usually _id)",
-                    "type": "string"
-                }
-            }
-        },
-        "models.Module": {
-            "type": "object",
-            "properties": {
-                "created_at": {
-                    "type": "string"
-                },
-                "fields": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/models.ModuleField"
-                    }
-                },
-                "id": {
-                    "type": "string"
-                },
-                "is_system": {
-                    "description": "If true, cannot be deleted",
-                    "type": "boolean"
-                },
-                "label": {
-                    "type": "string"
-                },
-                "name": {
-                    "description": "Unique Identifier (e.g., \"leads\", \"deals\")",
-                    "type": "string"
-                },
-                "updated_at": {
-                    "type": "string"
-                }
-            }
-        },
-        "models.ModuleField": {
-            "type": "object",
-            "properties": {
-                "is_system": {
-                    "type": "boolean"
-                },
-                "label": {
-                    "type": "string"
-                },
-                "lookup": {
-                    "$ref": "#/definitions/models.LookupDef"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "options": {
-                    "description": "For Select/MultiSelect",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/models.SelectOptions"
-                    }
-                },
-                "required": {
-                    "type": "boolean"
-                },
-                "type": {
-                    "$ref": "#/definitions/models.FieldType"
-                }
-            }
-        },
-        "models.ModuleJoin": {
-            "type": "object",
-            "properties": {
-                "fields": {
-                    "description": "Fields to include from this module",
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "lookup_field": {
-                    "description": "Field in base module that references this module",
-                    "type": "string"
-                },
-                "module_name": {
-                    "description": "Related module name",
-                    "type": "string"
-                }
-            }
-        },
-        "models.ModulePermission": {
-            "type": "object",
-            "properties": {
-                "create": {
-                    "type": "boolean"
-                },
-                "delete": {
-                    "type": "boolean"
-                },
-                "read": {
-                    "type": "boolean"
-                },
-                "update": {
-                    "type": "boolean"
-                }
-            }
-        },
-        "models.ModuleSyncConfig": {
+        "sync.ModuleSyncConfig": {
             "type": "object",
             "properties": {
                 "mapping": {
@@ -7155,331 +9677,7 @@ const docTemplate = `{
                 }
             }
         },
-        "models.PivotConfig": {
-            "type": "object",
-            "properties": {
-                "aggregation": {
-                    "description": "count, sum, avg, min, max",
-                    "type": "string"
-                },
-                "column_fields": {
-                    "description": "Fields to group by for columns",
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "row_fields": {
-                    "description": "Fields to group by for rows",
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "value_field": {
-                    "description": "Field to aggregate",
-                    "type": "string"
-                }
-            }
-        },
-        "models.Report": {
-            "type": "object",
-            "properties": {
-                "chart_type": {
-                    "description": "bar, line, pie, table",
-                    "type": "string"
-                },
-                "columns": {
-                    "description": "List of field names to display",
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "created_at": {
-                    "type": "string"
-                },
-                "created_by": {
-                    "type": "string"
-                },
-                "cross_module_config": {
-                    "$ref": "#/definitions/models.CrossModuleConfig"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "filters": {
-                    "description": "Stored query filters",
-                    "type": "object",
-                    "additionalProperties": {}
-                },
-                "id": {
-                    "type": "string"
-                },
-                "module_id": {
-                    "description": "The module this report is based on",
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "pivot_config": {
-                    "$ref": "#/definitions/models.PivotConfig"
-                },
-                "report_type": {
-                    "description": "standard, pivot, cross_module",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/models.ReportType"
-                        }
-                    ]
-                },
-                "updated_at": {
-                    "type": "string"
-                },
-                "updated_by": {
-                    "type": "string"
-                }
-            }
-        },
-        "models.ReportType": {
-            "type": "string",
-            "enum": [
-                "standard",
-                "pivot",
-                "cross_module"
-            ],
-            "x-enum-varnames": [
-                "ReportTypeStandard",
-                "ReportTypePivot",
-                "ReportTypeCrossModule"
-            ]
-        },
-        "models.Role": {
-            "type": "object",
-            "properties": {
-                "created_at": {
-                    "type": "string"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "field_permissions": {
-                    "description": "Module -\u003e Field -\u003e \"read_write\" | \"read_only\" | \"none\"",
-                    "type": "object",
-                    "additionalProperties": {
-                        "type": "object",
-                        "additionalProperties": {
-                            "type": "string"
-                        }
-                    }
-                },
-                "id": {
-                    "type": "string"
-                },
-                "is_system": {
-                    "description": "Prevent deletion of system roles",
-                    "type": "boolean"
-                },
-                "module_permissions": {
-                    "type": "object",
-                    "additionalProperties": {
-                        "$ref": "#/definitions/models.ModulePermission"
-                    }
-                },
-                "name": {
-                    "type": "string"
-                },
-                "updated_at": {
-                    "type": "string"
-                }
-            }
-        },
-        "models.RuleAction": {
-            "type": "object",
-            "properties": {
-                "config": {
-                    "description": "e.g., { \"to\": \"user@example.com\", \"subject\": \"...\" } or { \"field\": \"status\", \"value\": \"Contacted\" }",
-                    "type": "object",
-                    "additionalProperties": true
-                },
-                "type": {
-                    "$ref": "#/definitions/models.ActionType"
-                }
-            }
-        },
-        "models.RuleCondition": {
-            "type": "object",
-            "properties": {
-                "field": {
-                    "type": "string"
-                },
-                "operator": {
-                    "$ref": "#/definitions/models.ValidationOperator"
-                },
-                "value": {}
-            }
-        },
-        "models.SLAPolicy": {
-            "description": "SLA policy defining response and resolution time limits",
-            "type": "object",
-            "properties": {
-                "business_hours": {
-                    "description": "JSON config for business hours",
-                    "type": "object",
-                    "additionalProperties": true
-                },
-                "created_at": {
-                    "type": "string",
-                    "example": "2024-01-01T00:00:00Z"
-                },
-                "description": {
-                    "type": "string",
-                    "example": "SLA for high priority tickets"
-                },
-                "id": {
-                    "type": "string",
-                    "example": "507f1f77bcf86cd799439011"
-                },
-                "is_active": {
-                    "description": "Status",
-                    "type": "boolean",
-                    "example": true
-                },
-                "is_business_hours_only": {
-                    "description": "Business Hours",
-                    "type": "boolean",
-                    "example": true
-                },
-                "name": {
-                    "type": "string",
-                    "example": "High Priority SLA"
-                },
-                "priority": {
-                    "description": "Priority Mapping",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/models.TicketPriority"
-                        }
-                    ],
-                    "example": "high"
-                },
-                "resolution_time": {
-                    "description": "Resolution time in minutes",
-                    "type": "integer",
-                    "example": 240
-                },
-                "response_time": {
-                    "description": "Time Limits (in minutes)",
-                    "type": "integer",
-                    "example": 60
-                },
-                "updated_at": {
-                    "type": "string",
-                    "example": "2024-01-13T10:00:00Z"
-                }
-            }
-        },
-        "models.SavedFilter": {
-            "type": "object",
-            "properties": {
-                "created_at": {
-                    "type": "string"
-                },
-                "criteria": {
-                    "$ref": "#/definitions/models.FilterCriteria"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "is_default": {
-                    "type": "boolean"
-                },
-                "is_public": {
-                    "type": "boolean"
-                },
-                "module_name": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "updated_at": {
-                    "type": "string"
-                },
-                "user_id": {
-                    "type": "string"
-                }
-            }
-        },
-        "models.SelectOptions": {
-            "type": "object",
-            "properties": {
-                "label": {
-                    "type": "string"
-                },
-                "value": {
-                    "type": "string"
-                }
-            }
-        },
-        "models.StatusHistoryEntry": {
-            "description": "History entry for ticket status changes",
-            "type": "object",
-            "properties": {
-                "changed_at": {
-                    "type": "string",
-                    "example": "2024-01-13T10:00:00Z"
-                },
-                "changed_by": {
-                    "type": "string",
-                    "example": "507f1f77bcf86cd799439011"
-                },
-                "comment": {
-                    "type": "string",
-                    "example": "Ticket opened for investigation"
-                },
-                "status": {
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/models.TicketStatus"
-                        }
-                    ],
-                    "example": "open"
-                }
-            }
-        },
-        "models.SyncLog": {
-            "type": "object",
-            "properties": {
-                "end_time": {
-                    "type": "string"
-                },
-                "error": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "processed_count": {
-                    "type": "integer"
-                },
-                "start_time": {
-                    "type": "string"
-                },
-                "status": {
-                    "description": "\"success\", \"failed\", \"in_progress\"",
-                    "type": "string"
-                },
-                "sync_setting_id": {
-                    "type": "string"
-                }
-            }
-        },
-        "models.SyncSetting": {
+        "sync.SyncSetting": {
             "type": "object",
             "properties": {
                 "created_at": {
@@ -7497,7 +9695,7 @@ const docTemplate = `{
                 "modules": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/models.ModuleSyncConfig"
+                        "$ref": "#/definitions/sync.ModuleSyncConfig"
                     }
                 },
                 "name": {
@@ -7518,156 +9716,264 @@ const docTemplate = `{
                 }
             }
         },
-        "models.Ticket": {
-            "description": "Customer support ticket with multi-channel support, SLA tracking, and escalation",
+        "ticket.EscalationHistoryEntry": {
+            "type": "object",
+            "properties": {
+                "escalated_at": {
+                    "type": "string"
+                },
+                "escalated_by": {
+                    "type": "string"
+                },
+                "escalated_to": {
+                    "type": "string"
+                },
+                "level": {
+                    "type": "integer"
+                },
+                "reason": {
+                    "type": "string"
+                },
+                "rule_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "ticket.EscalationRule": {
+            "type": "object",
+            "properties": {
+                "condition_type": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "escalate_after": {
+                    "type": "integer"
+                },
+                "escalate_to": {
+                    "description": "Escalation Action",
+                    "type": "string"
+                },
+                "escalate_to_type": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_active": {
+                    "description": "Status",
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "notify_emails": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "priority": {
+                    "description": "Conditions",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/ticket.TicketPriority"
+                        }
+                    ]
+                },
+                "status": {
+                    "$ref": "#/definitions/ticket.TicketStatus"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "ticket.SLAPolicy": {
+            "type": "object",
+            "properties": {
+                "business_hours": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_active": {
+                    "description": "Status",
+                    "type": "boolean"
+                },
+                "is_business_hours_only": {
+                    "description": "Business Hours",
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "priority": {
+                    "description": "Priority Mapping",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/ticket.TicketPriority"
+                        }
+                    ]
+                },
+                "resolution_time": {
+                    "type": "integer"
+                },
+                "response_time": {
+                    "description": "Time Limits (in minutes)",
+                    "type": "integer"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "ticket.StatusHistoryEntry": {
+            "type": "object",
+            "properties": {
+                "changed_at": {
+                    "type": "string"
+                },
+                "changed_by": {
+                    "type": "string"
+                },
+                "comment": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/ticket.TicketStatus"
+                }
+            }
+        },
+        "ticket.Ticket": {
             "type": "object",
             "properties": {
                 "assigned_group": {
-                    "description": "Team/Department",
-                    "type": "string",
-                    "example": "Support Team"
+                    "type": "string"
                 },
                 "assigned_to": {
                     "description": "Assignment",
-                    "type": "string",
-                    "example": "507f1f77bcf86cd799439011"
+                    "type": "string"
                 },
                 "category": {
-                    "type": "string",
-                    "example": "Technical Support"
+                    "type": "string"
                 },
                 "channel": {
                     "description": "Channel Information",
                     "allOf": [
                         {
-                            "$ref": "#/definitions/models.TicketChannel"
+                            "$ref": "#/definitions/ticket.TicketChannel"
                         }
-                    ],
-                    "example": "email"
+                    ]
                 },
                 "channel_metadata": {
-                    "description": "Email ID, Chat session, etc.",
                     "type": "object",
                     "additionalProperties": true
                 },
                 "closed_at": {
-                    "type": "string",
-                    "example": "2024-01-15T09:00:00Z"
+                    "type": "string"
                 },
                 "created_at": {
                     "description": "Timestamps",
-                    "type": "string",
-                    "example": "2024-01-13T10:00:00Z"
+                    "type": "string"
                 },
                 "customer_email": {
-                    "type": "string",
-                    "example": "customer@example.com"
+                    "type": "string"
                 },
                 "customer_id": {
                     "description": "Customer Information",
-                    "type": "string",
-                    "example": "507f1f77bcf86cd799439011"
+                    "type": "string"
                 },
                 "customer_name": {
-                    "type": "string",
-                    "example": "John Doe"
+                    "type": "string"
                 },
                 "description": {
-                    "type": "string",
-                    "example": "Customer is experiencing login issues with their account"
+                    "type": "string"
                 },
                 "due_date": {
-                    "description": "Resolution due date",
-                    "type": "string",
-                    "example": "2024-01-15T10:00:00Z"
+                    "type": "string"
                 },
                 "escalated_to": {
-                    "type": "string",
-                    "example": "507f1f77bcf86cd799439011"
+                    "type": "string"
                 },
                 "escalation_history": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/models.EscalationHistoryEntry"
+                        "$ref": "#/definitions/ticket.EscalationHistoryEntry"
                     }
                 },
                 "escalation_level": {
                     "description": "Escalation",
-                    "type": "integer",
-                    "example": 0
+                    "type": "integer"
                 },
                 "first_response_at": {
-                    "type": "string",
-                    "example": "2024-01-13T14:30:00Z"
+                    "type": "string"
                 },
                 "id": {
-                    "type": "string",
-                    "example": "507f1f77bcf86cd799439011"
+                    "type": "string"
                 },
                 "priority": {
                     "description": "Priority \u0026 SLA",
                     "allOf": [
                         {
-                            "$ref": "#/definitions/models.TicketPriority"
+                            "$ref": "#/definitions/ticket.TicketPriority"
                         }
-                    ],
-                    "example": "high"
+                    ]
                 },
                 "resolved_at": {
-                    "type": "string",
-                    "example": "2024-01-14T16:00:00Z"
+                    "type": "string"
                 },
                 "response_due_date": {
-                    "description": "First response due date",
-                    "type": "string",
-                    "example": "2024-01-14T10:00:00Z"
+                    "type": "string"
                 },
                 "sla_policy_id": {
-                    "type": "string",
-                    "example": "507f1f77bcf86cd799439011"
+                    "type": "string"
                 },
                 "status": {
                     "description": "Status Workflow",
                     "allOf": [
                         {
-                            "$ref": "#/definitions/models.TicketStatus"
+                            "$ref": "#/definitions/ticket.TicketStatus"
                         }
-                    ],
-                    "example": "open"
+                    ]
                 },
                 "status_history": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/models.StatusHistoryEntry"
+                        "$ref": "#/definitions/ticket.StatusHistoryEntry"
                     }
                 },
                 "subject": {
-                    "type": "string",
-                    "example": "Unable to login to account"
+                    "type": "string"
                 },
                 "tags": {
                     "description": "Tags and Categories",
                     "type": "array",
                     "items": {
                         "type": "string"
-                    },
-                    "example": [
-                        "bug",
-                        "urgent"
-                    ]
+                    }
                 },
                 "ticket_number": {
-                    "description": "Auto-generated unique number",
-                    "type": "string",
-                    "example": "TKT-000001"
+                    "type": "string"
                 },
                 "updated_at": {
-                    "type": "string",
-                    "example": "2024-01-13T15:30:00Z"
+                    "type": "string"
                 }
             }
         },
-        "models.TicketChannel": {
+        "ticket.TicketChannel": {
             "type": "string",
             "enum": [
                 "email",
@@ -7682,8 +9988,7 @@ const docTemplate = `{
                 "TicketChannelPhone"
             ]
         },
-        "models.TicketComment": {
-            "description": "Comment or internal note on a support ticket",
+        "ticket.TicketComment": {
             "type": "object",
             "properties": {
                 "attachments": {
@@ -7694,39 +9999,31 @@ const docTemplate = `{
                     }
                 },
                 "content": {
-                    "type": "string",
-                    "example": "Customer has been contacted via email"
+                    "type": "string"
                 },
                 "created_at": {
                     "description": "Timestamps",
-                    "type": "string",
-                    "example": "2024-01-13T11:00:00Z"
+                    "type": "string"
                 },
                 "created_by": {
                     "description": "Author",
-                    "type": "string",
-                    "example": "507f1f77bcf86cd799439011"
+                    "type": "string"
                 },
                 "id": {
-                    "type": "string",
-                    "example": "507f1f77bcf86cd799439011"
+                    "type": "string"
                 },
                 "is_internal": {
-                    "description": "Internal notes vs customer-visible comments",
-                    "type": "boolean",
-                    "example": false
+                    "type": "boolean"
                 },
                 "ticket_id": {
-                    "type": "string",
-                    "example": "507f1f77bcf86cd799439011"
+                    "type": "string"
                 },
                 "updated_at": {
-                    "type": "string",
-                    "example": "2024-01-13T11:00:00Z"
+                    "type": "string"
                 }
             }
         },
-        "models.TicketPriority": {
+        "ticket.TicketPriority": {
             "type": "string",
             "enum": [
                 "low",
@@ -7741,7 +10038,7 @@ const docTemplate = `{
                 "TicketPriorityUrgent"
             ]
         },
-        "models.TicketStatus": {
+        "ticket.TicketStatus": {
             "type": "string",
             "enum": [
                 "new",
@@ -7758,22 +10055,48 @@ const docTemplate = `{
                 "TicketStatusClosed"
             ]
         },
-        "models.User": {
+        "user.CreateUserRequest": {
             "type": "object",
             "properties": {
-                "created_at": {
-                    "type": "string"
-                },
                 "email": {
                     "type": "string"
                 },
                 "first_name": {
                     "type": "string"
                 },
-                "id": {
+                "last_name": {
                     "type": "string"
                 },
-                "last_login": {
+                "password": {
+                    "type": "string"
+                },
+                "phone": {
+                    "type": "string"
+                },
+                "reports_to": {
+                    "type": "string"
+                },
+                "role_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "status": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "user.UpdateUserRequest": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "first_name": {
                     "type": "string"
                 },
                 "last_name": {
@@ -7783,21 +10106,15 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "reports_to": {
-                    "description": "Manager ID",
                     "type": "string"
                 },
-                "roles": {
-                    "description": "References to Role IDs",
+                "role_ids": {
                     "type": "array",
                     "items": {
                         "type": "string"
                     }
                 },
                 "status": {
-                    "description": "active, inactive, suspended",
-                    "type": "string"
-                },
-                "updated_at": {
                     "type": "string"
                 },
                 "username": {
@@ -7805,47 +10122,42 @@ const docTemplate = `{
                 }
             }
         },
-        "models.ValidationOperator": {
-            "type": "string",
-            "enum": [
-                "equals",
-                "not_equals",
-                "contains",
-                "gt",
-                "lt"
-            ],
-            "x-enum-varnames": [
-                "OperatorEquals",
-                "OperatorNotEquals",
-                "OperatorContains",
-                "OperatorGreaterThan",
-                "OperatorLessThan"
-            ]
+        "user.UpdateUserRolesRequest": {
+            "type": "object",
+            "properties": {
+                "role_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
         },
-        "models.Webhook": {
-            "description": "Webhook configuration for event notifications",
+        "user.UpdateUserStatusRequest": {
+            "type": "object",
+            "properties": {
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "webhook.Webhook": {
             "type": "object",
             "properties": {
                 "created_at": {
                     "type": "string"
                 },
                 "created_by": {
-                    "type": "string",
-                    "example": "507f1f77bcf86cd799439011"
+                    "type": "string"
                 },
                 "description": {
-                    "type": "string",
-                    "example": "Sync contacts to remote CRM"
+                    "type": "string"
                 },
                 "events": {
                     "type": "array",
                     "items": {
                         "type": "string"
-                    },
-                    "example": [
-                        "record.updated",
-                        "record.created"
-                    ]
+                    }
                 },
                 "headers": {
                     "description": "Custom headers to send",
@@ -7855,73 +10167,26 @@ const docTemplate = `{
                     }
                 },
                 "id": {
-                    "type": "string",
-                    "example": "507f1f77bcf86cd799439011"
+                    "type": "string"
                 },
                 "is_active": {
-                    "type": "boolean",
-                    "example": true
+                    "type": "boolean"
                 },
                 "module_name": {
                     "description": "Optional: limit to specific module",
-                    "type": "string",
-                    "example": "leads"
+                    "type": "string"
                 },
                 "secret": {
                     "description": "For HMCA signature",
-                    "type": "string",
-                    "example": "my_secret_key"
+                    "type": "string"
+                },
+                "tenant_id": {
+                    "type": "string"
                 },
                 "updated_at": {
                     "type": "string"
                 },
                 "url": {
-                    "type": "string",
-                    "example": "https://example.com/webhook"
-                }
-            }
-        },
-        "models.WidgetPosition": {
-            "type": "object",
-            "properties": {
-                "height": {
-                    "description": "Height in grid units",
-                    "type": "integer"
-                },
-                "width": {
-                    "description": "Width in grid units",
-                    "type": "integer"
-                },
-                "x": {
-                    "description": "X position",
-                    "type": "integer"
-                },
-                "y": {
-                    "description": "Y position",
-                    "type": "integer"
-                }
-            }
-        },
-        "service.SearchResult": {
-            "type": "object",
-            "properties": {
-                "description": {
-                    "type": "string"
-                },
-                "icon": {
-                    "type": "string"
-                },
-                "link": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "title": {
-                    "type": "string"
-                },
-                "type": {
-                    "description": "\"module\", \"record\", \"page\", \"user\"",
                     "type": "string"
                 }
             }

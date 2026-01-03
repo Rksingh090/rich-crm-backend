@@ -14,6 +14,17 @@ func NewRecordController(service RecordService) *RecordController {
 }
 
 // CreateRecord godoc
+// CreateRecord godoc
+// @Summary Create record
+// @Description Create a new record in a module
+// @Tags records
+// @Accept json
+// @Produce json
+// @Param name path string true "Module Name"
+// @Param record body map[string]interface{} true "Record Data"
+// @Success 201 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Router /api/records/{name} [post]
 func (ctrl *RecordController) CreateRecord(c *fiber.Ctx) error {
 	moduleName := c.Params("name")
 	var data map[string]interface{}
@@ -39,6 +50,16 @@ func (ctrl *RecordController) CreateRecord(c *fiber.Ctx) error {
 }
 
 // GetRecord godoc
+// GetRecord godoc
+// @Summary Get record
+// @Description Get a record by ID
+// @Tags records
+// @Produce json
+// @Param name path string true "Module Name"
+// @Param id path string true "Record ID"
+// @Success 200 {object} map[string]interface{}
+// @Failure 404 {object} map[string]interface{}
+// @Router /api/records/{name}/{id} [get]
 func (ctrl *RecordController) GetRecord(c *fiber.Ctx) error {
 	moduleName := c.Params("name")
 	id := c.Params("id")
@@ -59,6 +80,19 @@ func (ctrl *RecordController) GetRecord(c *fiber.Ctx) error {
 }
 
 // ListRecords godoc
+// ListRecords godoc
+// @Summary List records
+// @Description List records in a module with filtering, sorting, and pagination
+// @Tags records
+// @Produce json
+// @Param name path string true "Module Name"
+// @Param page query int false "Page number"
+// @Param limit query int false "Items per page"
+// @Param sort_by query string false "Sort field"
+// @Param sort_order query string false "Sort order (asc/desc)"
+// @Success 200 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /api/records/{name} [get]
 func (ctrl *RecordController) ListRecords(c *fiber.Ctx) error {
 	moduleName := c.Params("name")
 
@@ -100,6 +134,18 @@ func (ctrl *RecordController) ListRecords(c *fiber.Ctx) error {
 }
 
 // UpdateRecord godoc
+// UpdateRecord godoc
+// @Summary Update record
+// @Description Update an existing record
+// @Tags records
+// @Accept json
+// @Produce json
+// @Param name path string true "Module Name"
+// @Param id path string true "Record ID"
+// @Param record body map[string]interface{} true "Record Data"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Router /api/records/{name}/{id} [put]
 func (ctrl *RecordController) UpdateRecord(c *fiber.Ctx) error {
 	moduleName := c.Params("name")
 	id := c.Params("id")
@@ -128,6 +174,15 @@ func (ctrl *RecordController) UpdateRecord(c *fiber.Ctx) error {
 }
 
 // DeleteRecord godoc
+// DeleteRecord godoc
+// @Summary Delete record
+// @Description Delete a record by ID
+// @Tags records
+// @Param name path string true "Module Name"
+// @Param id path string true "Record ID"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Router /api/records/{name}/{id} [delete]
 func (ctrl *RecordController) DeleteRecord(c *fiber.Ctx) error {
 	moduleName := c.Params("name")
 	id := c.Params("id")

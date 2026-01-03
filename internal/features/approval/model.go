@@ -3,23 +3,27 @@ package approval
 import (
 	"time"
 
-	common_models "go-crm/internal/common/models"
-
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 // ApprovalWorkflow defines the rules for approving records in a module
+type RuleCondition struct {
+	Field    string      `json:"field" bson:"field"`
+	Operator string      `json:"operator" bson:"operator"`
+	Value    interface{} `json:"value" bson:"value"`
+}
+
 type ApprovalWorkflow struct {
-	ID        primitive.ObjectID            `bson:"_id,omitempty" json:"id"`
-	TenantID  primitive.ObjectID            `bson:"tenant_id" json:"tenant_id"`
-	ModuleID  string                        `bson:"module_id" json:"module_id"` // The module this workflow applies to
-	Name      string                        `bson:"name" json:"name"`
-	Active    bool                          `bson:"active" json:"active"`
-	Priority  int                           `bson:"priority" json:"priority"` // Evaluation order (0 = highest)
-	Criteria  []common_models.RuleCondition `bson:"criteria" json:"criteria"`
-	Steps     []ApprovalStep                `bson:"steps" json:"steps"`
-	CreatedAt time.Time                     `bson:"created_at" json:"created_at"`
-	UpdatedAt time.Time                     `bson:"updated_at" json:"updated_at"`
+	ID        primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	TenantID  primitive.ObjectID `bson:"tenant_id" json:"tenant_id"`
+	ModuleID  string             `bson:"module_id" json:"module_id"` // The module this workflow applies to
+	Name      string             `bson:"name" json:"name"`
+	Active    bool               `bson:"active" json:"active"`
+	Priority  int                `bson:"priority" json:"priority"` // Evaluation order (0 = highest)
+	Criteria  []RuleCondition    `bson:"criteria" json:"criteria"`
+	Steps     []ApprovalStep     `bson:"steps" json:"steps"`
+	CreatedAt time.Time          `bson:"created_at" json:"created_at"`
+	UpdatedAt time.Time          `bson:"updated_at" json:"updated_at"`
 }
 
 // ApprovalStep defines a single step in the approval process

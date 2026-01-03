@@ -7,14 +7,16 @@ import (
 )
 
 type ResourceUI struct {
-	Sidebar  bool   `bson:"sidebar" json:"sidebar"`
-	Order    int    `bson:"order" json:"order"`
-	Group    string `bson:"group" json:"group"`
-	Location string `bson:"location" json:"location"`
+	Sidebar    bool   `bson:"sidebar" json:"sidebar"`
+	Order      int    `bson:"order" json:"order"`
+	Group      string `bson:"group" json:"group"`
+	GroupOrder int    `bson:"group_order" json:"group_order"`
+	Location   string `bson:"location" json:"location"`
 }
 
 type Resource struct {
-	ID           string             `bson:"_id" json:"id"`
+	ID           primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	ResourceID   string             `bson:"resource" json:"resource_id"`
 	TenantID     primitive.ObjectID `bson:"tenant_id" json:"tenant_id"`
 	Product      string             `bson:"product" json:"product"`
 	Type         string             `bson:"type" json:"type"`

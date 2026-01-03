@@ -15,6 +15,7 @@ import (
 type ResourceRepository interface {
 	FindAll(ctx context.Context) ([]Resource, error)
 	FindByID(ctx context.Context, id string) (*Resource, error)
+	FindByResourceID(ctx context.Context, resourceID string) (*Resource, error)
 	FindByKey(ctx context.Context, key string) (*Resource, error)
 	FindSidebarResources(ctx context.Context, product string, location string) ([]Resource, error)
 	Create(ctx context.Context, resource *Resource) error
@@ -65,8 +66,31 @@ func (r *ResourceRepositoryImpl) FindByID(ctx context.Context, id string) (*Reso
 		return nil, err
 	}
 
+	rid, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid resource id: %v", err)
+	}
+
 	var resource Resource
-	err = r.collection.FindOne(ctx, bson.M{"_id": id, "tenant_id": oid}).Decode(&resource)
+	err = r.collection.FindOne(ctx, bson.M{"_id": rid, "tenant_id": oid}).Decode(&resource)
+	if err != nil {
+		return nil, err
+	}
+	return &resource, nil
+}
+
+func (r *ResourceRepositoryImpl) FindByResourceID(ctx context.Context, resourceID string) (*Resource, error) {
+	tenantID, ok := ctx.Value(models.TenantIDKey).(string)
+	if !ok || tenantID == "" {
+		return nil, fmt.Errorf("organization context missing")
+	}
+	oid, err := primitive.ObjectIDFromHex(tenantID)
+	if err != nil {
+		return nil, err
+	}
+
+	var resource Resource
+	err = r.collection.FindOne(ctx, bson.M{"resource": resourceID, "tenant_id": oid}).Decode(&resource)
 	if err != nil {
 		return nil, err
 	}
@@ -121,7 +145,12 @@ func (r *ResourceRepositoryImpl) Delete(ctx context.Context, id string) error {
 		return err
 	}
 
-	_, err = r.collection.DeleteOne(ctx, bson.M{"_id": id, "tenant_id": oid})
+	rid, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return fmt.Errorf("invalid resource id: %v", err)
+	}
+
+	_, err = r.collection.DeleteOne(ctx, bson.M{"_id": rid, "tenant_id": oid})
 	return err
 }
 
@@ -148,8 +177,9 @@ func (r *ResourceRepositoryImpl) FindSidebarResources(ctx context.Context, produ
 		filter["ui.location"] = location
 	}
 
-	// Sort by group (alphabetically) then by order within group
+	// Sort by group order, then group name, then by item order
 	opts := options.Find().SetSort(bson.D{
+		{Key: "ui.group_order", Value: 1},
 		{Key: "ui.group", Value: 1},
 		{Key: "ui.order", Value: 1},
 	})

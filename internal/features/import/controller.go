@@ -31,6 +31,18 @@ func NewImportController(importService ImportService, cfg *config.Config) *Impor
 	}
 }
 
+// UploadAndPreview godoc
+// @Summary Upload import file
+// @Description Upload a CSV/Excel file and preview its content
+// @Tags import
+// @Accept multipart/form-data
+// @Produce json
+// @Param file formData file true "Import File"
+// @Param module formData string true "Module Name"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /api/import/upload [post]
 func (c *ImportController) UploadAndPreview(ctx *fiber.Ctx) error {
 	moduleName := ctx.FormValue("module")
 	if moduleName == "" {
@@ -56,6 +68,20 @@ func (c *ImportController) UploadAndPreview(ctx *fiber.Ctx) error {
 	return ctx.JSON(preview)
 }
 
+// CreateImportJob godoc
+// @Summary Create import job
+// @Description Create a new data import job
+// @Tags import
+// @Accept multipart/form-data
+// @Produce json
+// @Param file formData file true "Import File"
+// @Param module formData string true "Module Name"
+// @Param mapping formData string true "Column Mapping JSON"
+// @Success 201 {object} ImportJob
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /api/import/jobs [post]
 func (c *ImportController) CreateImportJob(ctx *fiber.Ctx) error {
 	moduleName := ctx.FormValue("module")
 	mappingJSON := ctx.FormValue("mapping")
@@ -115,6 +141,15 @@ func (c *ImportController) CreateImportJob(ctx *fiber.Ctx) error {
 	return ctx.Status(fiber.StatusCreated).JSON(job)
 }
 
+// ExecuteImport godoc
+// @Summary Execute import job
+// @Description Start processing an import job
+// @Tags import
+// @Produce json
+// @Param id path string true "Job ID"
+// @Success 200 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Router /api/import/jobs/{id}/execute [post]
 func (c *ImportController) ExecuteImport(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 
@@ -132,6 +167,15 @@ func (c *ImportController) ExecuteImport(ctx *fiber.Ctx) error {
 	return ctx.JSON(fiber.Map{"message": "Import started"})
 }
 
+// GetImportJob godoc
+// @Summary Get import job
+// @Description Get details of an import job
+// @Tags import
+// @Produce json
+// @Param id path string true "Job ID"
+// @Success 200 {object} ImportJob
+// @Failure 404 {object} map[string]interface{}
+// @Router /api/import/jobs/{id} [get]
 func (c *ImportController) GetImportJob(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 
@@ -143,6 +187,15 @@ func (c *ImportController) GetImportJob(ctx *fiber.Ctx) error {
 	return ctx.JSON(job)
 }
 
+// ListImportJobs godoc
+// @Summary List import jobs
+// @Description List all import jobs for the current user
+// @Tags import
+// @Produce json
+// @Success 200 {array} ImportJob
+// @Failure 401 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /api/import/jobs [get]
 func (c *ImportController) ListImportJobs(ctx *fiber.Ctx) error {
 	userIDStr, ok := ctx.Locals("user_id").(string)
 	if !ok {
