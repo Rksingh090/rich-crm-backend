@@ -525,20 +525,39 @@ func (s *RecordServiceImpl) validateAndConvert(ctx context.Context, field module
 		}
 		return strVal, nil
 	case module.FieldTypeLookup:
-		strVal, ok := val.(string)
-		if !ok {
-			return nil, errors.New("expected valid objectID hex string")
+		var idStr string
+		switch v := val.(type) {
+		case string:
+			idStr = v
+		case primitive.ObjectID:
+			idStr = v.Hex()
+		case map[string]interface{}:
+			if id, ok := v["id"].(string); ok {
+				idStr = id
+			} else if oid, ok := v["id"].(primitive.ObjectID); ok {
+				idStr = oid.Hex()
+			}
+		case primitive.M:
+			if id, ok := v["id"].(string); ok {
+				idStr = id
+			} else if oid, ok := v["id"].(primitive.ObjectID); ok {
+				idStr = oid.Hex()
+			}
+		default:
+			return nil, errors.New("expected valid objectID hex string or populated object for lookup")
 		}
-		if strVal == "" {
+
+		if idStr == "" {
 			return nil, nil
 		}
-		oid, err := primitive.ObjectIDFromHex(strVal)
+
+		oid, err := primitive.ObjectIDFromHex(idStr)
 		if err != nil {
 			return nil, errors.New("invalid objectID for lookup")
 		}
 
 		if field.Lookup != nil && field.Lookup.LookupModule != "" {
-			_, err := s.RecordRepo.Get(ctx, field.Lookup.LookupModule, strVal)
+			_, err := s.RecordRepo.Get(ctx, field.Lookup.LookupModule, idStr)
 			if err != nil {
 				if err == mongo.ErrNoDocuments {
 					return nil, fmt.Errorf("referenced record in module '%s' not found", field.Lookup.LookupModule)
@@ -548,34 +567,72 @@ func (s *RecordServiceImpl) validateAndConvert(ctx context.Context, field module
 		}
 
 		return oid, nil
+
 	case module.FieldTypeFile:
-		strVal, ok := val.(string)
-		if !ok {
-			return nil, errors.New("expected string for file")
+		var idStr string
+		switch v := val.(type) {
+		case string:
+			idStr = v
+		case primitive.ObjectID:
+			idStr = v.Hex()
+		case map[string]interface{}:
+			if id, ok := v["id"].(string); ok {
+				idStr = id
+			} else if oid, ok := v["id"].(primitive.ObjectID); ok {
+				idStr = oid.Hex()
+			} else if id, ok := v["id"].(primitive.ObjectID); ok {
+				idStr = id.Hex()
+			}
+		case primitive.M:
+			if id, ok := v["id"].(string); ok {
+				idStr = id
+			} else if oid, ok := v["id"].(primitive.ObjectID); ok {
+				idStr = oid.Hex()
+			}
+		default:
+			return nil, errors.New("expected string or populated object for file")
 		}
-		if strVal == "" {
+
+		if idStr == "" {
 			return nil, nil
 		}
 
-		if _, err := primitive.ObjectIDFromHex(strVal); err == nil {
-			_, err = s.FileRepo.Get(ctx, strVal)
+		if _, err := primitive.ObjectIDFromHex(idStr); err == nil {
+			_, err = s.FileRepo.Get(ctx, idStr)
 			if err != nil {
 				if err == mongo.ErrNoDocuments {
 					return nil, errors.New("referenced file not found")
 				}
 				return nil, fmt.Errorf("failed to verify file reference: %v", err)
 			}
-			return strVal, nil
+			return idStr, nil
 		}
 
-		return strVal, nil
+		return idStr, nil
 
 	case module.FieldTypeImage:
-		strVal, ok := val.(string)
-		if !ok {
-			return nil, errors.New("expected string for image")
+		var idStr string
+		switch v := val.(type) {
+		case string:
+			idStr = v
+		case primitive.ObjectID:
+			idStr = v.Hex()
+		case map[string]interface{}:
+			if id, ok := v["id"].(string); ok {
+				idStr = id
+			} else if oid, ok := v["id"].(primitive.ObjectID); ok {
+				idStr = oid.Hex()
+			}
+		case primitive.M:
+			if id, ok := v["id"].(string); ok {
+				idStr = id
+			} else if oid, ok := v["id"].(primitive.ObjectID); ok {
+				idStr = oid.Hex()
+			}
+		default:
+			return nil, errors.New("expected string or populated object for image")
 		}
-		return strVal, nil
+		return idStr, nil
 	default:
 		return val, nil
 	}
@@ -591,7 +648,8 @@ func (s *RecordServiceImpl) prepareFilters(ctx context.Context, m *common_models
 
 		// Handle Special ID fields
 		if fieldName == "id" || fieldName == "_id" {
-			if operator == "in" {
+			switch operator {
+			case "in":
 				var ids []primitive.ObjectID
 				switch v := val.(type) {
 				case string:
@@ -606,19 +664,33 @@ func (s *RecordServiceImpl) prepareFilters(ctx context.Context, m *common_models
 							ids = append(ids, oid)
 						}
 					}
+				case []primitive.ObjectID:
+					ids = append(ids, v...)
+				case primitive.A:
+					for _, item := range v {
+						if s, ok := item.(string); ok {
+							if oid, err := primitive.ObjectIDFromHex(s); err == nil {
+								ids = append(ids, oid)
+							}
+						} else if oid, ok := item.(primitive.ObjectID); ok {
+							ids = append(ids, oid)
+						}
+					}
 				case []interface{}:
 					for _, item := range v {
 						if s, ok := item.(string); ok {
 							if oid, err := primitive.ObjectIDFromHex(s); err == nil {
 								ids = append(ids, oid)
 							}
+						} else if oid, ok := item.(primitive.ObjectID); ok {
+							ids = append(ids, oid)
 						}
 					}
 				}
 				if len(ids) > 0 {
 					typedFilters["_id"] = bson.M{"$in": ids}
 				}
-			} else if operator == "" || operator == "eq" {
+			case "", "eq":
 				if strVal, ok := val.(string); ok {
 					if oid, err := primitive.ObjectIDFromHex(strVal); err == nil {
 						typedFilters["_id"] = oid

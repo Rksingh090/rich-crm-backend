@@ -2,6 +2,8 @@ package bulk_operation
 
 import (
 	"context"
+	"encoding/json"
+	"strings"
 
 	common_models "go-crm/internal/common/models"
 
@@ -69,9 +71,58 @@ func (c *BulkOperationController) PreviewBulkOperation(ctx *fiber.Ctx) error {
 // @Failure 500 {object} map[string]interface{}
 // @Router /api/bulk/operations [post]
 func (c *BulkOperationController) CreateBulkOperation(ctx *fiber.Ctx) error {
-	var op BulkOperation
-	if err := ctx.BodyParser(&op); err != nil {
+	type CreateBulkOpRequest struct {
+		ModuleName string                 `json:"module_name"`
+		Type       BulkOperationType      `json:"type"`
+		Filters    interface{}            `json:"filters"`
+		Updates    map[string]interface{} `json:"updates"`
+	}
+
+	var req CreateBulkOpRequest
+	if err := ctx.BodyParser(&req); err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request"})
+	}
+
+	// Helper to normalize filters
+	var filters []common_models.Filter
+
+	if req.Filters != nil {
+		// Attempt to handle as structured filters first
+		// We use JSON round-trip to avoid manual map casting which is error prone
+		if b, err := json.Marshal(req.Filters); err == nil {
+			var structFilters []common_models.Filter
+			if err := json.Unmarshal(b, &structFilters); err == nil {
+				filters = structFilters
+			} else {
+				// Failed to unmarshal as slice, try legacy map
+				var mapFilters map[string]interface{}
+				if err := json.Unmarshal(b, &mapFilters); err == nil {
+					for k, val := range mapFilters {
+						field := k
+						op := "eq"
+						if strings.Contains(k, "__") {
+							parts := strings.Split(k, "__")
+							if len(parts) == 2 {
+								field = parts[0]
+								op = parts[1]
+							}
+						}
+						filters = append(filters, common_models.Filter{
+							Field:    field,
+							Operator: op,
+							Value:    val,
+						})
+					}
+				}
+			}
+		}
+	}
+
+	op := BulkOperation{
+		ModuleName: req.ModuleName,
+		Type:       req.Type,
+		Updates:    req.Updates,
+		Filters:    filters,
 	}
 
 	userIDStr, ok := ctx.Locals("user_id").(string)

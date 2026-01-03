@@ -90,3 +90,37 @@ func TestPrepareFilters(t *testing.T) {
 		})
 	}
 }
+
+func TestPrepareFilters_IDTypes(t *testing.T) {
+	service := &RecordServiceImpl{}
+	ctx := context.Background()
+	schema := &common_models.Entity{
+		Fields: []common_models.ModuleField{
+			{Name: "name", Label: "Name", Type: common_models.FieldTypeText},
+		},
+	}
+
+	oid1 := primitive.NewObjectID()
+	oid2 := primitive.NewObjectID()
+
+	// Test []primitive.ObjectID
+	filters := []common_models.Filter{
+		{Field: "_id", Operator: "in", Value: []primitive.ObjectID{oid1, oid2}},
+	}
+	res, err := service.prepareFilters(ctx, schema, filters)
+	if err != nil {
+		t.Fatalf("prepareFilters failed: %v", err)
+	}
+
+	idFilter, ok := res["_id"].(bson.M)
+	if !ok {
+		t.Fatal("_id filter missing or not bson.M")
+	}
+	inFilter, ok := idFilter["$in"].([]primitive.ObjectID)
+	if !ok {
+		t.Fatalf("$in filter is not []primitive.ObjectID, got %T", idFilter["$in"])
+	}
+	if len(inFilter) != 2 {
+		t.Errorf("Expected 2 IDs, got %d", len(inFilter))
+	}
+}
