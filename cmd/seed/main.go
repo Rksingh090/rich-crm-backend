@@ -7,11 +7,13 @@ import (
 	"os"
 	"time"
 
+	common_models "go-crm/internal/common/models"
 	"go-crm/internal/config"
 	"go-crm/internal/database"
+	"go-crm/internal/features/module"
+	"go-crm/internal/features/role"
+	"go-crm/internal/features/user"
 	"go-crm/internal/logger"
-	"go-crm/internal/models"
-	"go-crm/internal/repository"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/fx"
@@ -22,9 +24,9 @@ import (
 // Seed runs the database seeding
 func Seed(
 	lc fx.Lifecycle,
-	roleRepo repository.RoleRepository,
-	userRepo repository.UserRepository,
-	moduleRepo repository.ModuleRepository,
+	roleRepo role.RoleRepository,
+	userRepo user.UserRepository,
+	moduleRepo module.ModuleRepository,
 	logger *zap.Logger,
 	shutdowner fx.Shutdowner,
 ) {
@@ -54,7 +56,7 @@ func Seed(
 				modulesPath := "cmd/seed/data/modules.json"
 
 				// 1. Seed Roles
-				var roles []models.Role
+				var roles []role.Role
 				if err := readJSON(rolesPath, &roles); err != nil {
 					logger.Fatal("Failed to read roles.json", zap.Error(err))
 				}
@@ -118,7 +120,7 @@ func Seed(
 							}
 						}
 
-						newUser := models.User{
+						newUser := common_models.User{
 							ID:        primitive.NewObjectID(),
 							Username:  uData.Username,
 							Password:  uData.Password, // Ideally hash this if AuthServiceImpl expects hashed, but current seeding used plaintext?
@@ -140,7 +142,7 @@ func Seed(
 				}
 
 				// 3. Seed Modules
-				var modules []models.Module
+				var modules []module.Module
 				if err := readJSON(modulesPath, &modules); err != nil {
 					logger.Fatal("Failed to read modules.json", zap.Error(err))
 				}
@@ -200,9 +202,9 @@ func main() {
 			config.LoadConfig,
 			logger.NewLogger,
 			database.NewDatabase,
-			repository.NewRoleRepository,
-			repository.NewUserRepository,
-			repository.NewModuleRepository,
+			role.NewRoleRepository,
+			user.NewUserRepository,
+			module.NewModuleRepository,
 		),
 		fx.WithLogger(func(log *zap.Logger) fxevent.Logger {
 			return &fxevent.ZapLogger{Logger: log}

@@ -2,13 +2,16 @@ package middleware
 
 import (
 	"context"
-	"go-crm/internal/service"
 
 	"github.com/gofiber/fiber/v2"
 )
 
+type RoleService interface {
+	CheckModulePermission(ctx context.Context, roleNames []string, moduleName string, permission string) (bool, error)
+}
+
 // PermissionMiddleware checks if user has specific permission for a module/action
-func PermissionMiddleware(roleService service.RoleService, moduleName string, permission string) fiber.Handler {
+func PermissionMiddleware(roleService RoleService, moduleName string, permission string) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		// Get roles from context (set by AuthMiddleware)
 		rolesInterface := c.Locals("roles")
@@ -38,6 +41,6 @@ func PermissionMiddleware(roleService service.RoleService, moduleName string, pe
 }
 
 // RequirePermission is a helper to create permission middleware
-func RequirePermission(roleService service.RoleService, moduleName string, permission string) fiber.Handler {
+func RequirePermission(roleService RoleService, moduleName string, permission string) fiber.Handler {
 	return PermissionMiddleware(roleService, moduleName, permission)
 }

@@ -3,20 +3,45 @@ package main
 import (
 	"context"
 	"fmt"
-	"go-crm/internal/api"
+	common_api "go-crm/internal/common/api"
 	"go-crm/internal/config"
-	"go-crm/internal/controllers"
 	"go-crm/internal/database"
+	"go-crm/internal/features/activity"
+	"go-crm/internal/features/admin"
+	"go-crm/internal/features/approval"
+	"go-crm/internal/features/audit"
+	"go-crm/internal/features/auth"
+	"go-crm/internal/features/automation"
+	"go-crm/internal/features/bulk_operation"
+	"go-crm/internal/features/chart"
+	cron_feature "go-crm/internal/features/cron"
+	"go-crm/internal/features/dashboard"
+	"go-crm/internal/features/email"
+	"go-crm/internal/features/email_template"
+	"go-crm/internal/features/extension"
+	"go-crm/internal/features/file"
+	"go-crm/internal/features/group"
+	import_feature "go-crm/internal/features/import"
+	"go-crm/internal/features/module"
+	"go-crm/internal/features/notification"
+	"go-crm/internal/features/record"
+	"go-crm/internal/features/report"
+	"go-crm/internal/features/role"
+	"go-crm/internal/features/saved_filter"
+	"go-crm/internal/features/search"
+	"go-crm/internal/features/settings"
+	"go-crm/internal/features/sync"
+	"go-crm/internal/features/system"
+	"go-crm/internal/features/ticket"
+	"go-crm/internal/features/user"
+	"go-crm/internal/features/webhook"
 	"go-crm/internal/logger"
 	"go-crm/internal/middleware"
-	"go-crm/internal/repository"
-	"go-crm/internal/service"
 	"log"
 
 	_ "go-crm/docs" // Import swagger docs
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/swagger"
 	"go.uber.org/fx"
 	"go.uber.org/fx/fxevent"
 	"go.uber.org/zap"
@@ -48,14 +73,14 @@ func NewFiberServer() *fiber.App {
 func AsRoute(f any) any {
 	return fx.Annotate(
 		f,
-		fx.As(new(api.Route)),           // Cast to Interface
+		fx.As(new(common_api.Route)),    // Cast to Interface
 		fx.ResultTags(`group:"routes"`), // Add to Group
 	)
 }
 
 // RegisterAllRoutes takes the group "routes" (slice of interfaces)
 // and calls Setup() on each one.
-func RegisterAllRoutes(app *fiber.App, routes []api.Route) {
+func RegisterAllRoutes(app *fiber.App, routes []common_api.Route) {
 	log.Printf("Registering %d routes...\n", len(routes))
 	for i, route := range routes {
 		log.Printf("Setting up route %d: %T\n", i+1, route)
@@ -69,10 +94,6 @@ var RegisterAllRoutesWithAnnotation = fx.Annotate(
 	RegisterAllRoutes,
 	fx.ParamTags(``, `group:"routes"`),
 )
-
-func RegisterSwagger(app *fiber.App) {
-	app.Get("/swagger/*", swagger.HandlerDefault)
-}
 
 // StartServer creates a lifecycle hook to start Fiber in a goroutine
 // and shut it down when the app exits.
@@ -123,143 +144,145 @@ func main() {
 			database.NewDatabase,
 
 			// Initialize Repository
-			repository.NewFileRepository,
-			repository.NewAuditRepository,
-			repository.NewModuleRepository,
-			repository.NewUserRepository,
-			repository.NewRecordRepository,
-			repository.NewRoleRepository,
-			repository.NewApprovalRepository,
-			repository.NewReportRepository,
-			repository.NewAutomationRepository,
-			repository.NewSettingsRepository,
-			repository.NewTicketRepository,
-			repository.NewSLAPolicyRepository,
-			repository.NewTicketCommentRepository,
-			repository.NewEscalationRuleRepository,
-			repository.NewGroupRepository,
-			repository.NewNotificationRepository,
-			repository.NewWebhookRepository,
-			repository.NewExtensionRepository,
-			repository.NewSyncSettingRepository,
-			repository.NewSyncLogRepository,
-			repository.NewChartRepository,
-			repository.NewDashboardRepository,
-			repository.NewImportRepository,
-			repository.NewBulkOperationRepository,
-			repository.NewSavedFilterRepository,
-			repository.NewCronRepository,
-			repository.NewEmailTemplateRepository,
-			repository.NewDataSourceRepository,
-			repository.NewMetricRepository,
-			service.NewAuditService,
-			service.NewAuthService,
-			service.NewRoleService,
-			service.NewModuleService,
-			service.NewRecordService,
-			service.NewUserService,
-			service.NewFileService,
-			service.NewApprovalService,
-			service.NewSettingsService,
-			service.NewEmailService,
-			service.NewReportService,
-			service.NewActionExecutor,
-			service.NewAutomationService,
-			service.NewTicketService,
-			service.NewSLAService,
-			service.NewEscalationService,
-			service.NewGroupService,
-			service.NewNotificationService,
-			service.NewWebhookService,
-			service.NewExtensionService,
-			service.NewSyncService,
-			service.NewSearchService,
-			service.NewChartService,
-			service.NewActivityService,
-			service.NewDashboardService,
-			service.NewImportService,
-			service.NewBulkOperationService,
-			service.NewSavedFilterService,
-			service.NewCronService,
-			service.NewEmailTemplateService,
-			service.NewDataSourceService,
-			service.NewAnalyticsService,
+			file.NewFileRepository,
+			audit.NewAuditRepository,
+			module.NewModuleRepository,
+			user.NewUserRepository,
+			record.NewRecordRepository,
+			role.NewRoleRepository,
+			approval.NewApprovalRepository,
+			report.NewReportRepository,
+			automation.NewAutomationRepository,
+			settings.NewSettingsRepository,
+			ticket.NewTicketRepository,
+			ticket.NewSLAPolicyRepository,
+			ticket.NewTicketCommentRepository,
+			ticket.NewEscalationRuleRepository,
+			group.NewGroupRepository,
+			notification.NewNotificationRepository,
+			webhook.NewWebhookRepository,
+			webhook.NewWebhookLogRepository,
+			extension.NewExtensionRepository,
+			sync.NewSyncSettingRepository,
+			sync.NewSyncLogRepository,
+			chart.NewChartRepository,
+			dashboard.NewDashboardRepository,
+			email_template.NewEmailTemplateRepository,
+			bulk_operation.NewBulkOperationRepository,
+			saved_filter.NewSavedFilterRepository,
+			cron_feature.NewCronRepository,
+			import_feature.NewImportRepository,
+
+			audit.NewAuditService,
+			auth.NewAuthService,
+			role.NewRoleService,
+			module.NewModuleService,
+			record.NewRecordService,
+			user.NewUserService,
+			file.NewFileService,
+			group.NewGroupService,
+			approval.NewApprovalService,
+			settings.NewSettingsService,
+			report.NewReportService,
+			automation.NewActionExecutor,
+			automation.NewAutomationService,
+			ticket.NewTicketService,
+			ticket.NewSLAService,
+			ticket.NewEscalationService,
+			notification.NewNotificationService,
+			webhook.NewWebhookService,
+			extension.NewExtensionService,
+			sync.NewSyncService,
+			search.NewSearchService,
+			activity.NewActivityService,
+			chart.NewChartService,
+			dashboard.NewDashboardService,
+			email.NewEmailService,
+			email_template.NewEmailTemplateService,
+			cron_feature.NewCronService,
+			bulk_operation.NewBulkOperationService,
+			import_feature.NewImportService,
+			saved_filter.NewSavedFilterService,
+
+			// Interface Adapters to break circular dependencies and satisfy Fx
+			func(s approval.ApprovalService) record.ApprovalTrigger { return s },
+			func(s automation.AutomationService) record.AutomationTrigger { return s },
+			func(s role.RoleService) middleware.RoleService { return s },
+			func(r user.UserRepository) audit.UserFinder { return r },
 
 			// Initialize Controller
-			controllers.NewAdminController,
-			controllers.NewAuthController,
-			controllers.NewRoleController,
-			controllers.NewModuleController,
-			controllers.NewRecordController,
-			controllers.NewUserController,
-			controllers.NewFileController,
-			controllers.NewAuditController,
-			controllers.NewDebugController,
-			controllers.NewApprovalController,
-			controllers.NewReportController,
-			controllers.NewAutomationController,
-			controllers.NewSettingsController,
-			controllers.NewTicketController,
-			controllers.NewSLAMetricsController,
-			controllers.NewGroupController,
-			controllers.NewNotificationController,
-			controllers.NewWebhookController,
-			controllers.NewExtensionController,
-			controllers.NewSyncController,
-			controllers.NewSearchController,
-			controllers.NewChartController,
-			controllers.NewActivityController,
-			controllers.NewDashboardController,
-			controllers.NewImportController,
-			controllers.NewBulkOperationController,
-			controllers.NewSavedFilterController,
-			controllers.NewCronController,
-			controllers.NewEmailTemplateController,
-			controllers.NewDataSourceController,
-			controllers.NewAnalyticsController,
+			admin.NewAdminController,
+			auth.NewAuthController,
+			role.NewRoleController,
+			module.NewModuleController,
+			record.NewRecordController,
+			user.NewUserController,
+			file.NewFileController,
+			audit.NewAuditController,
+			system.NewDebugController,
+			system.NewWebSocketController,
+			approval.NewApprovalController,
+			report.NewReportController,
+			automation.NewAutomationController,
+			settings.NewSettingsController,
+			ticket.NewTicketController,
+			ticket.NewSLAMetricsController,
+			group.NewGroupController,
+			notification.NewNotificationController,
+			webhook.NewWebhookController,
+			extension.NewExtensionController,
+			sync.NewSyncController,
+			search.NewSearchController,
+			activity.NewActivityController,
+			chart.NewChartController,
+			dashboard.NewDashboardController,
+			email_template.NewEmailTemplateController,
+			import_feature.NewImportController,
+			bulk_operation.NewBulkOperationController,
+			saved_filter.NewSavedFilterController,
+			cron_feature.NewCronController,
 
 			// Initialize API Routes
-			AsRoute(api.NewAdminApi),
-			AsRoute(api.NewAuthApi),
-			AsRoute(api.NewRoleApi),
-			AsRoute(api.NewModuleApi),
-			AsRoute(api.NewRecordApi),
-			AsRoute(api.NewUserApi),
-			AsRoute(api.NewFileApi),
-			AsRoute(api.NewAuditApi),
-			AsRoute(api.NewDebugApi),
-			AsRoute(api.NewHealthApi),
-			AsRoute(api.NewApprovalApi),
-			AsRoute(api.NewReportApi),
-			AsRoute(api.NewAutomationApi),
-			AsRoute(api.NewSettingsApi),
-			AsRoute(api.NewTicketApi),
-			AsRoute(api.NewGroupApi),
-			AsRoute(api.NewNotificationApi),
-			AsRoute(api.NewWebhookApi),
-			AsRoute(api.NewExtensionApi),
-			AsRoute(api.NewSyncApi),
-			AsRoute(api.NewSearchApi),
-			AsRoute(api.NewChartApi),
-			AsRoute(api.NewActivityApi),
-			AsRoute(api.NewDashboardApi),
-			AsRoute(api.NewImportApi),
-			AsRoute(api.NewBulkOperationApi),
-			AsRoute(api.NewSavedFilterApi),
-			AsRoute(api.NewCronApi),
-			AsRoute(api.NewEmailTemplateApi),
-			AsRoute(api.NewDataSourceApi),
-			AsRoute(api.NewAnalyticsApi),
+			AsRoute(admin.NewAdminApi),
+			AsRoute(auth.NewAuthApi),
+			AsRoute(role.NewRoleApi),
+			AsRoute(module.NewModuleApi),
+			AsRoute(record.NewRecordApi),
+			AsRoute(user.NewUserApi),
+			AsRoute(file.NewFileApi),
+			AsRoute(audit.NewAuditApi),
+			AsRoute(system.NewDebugApi),
+			AsRoute(system.NewHealthApi),
+			AsRoute(approval.NewApprovalApi),
+			AsRoute(report.NewReportApi),
+			AsRoute(automation.NewAutomationApi),
+			AsRoute(settings.NewSettingsApi),
+			AsRoute(ticket.NewTicketApi),
+			AsRoute(group.NewGroupApi),
+			AsRoute(notification.NewNotificationApi),
+			AsRoute(webhook.NewWebhookApi),
+			AsRoute(extension.NewExtensionApi),
+			AsRoute(sync.NewSyncApi),
+			AsRoute(search.NewSearchApi),
+			AsRoute(chart.NewChartApi),
+			AsRoute(activity.NewActivityApi),
+			AsRoute(dashboard.NewDashboardApi),
+			AsRoute(import_feature.NewImportApi),
+			AsRoute(bulk_operation.NewBulkOperationApi),
+			AsRoute(saved_filter.NewSavedFilterApi),
+			AsRoute(cron_feature.NewCronApi),
+			AsRoute(email_template.NewEmailTemplateApi),
+			AsRoute(system.NewSwaggerApi),
+			AsRoute(system.NewWebSocketApi),
 		),
 		fx.WithLogger(func(log *zap.Logger) fxevent.Logger {
 			return &fxevent.ZapLogger{Logger: log}
 		}),
 		fx.Invoke(
 			// Register Routes & Start
-			RegisterSwagger,
 			RegisterAllRoutesWithAnnotation,
 			StartServer,
-			func(lc fx.Lifecycle, cronService service.CronService) {
+			func(lc fx.Lifecycle, cronService cron_feature.CronService) {
 				lc.Append(fx.Hook{
 					OnStart: func(ctx context.Context) error {
 						return cronService.InitializeScheduler(ctx)

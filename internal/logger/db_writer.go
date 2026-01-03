@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 
+	common_models "go-crm/internal/common/models"
 	"go-crm/internal/config"
 	"go-crm/internal/database"
-	"go-crm/internal/models"
 
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.uber.org/zap/zapcore"
@@ -66,7 +66,7 @@ func (w *DBLogWriter) processLogs() {
 		}
 
 		// Create the DB Record
-		logRecord := models.Log{
+		logRecord := common_models.Log{
 			Message:      entry.Message,
 			IpAddress:    entry.IpAddress, // Actual IP
 			CustomerId:   customerId,
