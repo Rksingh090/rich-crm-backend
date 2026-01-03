@@ -1,0 +1,20 @@
+[Unit]
+Description=Rich Backend Service (Go-CRM)
+After=network.target mongodb.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/var/www/go-crm
+ExecStart=/var/www/go-crm/bin/api
+Restart=always
+Environment=PORT=42111
+Environment=JWT_SECRET=Rishu@123
+Environment=MONGO_URI=mongodb+srv://sunny:sunny808090@cluster0.qh0mk.mongodb.net
+Environment=DB_NAME=go-crm-v2
+Environment=SKIP_AUTH=false
+Environment=ENVIRONMENT=production
+Environment=APP_ID=go-crm
+
+[Install]
+WantedBy=multi-user.target
