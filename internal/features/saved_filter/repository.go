@@ -2,6 +2,8 @@ package saved_filter
 
 import (
 	"context"
+	"fmt"
+	"go-crm/internal/common/models"
 	"go-crm/internal/database"
 	"time"
 
@@ -34,10 +36,19 @@ func (r *SavedFilterRepositoryImpl) Create(ctx context.Context, filter *SavedFil
 	if filter.ID.IsZero() {
 		filter.ID = primitive.NewObjectID()
 	}
+	tenantIDStr, ok := ctx.Value(models.TenantIDKey).(string)
+	if !ok || tenantIDStr == "" {
+		return fmt.Errorf("tenant ID not found in context")
+	}
+	tenantID, err := primitive.ObjectIDFromHex(tenantIDStr)
+	if err != nil {
+		return fmt.Errorf("invalid tenant ID: %v", err)
+	}
+	filter.TenantID = tenantID
 	filter.CreatedAt = time.Now()
 	filter.UpdatedAt = time.Now()
 
-	_, err := r.collection.InsertOne(ctx, filter)
+	_, err = r.collection.InsertOne(ctx, filter)
 	return err
 }
 
@@ -57,8 +68,22 @@ func (r *SavedFilterRepositoryImpl) Get(ctx context.Context, id string) (*SavedF
 }
 
 func (r *SavedFilterRepositoryImpl) Update(ctx context.Context, filter *SavedFilter) error {
+	existing, err := r.Get(ctx, filter.ID.Hex())
+	if err != nil {
+		return err
+	}
+
+	// Preserve immutable fields
+	filter.TenantID = existing.TenantID
+	filter.CreatedAt = existing.CreatedAt
+
+	// Preserve UserID if not provided (though usually it shouldn't change)
+	if filter.UserID.IsZero() {
+		filter.UserID = existing.UserID
+	}
+
 	filter.UpdatedAt = time.Now()
-	_, err := r.collection.ReplaceOne(ctx, bson.M{"_id": filter.ID}, filter)
+	_, err = r.collection.ReplaceOne(ctx, bson.M{"_id": filter.ID}, filter)
 	return err
 }
 

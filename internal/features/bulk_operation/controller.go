@@ -3,6 +3,8 @@ package bulk_operation
 import (
 	"context"
 
+	common_models "go-crm/internal/common/models"
+
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -27,11 +29,11 @@ func NewBulkOperationController(bulkService BulkOperationService) *BulkOperation
 // @Success 200 {object} map[string]interface{}
 // @Failure 400 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
-// @Router /api/bulk-operations/preview [post]
+// @Router /api/bulk/preview [post]
 func (c *BulkOperationController) PreviewBulkOperation(ctx *fiber.Ctx) error {
 	var req struct {
 		ModuleName string                 `json:"module_name"`
-		Filters    map[string]interface{} `json:"filters"`
+		Filters    []common_models.Filter `json:"filters"`
 	}
 
 	if err := ctx.BodyParser(&req); err != nil {
@@ -65,7 +67,7 @@ func (c *BulkOperationController) PreviewBulkOperation(ctx *fiber.Ctx) error {
 // @Success 201 {object} BulkOperation
 // @Failure 400 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
-// @Router /api/bulk-operations [post]
+// @Router /api/bulk/operations [post]
 func (c *BulkOperationController) CreateBulkOperation(ctx *fiber.Ctx) error {
 	var op BulkOperation
 	if err := ctx.BodyParser(&op); err != nil {
@@ -79,10 +81,16 @@ func (c *BulkOperationController) CreateBulkOperation(ctx *fiber.Ctx) error {
 	userID, _ := primitive.ObjectIDFromHex(userIDStr)
 	op.UserID = userID
 
+	tenantIDStr, ok := ctx.Locals("tenant_id").(string)
+	if ok && tenantIDStr != "" {
+		tenantID, _ := primitive.ObjectIDFromHex(tenantIDStr)
+		op.TenantID = tenantID
+	}
+
 	if op.Type == "" {
 		op.Type = BulkTypeUpdate
 	}
-	if op.Type != BulkTypeUpdate && op.Type != BulkTypeDelete {
+	if op.Type != BulkTypeUpdate && op.Type != BulkTypeDelete && op.Type != BulkTypeDuplicate {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid operation type"})
 	}
 
@@ -101,7 +109,7 @@ func (c *BulkOperationController) CreateBulkOperation(ctx *fiber.Ctx) error {
 // @Param id path string true "Operation ID"
 // @Success 200 {object} map[string]interface{}
 // @Failure 401 {object} map[string]interface{}
-// @Router /api/bulk-operations/{id}/execute [post]
+// @Router /api/bulk/operations/{id}/execute [post]
 func (c *BulkOperationController) ExecuteBulkOperation(ctx *fiber.Ctx) error {
 	opID := ctx.Params("id")
 
@@ -127,7 +135,7 @@ func (c *BulkOperationController) ExecuteBulkOperation(ctx *fiber.Ctx) error {
 // @Param id path string true "Operation ID"
 // @Success 200 {object} BulkOperation
 // @Failure 404 {object} map[string]interface{}
-// @Router /api/bulk-operations/{id} [get]
+// @Router /api/bulk/operations/{id} [get]
 func (c *BulkOperationController) GetBulkOperation(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 
@@ -147,7 +155,7 @@ func (c *BulkOperationController) GetBulkOperation(ctx *fiber.Ctx) error {
 // @Success 200 {array} BulkOperation
 // @Failure 401 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
-// @Router /api/bulk-operations [get]
+// @Router /api/bulk/operations [get]
 func (c *BulkOperationController) ListBulkOperations(ctx *fiber.Ctx) error {
 	userIDStr, ok := ctx.Locals("user_id").(string)
 	if !ok {

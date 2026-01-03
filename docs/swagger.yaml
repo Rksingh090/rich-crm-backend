@@ -305,10 +305,12 @@ definitions:
     enum:
     - update
     - delete
+    - duplicate
     type: string
     x-enum-varnames:
     - BulkTypeUpdate
     - BulkTypeDelete
+    - BulkTypeDuplicate
   chart.AggregationType:
     enum:
     - count
@@ -741,23 +743,16 @@ definitions:
         items:
           type: string
         type: array
-      module_permissions:
-        additionalProperties:
-          $ref: '#/definitions/group.ModulePermission'
-        type: object
       name:
         type: string
+      permissions:
+        additionalProperties:
+          additionalProperties:
+            $ref: '#/definitions/models.ActionPermission'
+          type: object
+        type: object
       updated_at:
         type: string
-    type: object
-  group.ModulePermission:
-    properties:
-      delete:
-        $ref: '#/definitions/models.ActionPermission'
-      read:
-        $ref: '#/definitions/models.ActionPermission'
-      write:
-        $ref: '#/definitions/models.ActionPermission'
     type: object
   import_feature.ImportError:
     properties:
@@ -1187,6 +1182,8 @@ definitions:
       label:
         type: string
       product:
+        type: string
+      resource_id:
         type: string
       route:
         type: string
@@ -2400,7 +2397,7 @@ paths:
       summary: Update automation rule
       tags:
       - automation
-  /api/bulk-operations:
+  /api/bulk/operations:
     get:
       description: List all bulk operations for the current user
       produces:
@@ -2456,7 +2453,7 @@ paths:
       summary: Create bulk operation
       tags:
       - bulk_operations
-  /api/bulk-operations/{id}:
+  /api/bulk/operations/{id}:
     get:
       description: Get details of a bulk operation
       parameters:
@@ -2480,7 +2477,7 @@ paths:
       summary: Get bulk operation
       tags:
       - bulk_operations
-  /api/bulk-operations/{id}/execute:
+  /api/bulk/operations/{id}/execute:
     post:
       description: Trigger execution of a bulk operation
       parameters:
@@ -2505,7 +2502,7 @@ paths:
       summary: Execute bulk operation
       tags:
       - bulk_operations
-  /api/bulk-operations/preview:
+  /api/bulk/preview:
     post:
       consumes:
       - application/json

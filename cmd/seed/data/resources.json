@@ -6,7 +6,7 @@
         "key": "settings",
         "label": "Settings",
         "icon": "Settings",
-        "route": "/dashboard/settings",
+        "route": "/settings",
         "actions": [
             "read"
         ],
@@ -107,7 +107,7 @@
         "key": "smtp",
         "label": "SMTP Settings",
         "icon": "Mail",
-        "route": "/dashboard/settings/email",
+        "route": "/settings/email",
         "actions": [
             "read",
             "update"
@@ -126,7 +126,7 @@
         "key": "general",
         "label": "General",
         "icon": "Settings",
-        "route": "/dashboard/settings/general",
+        "route": "/settings/general",
         "actions": [
             "read"
         ],
@@ -145,7 +145,7 @@
         "key": "email_templates",
         "label": "Email Templates",
         "icon": "LayoutTemplate",
-        "route": "/dashboard/settings/email-templates",
+        "route": "/settings/email-templates",
         "actions": [
             "read"
         ],
@@ -164,7 +164,7 @@
         "key": "module_builder",
         "label": "Module Builder",
         "icon": "Layers",
-        "route": "/dashboard/settings/modules",
+        "route": "/settings/modules",
         "actions": [
             "read"
         ],
@@ -183,7 +183,7 @@
         "key": "audit_logs",
         "label": "Audit Logs",
         "icon": "History",
-        "route": "/dashboard/settings/audit-logs",
+        "route": "/settings/audit-logs",
         "actions": [
             "read"
         ],
@@ -202,7 +202,7 @@
         "key": "developer",
         "label": "Developer Reference",
         "icon": "Code",
-        "route": "/dashboard/settings/developer",
+        "route": "/settings/developer",
         "actions": [
             "read"
         ],
@@ -221,7 +221,7 @@
         "key": "file_sharing",
         "label": "File Sharing",
         "icon": "Files",
-        "route": "/dashboard/settings/file-sharing",
+        "route": "/settings/file-sharing",
         "actions": [
             "read"
         ],
@@ -240,7 +240,7 @@
         "key": "users",
         "label": "Users",
         "icon": "Users",
-        "route": "/dashboard/settings/users",
+        "route": "/settings/users",
         "actions": [
             "read",
             "create",
@@ -262,7 +262,7 @@
         "key": "roles",
         "label": "Roles & Permissions",
         "icon": "ShieldCheck",
-        "route": "/dashboard/settings/roles",
+        "route": "/settings/roles",
         "actions": [
             "read",
             "create",
@@ -284,7 +284,7 @@
         "key": "groups",
         "label": "Groups",
         "icon": "UsersRound",
-        "route": "/dashboard/settings/groups",
+        "route": "/settings/groups",
         "actions": [
             "read",
             "create",
@@ -306,7 +306,7 @@
         "key": "workflows",
         "label": "Workflows",
         "icon": "Workflow",
-        "route": "/dashboard/settings/workflows",
+        "route": "/settings/workflows",
         "actions": [
             "read",
             "create",
@@ -328,7 +328,7 @@
         "key": "automation_rules",
         "label": "Automation Rules",
         "icon": "Zap",
-        "route": "/dashboard/settings/automation",
+        "route": "/settings/automation",
         "actions": [
             "read",
             "create",
@@ -350,7 +350,7 @@
         "key": "cron_jobs",
         "label": "Cron Jobs",
         "icon": "CalendarClock",
-        "route": "/dashboard/settings/cron-jobs",
+        "route": "/settings/cron-jobs",
         "actions": [
             "read",
             "create",
@@ -372,7 +372,7 @@
         "key": "sla_policies",
         "label": "SLA Policies",
         "icon": "Hourglass",
-        "route": "/dashboard/settings/sla-policies",
+        "route": "/settings/sla-policies",
         "actions": [
             "read",
             "create",
@@ -394,7 +394,7 @@
         "key": "escalation_rules",
         "label": "Escalation Rules",
         "icon": "ArrowUpCircle",
-        "route": "/dashboard/settings/escalation-rules",
+        "route": "/settings/escalation-rules",
         "actions": [
             "read",
             "create",
@@ -416,7 +416,7 @@
         "key": "webhooks",
         "label": "Webhooks",
         "icon": "Webhook",
-        "route": "/dashboard/settings/webhooks",
+        "route": "/settings/webhooks",
         "actions": [
             "read",
             "create",
@@ -438,7 +438,7 @@
         "key": "extensions",
         "label": "Marketplace",
         "icon": "Puzzle",
-        "route": "/dashboard/settings/extensions",
+        "route": "/settings/extensions",
         "actions": [
             "read"
         ],
@@ -457,7 +457,7 @@
         "key": "sync",
         "label": "Data Sync",
         "icon": "RefreshCw",
-        "route": "/dashboard/settings/sync",
+        "route": "/settings/sync",
         "actions": [
             "read",
             "create",
@@ -479,7 +479,7 @@
         "key": "import",
         "label": "Data Import",
         "icon": "Import",
-        "route": "/dashboard/settings/import",
+        "route": "/settings/import",
         "actions": [
             "read",
             "create",
@@ -501,7 +501,7 @@
         "key": "reports",
         "label": "Reports",
         "icon": "FileBarChart",
-        "route": "/dashboard/settings/reports",
+        "route": "/settings/reports",
         "actions": [
             "read"
         ],
@@ -520,7 +520,7 @@
         "key": "pivot_reports",
         "label": "Pivot Reports",
         "icon": "Table",
-        "route": "/dashboard/settings/reports/pivot",
+        "route": "/settings/reports/pivot",
         "actions": [
             "read"
         ],
@@ -539,7 +539,7 @@
         "key": "scheduled_reports",
         "label": "Scheduled Reports",
         "icon": "Clock",
-        "route": "/dashboard/settings/scheduled-reports",
+        "route": "/settings/scheduled-reports",
         "actions": [
             "read",
             "create",

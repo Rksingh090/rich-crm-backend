@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
+
 	common_models "go-crm/internal/common/models"
 	"go-crm/internal/features/audit"
 	"go-crm/internal/features/chart"
@@ -189,7 +191,7 @@ func (s *DashboardServiceImpl) getMetricData(ctx context.Context, widget Dashboa
 		filters = configFilters
 	}
 
-	_, count, err := s.RecordService.ListRecords(ctx, widget.ModuleName, filters, 1, 1, "created_at", "desc", userID)
+	_, count, err := s.RecordService.ListRecords(ctx, widget.ModuleName, s.convertFilters(filters), 1, 1, "created_at", "desc", userID)
 	if err != nil {
 		return nil, err
 	}
@@ -210,7 +212,7 @@ func (s *DashboardServiceImpl) getMetricData(ctx context.Context, widget Dashboa
 			return result, nil
 		}
 
-		records, _, err := s.RecordService.ListRecords(ctx, widget.ModuleName, filters, 1, 10000, "created_at", "desc", userID)
+		records, _, err := s.RecordService.ListRecords(ctx, widget.ModuleName, s.convertFilters(filters), 1, 10000, "created_at", "desc", userID)
 		if err != nil {
 			return result, nil
 		}
@@ -238,7 +240,7 @@ func (s *DashboardServiceImpl) getChartData(ctx context.Context, widget Dashboar
 		filters = configFilters
 	}
 
-	records, _, err := s.RecordService.ListRecords(ctx, widget.ModuleName, filters, 1, 1000, "created_at", "desc", userID)
+	records, _, err := s.RecordService.ListRecords(ctx, widget.ModuleName, s.convertFilters(filters), 1, 1000, "created_at", "desc", userID)
 	if err != nil {
 		return nil, err
 	}
@@ -267,7 +269,7 @@ func (s *DashboardServiceImpl) getTableData(ctx context.Context, widget Dashboar
 		limit = int64(configLimit)
 	}
 
-	records, total, err := s.RecordService.ListRecords(ctx, widget.ModuleName, filters, 1, limit, "created_at", "desc", userID)
+	records, total, err := s.RecordService.ListRecords(ctx, widget.ModuleName, s.convertFilters(filters), 1, limit, "created_at", "desc", userID)
 	if err != nil {
 		return nil, err
 	}
@@ -355,4 +357,25 @@ func (s *DashboardServiceImpl) groupRecords(records []map[string]any, field stri
 	}
 
 	return result
+}
+
+func (s *DashboardServiceImpl) convertFilters(filters map[string]interface{}) []common_models.Filter {
+	var filterSlice []common_models.Filter
+	for k, v := range filters {
+		fieldName := k
+		operator := "eq"
+		if strings.Contains(k, "__") {
+			parts := strings.Split(k, "__")
+			if len(parts) == 2 {
+				fieldName = parts[0]
+				operator = parts[1]
+			}
+		}
+		filterSlice = append(filterSlice, common_models.Filter{
+			Field:    fieldName,
+			Operator: operator,
+			Value:    v,
+		})
+	}
+	return filterSlice
 }

@@ -1059,7 +1059,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/bulk-operations": {
+        "/api/bulk/operations": {
             "get": {
                 "description": "List all bulk operations for the current user",
                 "produces": [
@@ -1142,7 +1142,80 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/bulk-operations/preview": {
+        "/api/bulk/operations/{id}": {
+            "get": {
+                "description": "Get details of a bulk operation",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "bulk_operations"
+                ],
+                "summary": "Get bulk operation",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Operation ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/bulk_operation.BulkOperation"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/bulk/operations/{id}/execute": {
+            "post": {
+                "description": "Trigger execution of a bulk operation",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "bulk_operations"
+                ],
+                "summary": "Execute bulk operation",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Operation ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/bulk/preview": {
             "post": {
                 "description": "Preview the effect of a bulk operation",
                 "consumes": [
@@ -1184,79 +1257,6 @@ const docTemplate = `{
                     },
                     "500": {
                         "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/api/bulk-operations/{id}": {
-            "get": {
-                "description": "Get details of a bulk operation",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "bulk_operations"
-                ],
-                "summary": "Get bulk operation",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Operation ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/bulk_operation.BulkOperation"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/api/bulk-operations/{id}/execute": {
-            "post": {
-                "description": "Trigger execution of a bulk operation",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "bulk_operations"
-                ],
-                "summary": "Execute bulk operation",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Operation ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -8155,11 +8155,13 @@ const docTemplate = `{
             "type": "string",
             "enum": [
                 "update",
-                "delete"
+                "delete",
+                "duplicate"
             ],
             "x-enum-varnames": [
                 "BulkTypeUpdate",
-                "BulkTypeDelete"
+                "BulkTypeDelete",
+                "BulkTypeDuplicate"
             ]
         },
         "chart.AggregationType": {
@@ -8781,31 +8783,20 @@ const docTemplate = `{
                         "type": "string"
                     }
                 },
-                "module_permissions": {
-                    "type": "object",
-                    "additionalProperties": {
-                        "$ref": "#/definitions/group.ModulePermission"
-                    }
-                },
                 "name": {
                     "type": "string"
                 },
+                "permissions": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "$ref": "#/definitions/models.ActionPermission"
+                        }
+                    }
+                },
                 "updated_at": {
                     "type": "string"
-                }
-            }
-        },
-        "group.ModulePermission": {
-            "type": "object",
-            "properties": {
-                "delete": {
-                    "$ref": "#/definitions/models.ActionPermission"
-                },
-                "read": {
-                    "$ref": "#/definitions/models.ActionPermission"
-                },
-                "write": {
-                    "$ref": "#/definitions/models.ActionPermission"
                 }
             }
         },
@@ -9423,6 +9414,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "product": {
+                    "type": "string"
+                },
+                "resource_id": {
                     "type": "string"
                 },
                 "route": {

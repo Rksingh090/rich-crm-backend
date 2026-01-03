@@ -8,6 +8,7 @@ import (
 	"go-crm/internal/features/audit"
 	"go-crm/internal/features/module"
 	"go-crm/internal/features/record"
+	"strings"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -66,7 +67,27 @@ type recordServiceAdapter struct {
 
 func (a *recordServiceAdapter) ListRecords(ctx context.Context, moduleName string, filters map[string]any, limit int64, offset int64, sortField string, sortOrder string, userID primitive.ObjectID) ([]map[string]any, int64, error) {
 	page := (offset / limit) + 1
-	return a.service.ListRecords(ctx, moduleName, filters, page, limit, sortField, sortOrder, userID)
+
+	var filterSlice []common_models.Filter
+	for k, v := range filters {
+		fieldName := k
+		operator := "eq"
+		if strings.Contains(k, "__") {
+			parts := strings.Split(k, "__")
+			if len(parts) == 2 {
+				fieldName = parts[0]
+				operator = parts[1]
+			}
+		}
+
+		filterSlice = append(filterSlice, common_models.Filter{
+			Field:    fieldName,
+			Operator: operator,
+			Value:    v,
+		})
+	}
+
+	return a.service.ListRecords(ctx, moduleName, filterSlice, page, limit, sortField, sortOrder, userID)
 }
 
 // moduleServiceAdapter adapts module.ModuleService to connectors.ModuleProvider

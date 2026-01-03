@@ -126,6 +126,9 @@ type EntityRecord struct {
 	UpdatedBy string                 `json:"updated_by" bson:"updated_by"` // User ID
 	CreatedAt time.Time              `json:"created_at" bson:"created_at"`
 	UpdatedAt time.Time              `json:"updated_at" bson:"updated_at"`
+	Deleted   bool                   `json:"__deleted" bson:"deleted"`
+	DeletedAt *time.Time             `json:"deleted_at,omitempty" bson:"deleted_at,omitempty"`
+	DeletedBy string                 `json:"deleted_by,omitempty" bson:"deleted_by,omitempty"` // User ID
 }
 
 type Organization struct {
@@ -235,4 +238,10 @@ type PermissionGroup struct {
 type ActionPermission struct {
 	Allowed    bool             `json:"allowed" bson:"allowed"`
 	Conditions *PermissionGroup `json:"conditions,omitempty" bson:"conditions,omitempty"`
+}
+
+type Filter struct {
+	Field    string      `json:"field" bson:"field"`
+	Operator string      `json:"operator" bson:"operator"` // eq, ne, gt, lt, gte, lte, in, nin, contains, between, starts_with, ends_with
+	Value    interface{} `json:"value" bson:"value"`
 }

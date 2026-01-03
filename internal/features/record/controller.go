@@ -1,6 +1,11 @@
 package record
 
 import (
+	"encoding/json"
+	"strings"
+
+	common_models "go-crm/internal/common/models"
+
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -102,14 +107,46 @@ func (ctrl *RecordController) ListRecords(c *fiber.Ctx) error {
 
 	// Sorting
 	sortBy := c.Query("sort_by", "created_at")
-	sortOrder := c.Query("sort_order", "desc")
+	sortOrder := c.Query("sort_order")
+	if sortOrder == "" {
+		sortOrder = c.Query("order", "desc")
+	}
 
 	// Filtering
-	filters := make(map[string]interface{})
+	// Filtering
+	var filters []common_models.Filter
+
+	// Check if "filters" query param exists (JSON encoded)
+	if filtersStr := c.Query("filters"); filtersStr != "" {
+		_ = json.Unmarshal([]byte(filtersStr), &filters)
+	}
+
 	c.Context().QueryArgs().VisitAll(func(key, value []byte) {
 		k := string(key)
-		if k != "page" && k != "limit" && k != "sort_by" && k != "sort_order" {
-			filters[k] = string(value)
+		if k != "page" && k != "limit" && k != "sort_by" && k != "sort_order" && k != "order" && k != "filters" {
+			v := string(value)
+			// Parse field__operator
+			fieldName := k
+			operator := "eq"
+			if strings.Contains(k, "__") {
+				parts := strings.Split(k, "__")
+				if len(parts) == 2 {
+					fieldName = parts[0]
+					operator = parts[1]
+				}
+			}
+
+			// Handle comma-separated values for 'in' operator
+			var typeVal interface{} = v
+			if operator == "in" || operator == "nin" {
+				typeVal = strings.Split(v, ",")
+			}
+
+			filters = append(filters, common_models.Filter{
+				Field:    fieldName,
+				Operator: operator,
+				Value:    typeVal,
+			})
 		}
 	})
 
@@ -187,7 +224,12 @@ func (ctrl *RecordController) DeleteRecord(c *fiber.Ctx) error {
 	moduleName := c.Params("name")
 	id := c.Params("id")
 
-	if err := ctrl.Service.DeleteRecord(c.UserContext(), moduleName, id); err != nil {
+	var userID primitive.ObjectID
+	if idStr, ok := c.Locals("user_id").(string); ok && idStr != "" {
+		userID, _ = primitive.ObjectIDFromHex(idStr)
+	}
+
+	if err := ctrl.Service.DeleteRecord(c.UserContext(), moduleName, id, userID); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": err.Error(),
 		})

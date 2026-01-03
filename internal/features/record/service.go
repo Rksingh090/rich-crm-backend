@@ -25,9 +25,9 @@ import (
 type RecordService interface {
 	CreateRecord(ctx context.Context, moduleName string, data map[string]interface{}, userID primitive.ObjectID) (interface{}, error)
 	GetRecord(ctx context.Context, moduleName, id string, userID primitive.ObjectID) (map[string]any, error)
-	ListRecords(ctx context.Context, moduleName string, filters map[string]any, page, limit int64, sortBy string, sortOrder string, userID primitive.ObjectID) ([]map[string]any, int64, error)
+	ListRecords(ctx context.Context, moduleName string, filters []common_models.Filter, page, limit int64, sortBy string, sortOrder string, userID primitive.ObjectID) ([]map[string]any, int64, error)
 	UpdateRecord(ctx context.Context, moduleName, id string, data map[string]interface{}, userID primitive.ObjectID) error
-	DeleteRecord(ctx context.Context, moduleName, id string) error
+	DeleteRecord(ctx context.Context, moduleName, id string, userID primitive.ObjectID) error
 }
 
 // Internal interfaces to break circular dependencies
@@ -206,7 +206,7 @@ func (s *RecordServiceImpl) GetRecord(ctx context.Context, moduleName, id string
 	return record, nil
 }
 
-func (s *RecordServiceImpl) ListRecords(ctx context.Context, moduleName string, filters map[string]any, page, limit int64, sortBy string, sortOrder string, userID primitive.ObjectID) ([]map[string]any, int64, error) {
+func (s *RecordServiceImpl) ListRecords(ctx context.Context, moduleName string, filters []common_models.Filter, page, limit int64, sortBy string, sortOrder string, userID primitive.ObjectID) ([]map[string]any, int64, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -224,94 +224,10 @@ func (s *RecordServiceImpl) ListRecords(ctx context.Context, moduleName string, 
 		return nil, 0, errors.New("module not found")
 	}
 
-	// 2. Convert Filters
-	typedFilters := make(map[string]interface{})
-	for k, v := range filters {
-		fieldName := k
-		operator := ""
-
-		if strings.Contains(k, "__") {
-			parts := strings.Split(k, "__")
-			if len(parts) == 2 {
-				fieldName = parts[0]
-				operator = parts[1]
-			}
-		}
-
-		var field *module.ModuleField
-		for _, f := range m.Fields {
-			if f.Name == fieldName {
-				field = &f
-				break
-			}
-		}
-
-		if field != nil {
-			if operator == "between" {
-				if strVal, ok := v.(string); ok {
-					parts := strings.Split(strVal, ",")
-					if len(parts) == 2 {
-						startStr := strings.TrimSpace(parts[0])
-						endStr := strings.TrimSpace(parts[1])
-
-						startTime, err1 := time.Parse("2006-01-02", startStr)
-						endTime, err2 := time.Parse("2006-01-02", endStr)
-
-						if err1 != nil {
-							startTime, err1 = time.Parse(time.RFC3339, startStr)
-						}
-						if err2 != nil {
-							endTime, err2 = time.Parse(time.RFC3339, endStr)
-						}
-
-						if err1 == nil && err2 == nil {
-							typedFilters[fieldName] = bson.M{
-								"$gte": startTime,
-								"$lte": endTime,
-							}
-						} else {
-							startFloat, errF1 := strconv.ParseFloat(startStr, 64)
-							endFloat, errF2 := strconv.ParseFloat(endStr, 64)
-							if errF1 == nil && errF2 == nil {
-								typedFilters[fieldName] = bson.M{
-									"$gte": startFloat,
-									"$lte": endFloat,
-								}
-							} else {
-								return nil, 0, fmt.Errorf("invalid range values for field '%s'", k)
-							}
-						}
-					}
-				}
-			} else {
-				typedVal, err := s.validateAndConvert(ctx, module.ModuleField(*field), v)
-
-				if err == nil {
-					switch operator {
-					case "":
-						typedFilters[fieldName] = typedVal
-					case "ne":
-						typedFilters[fieldName] = bson.M{"$ne": typedVal}
-					case "contains":
-						if strVal, ok := v.(string); ok {
-							typedFilters[fieldName] = bson.M{"$regex": primitive.Regex{Pattern: strVal, Options: "i"}}
-						} else {
-							typedFilters[fieldName] = typedVal
-						}
-					case "gt":
-						typedFilters[fieldName] = bson.M{"$gt": typedVal}
-					case "lt":
-						typedFilters[fieldName] = bson.M{"$lt": typedVal}
-					case "gte":
-						typedFilters[fieldName] = bson.M{"$gte": typedVal}
-					case "lte":
-						typedFilters[fieldName] = bson.M{"$lte": typedVal}
-					}
-				} else {
-					return nil, 0, fmt.Errorf("invalid filter value for '%s': %v", k, err)
-				}
-			}
-		}
+	// 2. Prepare Filters
+	typedFilters, err := s.prepareFilters(ctx, m, filters)
+	if err != nil {
+		return nil, 0, err
 	}
 
 	sortOrderInt := -1
@@ -449,7 +365,7 @@ func (s *RecordServiceImpl) UpdateRecord(ctx context.Context, moduleName, id str
 	return nil
 }
 
-func (s *RecordServiceImpl) DeleteRecord(ctx context.Context, moduleName, id string) error {
+func (s *RecordServiceImpl) DeleteRecord(ctx context.Context, moduleName, id string, userID primitive.ObjectID) error {
 	oldRecord, err := s.RecordRepo.Get(ctx, moduleName, id)
 	if err != nil {
 		return err
@@ -467,7 +383,7 @@ func (s *RecordServiceImpl) DeleteRecord(ctx context.Context, moduleName, id str
 		}
 	}
 
-	err = s.RecordRepo.Delete(ctx, moduleName, id)
+	err = s.RecordRepo.Delete(ctx, moduleName, id, userID)
 	if err == nil {
 		_ = s.AuditService.LogChange(ctx, common_models.AuditActionDelete, moduleName, id, nil)
 	}
@@ -663,4 +579,148 @@ func (s *RecordServiceImpl) validateAndConvert(ctx context.Context, field module
 	default:
 		return val, nil
 	}
+}
+
+func (s *RecordServiceImpl) prepareFilters(ctx context.Context, m *common_models.Entity, filters []common_models.Filter) (bson.M, error) {
+	typedFilters := bson.M{}
+
+	for _, f := range filters {
+		fieldName := f.Field
+		operator := f.Operator
+		val := f.Value
+
+		// Handle Special ID fields
+		if fieldName == "id" || fieldName == "_id" {
+			if operator == "in" {
+				var ids []primitive.ObjectID
+				switch v := val.(type) {
+				case string:
+					for _, p := range strings.Split(v, ",") {
+						if oid, err := primitive.ObjectIDFromHex(strings.TrimSpace(p)); err == nil {
+							ids = append(ids, oid)
+						}
+					}
+				case []string:
+					for _, s := range v {
+						if oid, err := primitive.ObjectIDFromHex(s); err == nil {
+							ids = append(ids, oid)
+						}
+					}
+				case []interface{}:
+					for _, item := range v {
+						if s, ok := item.(string); ok {
+							if oid, err := primitive.ObjectIDFromHex(s); err == nil {
+								ids = append(ids, oid)
+							}
+						}
+					}
+				}
+				if len(ids) > 0 {
+					typedFilters["_id"] = bson.M{"$in": ids}
+				}
+			} else if operator == "" || operator == "eq" {
+				if strVal, ok := val.(string); ok {
+					if oid, err := primitive.ObjectIDFromHex(strVal); err == nil {
+						typedFilters["_id"] = oid
+					}
+				} else if oid, ok := val.(primitive.ObjectID); ok {
+					typedFilters["_id"] = oid
+				}
+			}
+			continue
+		}
+
+		// Handle System fields (created_at, updated_at, etc)
+		var field *common_models.ModuleField
+		for _, fDef := range m.Fields {
+			if fDef.Name == fieldName {
+				field = &fDef
+				break
+			}
+		}
+
+		if field == nil {
+			// If not in schema, it might be a system field or unknown
+			typedFilters[fieldName] = val
+			continue
+		}
+
+		if operator == "between" {
+			if strVal, ok := val.(string); ok {
+				parts := strings.Split(strVal, ",")
+				if len(parts) == 2 {
+					startStr := strings.TrimSpace(parts[0])
+					endStr := strings.TrimSpace(parts[1])
+
+					startTime, err1 := time.Parse("2006-01-02", startStr)
+					endTime, err2 := time.Parse("2006-01-02", endStr)
+
+					if err1 != nil {
+						startTime, err1 = time.Parse(time.RFC3339, startStr)
+					}
+					if err2 != nil {
+						endTime, err2 = time.Parse(time.RFC3339, endStr)
+					}
+
+					if err1 == nil && err2 == nil {
+						typedFilters[fieldName] = bson.M{
+							"$gte": startTime,
+							"$lte": endTime,
+						}
+					} else {
+						startFloat, errF1 := strconv.ParseFloat(startStr, 64)
+						endFloat, errF2 := strconv.ParseFloat(endStr, 64)
+						if errF1 == nil && errF2 == nil {
+							typedFilters[fieldName] = bson.M{
+								"$gte": startFloat,
+								"$lte": endFloat,
+							}
+						} else {
+							return nil, fmt.Errorf("invalid range values for field '%s'", field.Label)
+						}
+					}
+				}
+			}
+		} else {
+			typedVal, err := s.validateAndConvert(ctx, *field, val)
+			if err != nil {
+				return nil, fmt.Errorf("invalid filter value for '%s': %v", field.Label, err)
+			}
+
+			switch operator {
+			case "", "eq":
+				typedFilters[fieldName] = typedVal
+			case "ne":
+				typedFilters[fieldName] = bson.M{"$ne": typedVal}
+			case "contains":
+				if strVal, ok := typedVal.(string); ok {
+					typedFilters[fieldName] = bson.M{"$regex": primitive.Regex{Pattern: strVal, Options: "i"}}
+				} else {
+					typedFilters[fieldName] = typedVal
+				}
+			case "gt":
+				typedFilters[fieldName] = bson.M{"$gt": typedVal}
+			case "lt":
+				typedFilters[fieldName] = bson.M{"$lt": typedVal}
+			case "gte":
+				typedFilters[fieldName] = bson.M{"$gte": typedVal}
+			case "lte":
+				typedFilters[fieldName] = bson.M{"$lte": typedVal}
+			case "in":
+				typedFilters[fieldName] = bson.M{"$in": typedVal}
+			case "nin":
+				typedFilters[fieldName] = bson.M{"$nin": typedVal}
+			case "starts_with":
+				if strVal, ok := typedVal.(string); ok {
+					typedFilters[fieldName] = bson.M{"$regex": primitive.Regex{Pattern: "^" + strVal, Options: "i"}}
+				}
+			case "ends_with":
+				if strVal, ok := typedVal.(string); ok {
+					typedFilters[fieldName] = bson.M{"$regex": primitive.Regex{Pattern: strVal + "$", Options: "i"}}
+				}
+			}
+		}
+	}
+
+	return typedFilters, nil
 }

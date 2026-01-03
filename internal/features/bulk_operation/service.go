@@ -3,6 +3,7 @@ package bulk_operation
 import (
 	"context"
 	"fmt"
+	"go-crm/internal/common/models"
 	"go-crm/internal/features/audit"
 	"go-crm/internal/features/record"
 	"time"
@@ -11,7 +12,7 @@ import (
 )
 
 type BulkOperationService interface {
-	PreviewBulkOperation(ctx context.Context, moduleName string, filters map[string]interface{}, userID primitive.ObjectID) ([]map[string]any, int, error)
+	PreviewBulkOperation(ctx context.Context, moduleName string, filters []models.Filter, userID primitive.ObjectID) ([]map[string]any, int, error)
 	CreateBulkOperation(ctx context.Context, op *BulkOperation) error
 	ExecuteBulkOperation(ctx context.Context, opID string, userID primitive.ObjectID) error
 	GetOperation(ctx context.Context, id string) (*BulkOperation, error)
@@ -36,7 +37,7 @@ func NewBulkOperationService(
 	}
 }
 
-func (s *BulkOperationServiceImpl) PreviewBulkOperation(ctx context.Context, moduleName string, filters map[string]interface{}, userID primitive.ObjectID) ([]map[string]any, int, error) {
+func (s *BulkOperationServiceImpl) PreviewBulkOperation(ctx context.Context, moduleName string, filters []models.Filter, userID primitive.ObjectID) ([]map[string]any, int, error) {
 	records, total, err := s.RecordService.ListRecords(ctx, moduleName, filters, 1, 100, "created_at", "desc", userID)
 	if err != nil {
 		return nil, 0, err
@@ -67,9 +68,11 @@ func (s *BulkOperationServiceImpl) ExecuteBulkOperation(ctx context.Context, opI
 		return fmt.Errorf("unauthorized")
 	}
 
+	// Inject tenant context
+	ctx = context.WithValue(ctx, models.TenantIDKey, op.TenantID.Hex())
 	s.BulkRepo.UpdateStatus(ctx, opID, BulkStatusProcessing)
 
-	records, total, err := s.RecordService.ListRecords(ctx, op.ModuleName, op.Filters, 1, 10000, "created_at", "desc", primitive.NilObjectID)
+	records, total, err := s.RecordService.ListRecords(ctx, op.ModuleName, op.Filters, 1, 10000, "created_at", "desc", userID)
 	if err != nil {
 		op.Status = BulkStatusFailed
 		op.Errors = []BulkError{{RecordID: "", Message: err.Error()}}
@@ -90,10 +93,16 @@ func (s *BulkOperationServiceImpl) ExecuteBulkOperation(ctx context.Context, opI
 		}
 
 		var err error
-		if op.Type == BulkTypeDelete {
-			err = s.RecordService.DeleteRecord(ctx, op.ModuleName, recordID)
-		} else {
-			err = s.RecordService.UpdateRecord(ctx, op.ModuleName, recordID, op.Updates, primitive.NilObjectID)
+		switch op.Type {
+		case BulkTypeDelete:
+			err = s.RecordService.DeleteRecord(ctx, op.ModuleName, recordID, userID)
+		case BulkTypeDuplicate:
+			// Remove ID to create a new record
+			delete(rec, "_id")
+			delete(rec, "id")
+			_, err = s.RecordService.CreateRecord(ctx, op.ModuleName, rec, userID)
+		case BulkTypeUpdate:
+			err = s.RecordService.UpdateRecord(ctx, op.ModuleName, recordID, op.Updates, userID)
 		}
 
 		if err != nil {

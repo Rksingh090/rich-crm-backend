@@ -19,7 +19,7 @@ type RecordRepository interface {
 	List(ctx context.Context, moduleName string, filter map[string]any, accessFilter map[string]any, limit, offset int64, sortBy string, sortOrder int) ([]map[string]any, error)
 	Count(ctx context.Context, moduleName string, filter map[string]any, accessFilter map[string]any) (int64, error)
 	Update(ctx context.Context, moduleName, id string, data map[string]any) error
-	Delete(ctx context.Context, moduleName, id string) error
+	Delete(ctx context.Context, moduleName, id string, userID primitive.ObjectID) error
 	Aggregate(ctx context.Context, moduleName string, pipeline mongo.Pipeline) ([]map[string]any, error)
 }
 
@@ -51,6 +51,7 @@ func (r *RecordRepositoryImpl) Create(ctx context.Context, moduleName string, pr
 		Data:      data,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
+		Deleted:   false,
 	}
 
 	// Capture CreatedBy from context if available (assuming generic UserID key)
@@ -82,7 +83,7 @@ func (r *RecordRepositoryImpl) Get(ctx context.Context, moduleName, id string) (
 	}
 
 	var record models.EntityRecord
-	err = r.Collection.FindOne(ctx, bson.M{"_id": recordID, "tenant_id": oid, "entity": moduleName}).Decode(&record)
+	err = r.Collection.FindOne(ctx, bson.M{"_id": recordID, "tenant_id": oid, "entity": moduleName, "deleted": bson.M{"$ne": true}}).Decode(&record)
 	if err != nil {
 		return nil, err
 	}
@@ -104,6 +105,7 @@ func (r *RecordRepositoryImpl) List(ctx context.Context, moduleName string, filt
 	baseQuery := bson.M{
 		"tenant_id": oid,
 		"entity":    moduleName,
+		"deleted":   bson.M{"$ne": true},
 	}
 
 	// User Filters (need to map fields to data.field)
@@ -195,7 +197,7 @@ func (r *RecordRepositoryImpl) Update(ctx context.Context, moduleName, id string
 	return err
 }
 
-func (r *RecordRepositoryImpl) Delete(ctx context.Context, moduleName, id string) error {
+func (r *RecordRepositoryImpl) Delete(ctx context.Context, moduleName, id string, userID primitive.ObjectID) error {
 	tenantID, ok := ctx.Value(models.TenantIDKey).(string)
 	if !ok || tenantID == "" {
 		return fmt.Errorf("organization context missing")
@@ -210,7 +212,15 @@ func (r *RecordRepositoryImpl) Delete(ctx context.Context, moduleName, id string
 		return err
 	}
 
-	_, err = r.Collection.DeleteOne(ctx, bson.M{"_id": recordID, "tenant_id": oid, "entity": moduleName})
+	update := bson.M{
+		"$set": bson.M{
+			"deleted":    true,
+			"deleted_at": time.Now(),
+			"deleted_by": userID.Hex(),
+		},
+	}
+
+	_, err = r.Collection.UpdateOne(ctx, bson.M{"_id": recordID, "tenant_id": oid, "entity": moduleName}, update)
 	return err
 }
 
@@ -227,6 +237,7 @@ func (r *RecordRepositoryImpl) Count(ctx context.Context, moduleName string, fil
 	baseQuery := bson.M{
 		"tenant_id": oid,
 		"entity":    moduleName,
+		"deleted":   bson.M{"$ne": true},
 	}
 
 	userQuery := bson.M{}

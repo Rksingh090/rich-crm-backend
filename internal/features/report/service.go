@@ -99,7 +99,7 @@ func (s *ReportServiceImpl) RunReport(ctx context.Context, id string, userID pri
 		return nil, err
 	}
 
-	records, _, err := s.RecordService.ListRecords(ctx, report.ModuleID, report.Filters, 1, 10000, "created_at", "desc", userID)
+	records, _, err := s.RecordService.ListRecords(ctx, report.ModuleID, s.convertFilters(report.Filters), 1, 10000, "created_at", "desc", userID)
 	if err != nil {
 		return nil, err
 	}
@@ -134,7 +134,7 @@ func (s *ReportServiceImpl) ExportReport(ctx context.Context, id string, format 
 		return nil, "", err
 	}
 
-	records, _, err := s.RecordService.ListRecords(ctx, report.ModuleID, report.Filters, 1, 100000, "created_at", "desc", userID)
+	records, _, err := s.RecordService.ListRecords(ctx, report.ModuleID, s.convertFilters(report.Filters), 1, 100000, "created_at", "desc", userID)
 	if err != nil {
 		return nil, "", err
 	}
@@ -187,7 +187,7 @@ func (s *ReportServiceImpl) ExportReport(ctx context.Context, id string, format 
 }
 
 func (s *ReportServiceImpl) RunPivotReport(ctx context.Context, config *PivotConfig, moduleName string, filters map[string]any, userID primitive.ObjectID) (interface{}, error) {
-	records, _, err := s.RecordService.ListRecords(ctx, moduleName, filters, 1, 10000, "created_at", "desc", userID)
+	records, _, err := s.RecordService.ListRecords(ctx, moduleName, s.convertFilters(filters), 1, 10000, "created_at", "desc", userID)
 	if err != nil {
 		return nil, err
 	}
@@ -230,7 +230,7 @@ func (s *ReportServiceImpl) RunCrossModuleReport(ctx context.Context, config *Cr
 		return nil, fmt.Errorf("base module is required")
 	}
 
-	baseRecords, _, err := s.RecordService.ListRecords(ctx, config.BaseModule, filters, 1, 10000, "created_at", "desc", userID)
+	baseRecords, _, err := s.RecordService.ListRecords(ctx, config.BaseModule, s.convertFilters(filters), 1, 10000, "created_at", "desc", userID)
 	if err != nil {
 		return nil, err
 	}
@@ -427,4 +427,25 @@ func convertToArray(m map[string]bool) []string {
 		result = append(result, k)
 	}
 	return result
+}
+
+func (s *ReportServiceImpl) convertFilters(filters map[string]any) []common_models.Filter {
+	var filterSlice []common_models.Filter
+	for k, v := range filters {
+		fieldName := k
+		operator := "eq"
+		if strings.Contains(k, "__") {
+			parts := strings.Split(k, "__")
+			if len(parts) == 2 {
+				fieldName = parts[0]
+				operator = parts[1]
+			}
+		}
+		filterSlice = append(filterSlice, common_models.Filter{
+			Field:    fieldName,
+			Operator: operator,
+			Value:    v,
+		})
+	}
+	return filterSlice
 }
