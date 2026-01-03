@@ -9,7 +9,7 @@ import (
 func CORSMiddleware() fiber.Handler {
 	return cors.New(cors.Config{
 		AllowOrigins:     "http://localhost:3000, http://localhost:3001, http://localhost:3002, http://localhost:8000",
-		AllowMethods:     "GET,POST,PUT,DELETE,OPTIONS",
+		AllowMethods:     "GET,POST,PUT,DELETE,OPTIONS, PATCH",
 		AllowHeaders:     "Content-Type,Authorization,X-Requested-With",
 		AllowCredentials: true,
 	})

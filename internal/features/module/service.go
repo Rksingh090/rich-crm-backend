@@ -210,8 +210,11 @@ func (s *ModuleServiceImpl) UpdateModule(ctx context.Context, m *Module, userID 
 	}
 
 	var removedFields []string
-	for name := range existingFieldsMap {
+	for name, f := range existingFieldsMap {
 		if !newFieldsMap[name] {
+			if f.IsSystem {
+				return fmt.Errorf("cannot remove system field '%s'", name)
+			}
 			removedFields = append(removedFields, name)
 		}
 	}
@@ -243,6 +246,10 @@ func (s *ModuleServiceImpl) UpdateModule(ctx context.Context, m *Module, userID 
 		m.Label = existingModule.Label
 	}
 	m.ID = existingModule.ID
+	m.TenantID = existingModule.TenantID
+	m.Product = existingModule.Product
+	m.Slug = existingModule.Slug
+	m.Indexes = existingModule.Indexes
 	m.IsSystem = existingModule.IsSystem
 	m.CreatedAt = existingModule.CreatedAt
 	m.UpdatedAt = time.Now()
