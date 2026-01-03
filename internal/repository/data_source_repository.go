@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"go-crm/internal/database"
 	"go-crm/internal/models"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -22,9 +23,9 @@ type DataSourceRepositoryImpl struct {
 	collection *mongo.Collection
 }
 
-func NewDataSourceRepository(db *mongo.Database) DataSourceRepository {
+func NewDataSourceRepository(db *database.MongodbDB) DataSourceRepository {
 	return &DataSourceRepositoryImpl{
-		collection: db.Collection("data_sources"),
+		collection: db.DB.Collection("data_sources"),
 	}
 }
 

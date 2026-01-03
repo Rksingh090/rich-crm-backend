@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"go-crm/internal/database"
 	"go-crm/internal/models"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -23,9 +24,9 @@ type MetricRepositoryImpl struct {
 	collection *mongo.Collection
 }
 
-func NewMetricRepository(db *mongo.Database) MetricRepository {
+func NewMetricRepository(db *database.MongodbDB) MetricRepository {
 	return &MetricRepositoryImpl{
-		collection: db.Collection("metrics"),
+		collection: db.DB.Collection("metrics"),
 	}
 }
 
