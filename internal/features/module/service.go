@@ -15,28 +15,36 @@ import (
 )
 
 type ModuleService interface {
-	CreateModule(ctx context.Context, module *Module, userID primitive.ObjectID) error
-	GetModuleByName(ctx context.Context, name string, userID primitive.ObjectID) (*Module, error)
-	ListModules(ctx context.Context, userID primitive.ObjectID, product string) ([]Module, error)
-	UpdateModule(ctx context.Context, module *Module, userID primitive.ObjectID) error
+	CreateModule(ctx context.Context, module *common_models.Entity, userID primitive.ObjectID) error
+	GetModuleByName(ctx context.Context, name string, userID primitive.ObjectID) (*common_models.Entity, error)
+	ListModules(ctx context.Context, userID primitive.ObjectID) ([]common_models.Entity, error)
+	UpdateModule(ctx context.Context, module *common_models.Entity, userID primitive.ObjectID) error
 	DeleteModule(ctx context.Context, name string, userID primitive.ObjectID) error
 }
 
 type ModuleServiceImpl struct {
-	Repo         ModuleRepository
-	RoleService  role.RoleService
-	AuditService audit.AuditService
-}
-
-func NewModuleService(repo ModuleRepository, roleService role.RoleService, auditService audit.AuditService) ModuleService {
-	return &ModuleServiceImpl{
-		Repo:         repo,
-		RoleService:  roleService,
-		AuditService: auditService,
+	Repo            ModuleRepository
+	RoleService     role.RoleService
+	AuditService    audit.AuditService
+	ResourceService interface {
+		CreateResource(ctx context.Context, resource interface{}) error
+		DeleteResource(ctx context.Context, resourceID string, userID string) error
 	}
 }
 
-func (s *ModuleServiceImpl) CreateModule(ctx context.Context, m *Module, userID primitive.ObjectID) error {
+func NewModuleService(repo ModuleRepository, roleService role.RoleService, auditService audit.AuditService, resourceService interface {
+	CreateResource(ctx context.Context, resource interface{}) error
+	DeleteResource(ctx context.Context, resourceID string, userID string) error
+}) ModuleService {
+	return &ModuleServiceImpl{
+		Repo:            repo,
+		RoleService:     roleService,
+		AuditService:    auditService,
+		ResourceService: resourceService,
+	}
+}
+
+func (s *ModuleServiceImpl) CreateModule(ctx context.Context, m *common_models.Entity, userID primitive.ObjectID) error {
 	// Permission Check (Global Create)
 	if !userID.IsZero() {
 		allowed, err := s.RoleService.CheckPermission(ctx, userID, "modules", "create")
@@ -60,17 +68,52 @@ func (s *ModuleServiceImpl) CreateModule(ctx context.Context, m *Module, userID 
 	m.UpdatedAt = time.Now()
 
 	err := s.Repo.Create(ctx, m)
-	if err == nil {
-		changes := map[string]common_models.Change{
-			"name":  {New: m.Name},
-			"label": {New: m.Label},
-		}
-		_ = s.AuditService.LogChange(ctx, common_models.AuditActionCreate, "module", m.ID.Hex(), changes)
+	if err != nil {
+		return err
 	}
-	return err
+
+	// Create corresponding Resource
+	resourceID := fmt.Sprintf("%s.%s", m.Product, m.Name)
+	resource := map[string]interface{}{
+		"resource":     resourceID,
+		"product":      string(m.Product),
+		"type":         "module",
+		"key":          m.Name,
+		"label":        m.Label,
+		"icon":         "database",
+		"route":        fmt.Sprintf("/%s/%s", m.Product, m.Name),
+		"actions":      []string{"create", "read", "update", "delete"},
+		"configurable": true,
+		"is_system":    m.IsSystem,
+		"scope":        "tenant", // Module resources are tenant-specific
+		"is_override":  false,
+		"ui": map[string]interface{}{
+			"sidebar":     true,
+			"order":       100,
+			"group":       "Modules",
+			"group_order": 10,
+			"location":    "main",
+		},
+	}
+
+	if err := s.ResourceService.CreateResource(ctx, resource); err != nil {
+		// Log error but don't fail module creation
+		_ = s.AuditService.LogChange(ctx, common_models.AuditActionCreate, "module", m.ID.Hex(), map[string]common_models.Change{
+			"resource_creation_error": {New: err.Error()},
+		})
+	}
+
+	// Log audit
+	changes := map[string]common_models.Change{
+		"name":  {New: m.Name},
+		"label": {New: m.Label},
+	}
+	_ = s.AuditService.LogChange(ctx, common_models.AuditActionCreate, "module", m.ID.Hex(), changes)
+
+	return nil
 }
 
-func (s *ModuleServiceImpl) GetModuleByName(ctx context.Context, name string, userID primitive.ObjectID) (*Module, error) {
+func (s *ModuleServiceImpl) GetModuleByName(ctx context.Context, name string, userID primitive.ObjectID) (*common_models.Entity, error) {
 	m, err := s.Repo.FindByName(ctx, name)
 	if err != nil {
 		return nil, err
@@ -93,7 +136,7 @@ func (s *ModuleServiceImpl) GetModuleByName(ctx context.Context, name string, us
 		// Filter Fields based on FLS
 		perms, _ := s.RoleService.GetFieldPermissions(ctx, userID, name)
 		if perms != nil {
-			visibleFields := []ModuleField{}
+			visibleFields := []common_models.ModuleField{}
 			for _, f := range m.Fields {
 				if p, ok := perms[f.Name]; ok {
 					if p == role.FieldPermNone {
@@ -109,8 +152,8 @@ func (s *ModuleServiceImpl) GetModuleByName(ctx context.Context, name string, us
 	return m, nil
 }
 
-func (s *ModuleServiceImpl) ListModules(ctx context.Context, userID primitive.ObjectID, product string) ([]Module, error) {
-	modules, err := s.Repo.List(ctx, product)
+func (s *ModuleServiceImpl) ListModules(ctx context.Context, userID primitive.ObjectID) ([]common_models.Entity, error) {
+	modules, err := s.Repo.List(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -123,7 +166,7 @@ func (s *ModuleServiceImpl) ListModules(ctx context.Context, userID primitive.Ob
 		}
 	}
 
-	filteredModules := make([]Module, 0, len(modules))
+	filteredModules := make([]common_models.Entity, 0, len(modules))
 	for i := range modules {
 		// Module Level Permission Check
 		if !userID.IsZero() && !canReadAll {
@@ -141,7 +184,7 @@ func (s *ModuleServiceImpl) ListModules(ctx context.Context, userID primitive.Ob
 		if !userID.IsZero() {
 			perms, _ := s.RoleService.GetFieldPermissions(ctx, userID, modules[i].Name)
 			if perms != nil {
-				visibleFields := []ModuleField{}
+				visibleFields := []common_models.ModuleField{}
 				for _, f := range modules[i].Fields {
 					if p, ok := perms[f.Name]; ok {
 						if p == role.FieldPermNone {
@@ -158,20 +201,20 @@ func (s *ModuleServiceImpl) ListModules(ctx context.Context, userID primitive.Ob
 	return filteredModules, nil
 }
 
-func (s *ModuleServiceImpl) appendSystemFields(m *Module) {
+func (s *ModuleServiceImpl) appendSystemFields(m *common_models.Entity) {
 	// Add Virtual System Fields
-	systemFields := []ModuleField{
+	systemFields := []common_models.ModuleField{
 		{
 			Name:     "created_at",
 			Label:    "Created At",
-			Type:     FieldTypeDate,
+			Type:     common_models.FieldTypeDate,
 			Required: false,
 			IsSystem: true,
 		},
 		{
 			Name:     "updated_at",
 			Label:    "Updated At",
-			Type:     FieldTypeDate,
+			Type:     common_models.FieldTypeDate,
 			Required: false,
 			IsSystem: true,
 		},
@@ -179,7 +222,7 @@ func (s *ModuleServiceImpl) appendSystemFields(m *Module) {
 	m.Fields = append(m.Fields, systemFields...)
 }
 
-func (s *ModuleServiceImpl) UpdateModule(ctx context.Context, m *Module, userID primitive.ObjectID) error {
+func (s *ModuleServiceImpl) UpdateModule(ctx context.Context, m *common_models.Entity, userID primitive.ObjectID) error {
 	// Fetch existing module to compare fields
 	existingModule, err := s.Repo.FindByName(ctx, m.Name)
 	if err != nil {
@@ -199,7 +242,7 @@ func (s *ModuleServiceImpl) UpdateModule(ctx context.Context, m *Module, userID 
 	}
 
 	// Identify removed fields
-	existingFieldsMap := make(map[string]ModuleField)
+	existingFieldsMap := make(map[string]common_models.ModuleField)
 	for _, f := range existingModule.Fields {
 		existingFieldsMap[f.Name] = f
 	}
@@ -304,10 +347,22 @@ func (s *ModuleServiceImpl) DeleteModule(ctx context.Context, name string, userI
 	// 	return fmt.Errorf("failed to drop module data: %w", err)
 	// }
 
-	// 3. Delete Metadata
-	err = s.Repo.Delete(ctx, name)
-	if err == nil {
-		_ = s.AuditService.LogChange(ctx, common_models.AuditActionDelete, "module", name, nil)
+	// 3. Soft Delete Module Metadata
+	userIDStr := userID.Hex()
+	err = s.Repo.Delete(ctx, name, userIDStr)
+	if err != nil {
+		return err
 	}
-	return err
+
+	// 4. Soft Delete corresponding Resource
+	resourceID := fmt.Sprintf("%s.%s", m.Product, m.Name)
+	if err := s.ResourceService.DeleteResource(ctx, resourceID, userIDStr); err != nil {
+		// Log error but don't fail module deletion
+		_ = s.AuditService.LogChange(ctx, common_models.AuditActionDelete, "module", name, map[string]common_models.Change{
+			"resource_deletion_error": {New: err.Error()},
+		})
+	}
+
+	_ = s.AuditService.LogChange(ctx, common_models.AuditActionDelete, "module", name, nil)
+	return nil
 }

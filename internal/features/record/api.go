@@ -31,6 +31,10 @@ func (h *RecordApi) Setup(app *fiber.App) {
 	// Group is same as module Schema, but handles records
 	modules := app.Group("/api/modules", middleware.AuthMiddleware(h.config.SkipAuth))
 
+	// Separate group for generic record queries (Prompt requested /api/records/query)
+	records := app.Group("/api/records", middleware.AuthMiddleware(h.config.SkipAuth))
+	records.Post("/query", h.recordController.QueryRecords)
+
 	modules.Get("/:name/records", h.recordController.ListRecords)
 	modules.Post("/:name/records", h.recordController.CreateRecord)
 	modules.Get("/:name/records/:id", h.recordController.GetRecord)

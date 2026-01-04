@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"go-crm/internal/common/models"
 	common_models "go-crm/internal/common/models"
 	"go-crm/internal/features/audit"
 	"go-crm/internal/features/email"
@@ -17,7 +18,7 @@ type EmailTemplateService interface {
 	ListTemplates(ctx context.Context, moduleName string, includeGlobal bool) ([]EmailTemplate, error)
 	UpdateTemplate(ctx context.Context, template *EmailTemplate) error
 	DeleteTemplate(ctx context.Context, id string) error
-	GetModuleFields(ctx context.Context, moduleName string) ([]module.ModuleField, error)
+	GetModuleFields(ctx context.Context, moduleName string) ([]models.ModuleField, error)
 	RenderTemplate(ctx context.Context, templateID string, record map[string]interface{}) (string, string, error)
 	SendTestEmail(ctx context.Context, templateID string, to string, testData map[string]interface{}) error
 }
@@ -111,7 +112,7 @@ func (s *EmailTemplateServiceImpl) DeleteTemplate(ctx context.Context, id string
 	return err
 }
 
-func (s *EmailTemplateServiceImpl) GetModuleFields(ctx context.Context, moduleName string) ([]module.ModuleField, error) {
+func (s *EmailTemplateServiceImpl) GetModuleFields(ctx context.Context, moduleName string) ([]models.ModuleField, error) {
 	mod, err := s.ModuleRepo.FindByName(ctx, moduleName)
 	if err != nil {
 		return nil, err

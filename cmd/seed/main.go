@@ -280,7 +280,7 @@ func Seed(
 				}
 
 				// 4. Seed Modules (Schema only - Permissions handled by Roles/Resources)
-				var modules []module.Module
+				var modules []common_models.Entity
 				if err := readJSON(modulesPath, &modules); err != nil {
 					logger.Fatal("Failed to read modules.json", zap.Error(err))
 				}

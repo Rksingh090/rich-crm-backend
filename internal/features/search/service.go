@@ -49,7 +49,7 @@ func (s *SearchServiceImpl) GlobalSearch(ctx context.Context, query string, user
 	}
 
 	// 1. Search Modules
-	modules, err := s.moduleService.ListModules(ctx, userID, "")
+	modules, err := s.moduleService.ListModules(ctx, userID)
 	if err == nil {
 		for _, m := range modules {
 			if strings.Contains(strings.ToLower(m.Name), strings.ToLower(query)) || strings.Contains(strings.ToLower(m.Label), strings.ToLower(query)) {

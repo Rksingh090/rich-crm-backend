@@ -42,6 +42,7 @@ import (
 	"go-crm/internal/logger"
 	"go-crm/internal/middleware"
 	"log"
+	"time"
 
 	_ "go-crm/docs" // Import swagger docs
 
@@ -68,6 +69,9 @@ func NewFiberServer() *fiber.App {
 
 	// Use custom CORS middleware
 	app.Use(middleware.CORSMiddleware())
+
+	// Add Product middleware to extract X-Rich-Product header
+	app.Use(middleware.ProductMiddleware())
 
 	return app
 }
@@ -117,6 +121,104 @@ func StartServer(lc fx.Lifecycle, app *fiber.App, cfg *config.Config) {
 			return app.Shutdown()
 		},
 	})
+}
+
+// InitializeIndexes ensures that necessary database indexes are created
+func InitializeIndexes(lc fx.Lifecycle, moduleRepo module.ModuleRepository, resourceRepo resource.ResourceRepository) {
+	lc.Append(fx.Hook{
+		OnStart: func(ctx context.Context) error {
+			go func() {
+				// Use a background context with timeout for index creation
+				ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+				defer cancel()
+
+				if err := moduleRepo.EnsureIndexes(ctx); err != nil {
+					log.Printf("Failed to ensure module indexes: %v", err)
+				}
+				if err := resourceRepo.EnsureIndexes(ctx); err != nil {
+					log.Printf("Failed to ensure resource indexes: %v", err)
+				}
+			}()
+			return nil
+		},
+	})
+}
+
+// resourceServiceAdapter adapts ResourceService to the interface expected by ModuleService
+type resourceServiceAdapter struct {
+	svc resource.ResourceService
+}
+
+func (a *resourceServiceAdapter) CreateResource(ctx context.Context, res interface{}) error {
+	// Convert map to Resource struct
+	resMap, ok := res.(map[string]interface{})
+	if !ok {
+		return fmt.Errorf("invalid resource type")
+	}
+
+	r := &resource.Resource{}
+	if v, ok := resMap["resource"].(string); ok {
+		r.ResourceID = v
+	}
+	if v, ok := resMap["product"].(string); ok {
+		r.Product = v
+	}
+	if v, ok := resMap["type"].(string); ok {
+		r.Type = v
+	}
+	if v, ok := resMap["key"].(string); ok {
+		r.Key = v
+	}
+	if v, ok := resMap["label"].(string); ok {
+		r.Label = v
+	}
+	if v, ok := resMap["icon"].(string); ok {
+		r.Icon = v
+	}
+	if v, ok := resMap["route"].(string); ok {
+		r.Route = v
+	}
+	if v, ok := resMap["actions"].([]string); ok {
+		r.Actions = v
+	}
+	if v, ok := resMap["configurable"].(bool); ok {
+		r.Configurable = v
+	}
+	if v, ok := resMap["is_system"].(bool); ok {
+		r.IsSystem = v
+	}
+	if v, ok := resMap["scope"].(string); ok {
+		r.Scope = v
+	}
+	if v, ok := resMap["is_override"].(bool); ok {
+		r.IsOverride = v
+	}
+	if v, ok := resMap["base_resource_id"].(string); ok {
+		r.BaseResourceID = v
+	}
+	if ui, ok := resMap["ui"].(map[string]interface{}); ok {
+		if v, ok := ui["sidebar"].(bool); ok {
+			r.UI.Sidebar = v
+		}
+		if v, ok := ui["order"].(int); ok {
+			r.UI.Order = v
+		}
+		if v, ok := ui["group"].(string); ok {
+			r.UI.Group = v
+		}
+		if v, ok := ui["group_order"].(int); ok {
+			r.UI.GroupOrder = v
+		}
+		if v, ok := ui["location"].(string); ok {
+			r.UI.Location = v
+		}
+	}
+
+	return a.svc.CreateResource(ctx, r)
+}
+
+func (a *resourceServiceAdapter) DeleteResource(ctx context.Context, resourceID string, userID string) error {
+	return a.svc.DeleteResource(ctx, resourceID, userID)
 }
 
 // @title           Microservice Demo API
@@ -223,6 +325,12 @@ func main() {
 			func(s automation.AutomationService) record.AutomationTrigger { return s },
 			func(s role.RoleService) middleware.RoleService { return s },
 			func(r user.UserRepository) audit.UserFinder { return r },
+			func(s resource.ResourceService) interface {
+				CreateResource(ctx context.Context, resource interface{}) error
+				DeleteResource(ctx context.Context, resourceID string, userID string) error
+			} {
+				return &resourceServiceAdapter{svc: s}
+			},
 
 			// Initialize Controller
 			admin.NewAdminController,
@@ -314,6 +422,7 @@ func main() {
 					},
 				})
 			},
+			InitializeIndexes,
 		),
 	)
 

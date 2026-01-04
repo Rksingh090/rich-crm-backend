@@ -103,7 +103,7 @@ func (s *ChartServiceImpl) GetChartData(ctx context.Context, id string) ([]map[s
 	if err == nil {
 		for _, f := range mod.Fields {
 			if f.Name == chart.XAxisField {
-				if f.Type == module.FieldTypeDate {
+				if f.Type == common_models.FieldTypeDate {
 					groupID = bson.M{
 						"$dateToString": bson.M{
 							"format": "%Y-%m-%d",
@@ -160,10 +160,10 @@ func (s *ChartServiceImpl) GetChartData(ctx context.Context, id string) ([]map[s
 		return nil, err
 	}
 
-	var selectOptions []module.SelectOptions
+	var selectOptions []common_models.SelectOptions
 	if mod != nil {
 		for _, f := range mod.Fields {
-			if f.Name == chart.XAxisField && f.Type == module.FieldTypeSelect {
+			if f.Name == chart.XAxisField && f.Type == common_models.FieldTypeSelect {
 				selectOptions = f.Options
 				break
 			}

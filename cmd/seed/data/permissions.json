@@ -261,6 +261,18 @@
         }
     },
     {
+        "role_name": "Viewer",
+        "resource": {
+            "type": "setting",
+            "id": "crm.settings_audit_logs"
+        },
+        "actions": {
+            "read": {
+                "allowed": true
+            }
+        }
+    },
+    {
         "role_name": "Sales Rep",
         "resource": {
             "type": "system",

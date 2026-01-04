@@ -1,6 +1,9 @@
 package module
 
 import (
+	"context"
+	"go-crm/internal/common/models"
+
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -26,7 +29,7 @@ func NewModuleController(service ModuleService) *ModuleController {
 // @Failure 400 {object} map[string]string "Invalid request body or validation error"
 // @Router /api/modules [post]
 func (ctrl *ModuleController) CreateModule(c *fiber.Ctx) error {
-	var m Module
+	var m models.Entity
 	if err := c.BodyParser(&m); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Invalid request body",
@@ -51,11 +54,11 @@ func (ctrl *ModuleController) CreateModule(c *fiber.Ctx) error {
 
 // ListModules godoc
 // @Summary List all modules
-// @Description List all available modules, optionally filtered by product
+// @Description List all available modules, filtered by product via X-Rich-Product header
 // @Tags modules
 // @Accept json
 // @Produce json
-// @Param product query string false "Filter by product"
+// @Param X-Rich-Product header string true "Product filter (e.g., crm, erp, analytics)"
 // @Success 200 {array} Module "List of modules"
 // @Failure 500 {object} map[string]string "Failed to fetch modules"
 // @Router /api/modules [get]
@@ -65,9 +68,14 @@ func (ctrl *ModuleController) ListModules(c *fiber.Ctx) error {
 		userID, _ = primitive.ObjectIDFromHex(idStr)
 	}
 
-	product := c.Query("product")
+	// Get product from header and add to context
+	ctx := c.UserContext()
+	product := c.Get("X-Rich-Product", "")
+	if product != "" {
+		ctx = context.WithValue(ctx, "product", product)
+	}
 
-	modules, err := ctrl.Service.ListModules(c.UserContext(), userID, product)
+	modules, err := ctrl.Service.ListModules(ctx, userID)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to fetch modules",
@@ -120,7 +128,7 @@ func (ctrl *ModuleController) GetModule(c *fiber.Ctx) error {
 func (ctrl *ModuleController) UpdateModule(c *fiber.Ctx) error {
 	name := c.Params("name")
 
-	var m Module
+	var m models.Entity
 	if err := c.BodyParser(&m); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Invalid request body",
@@ -138,7 +146,6 @@ func (ctrl *ModuleController) UpdateModule(c *fiber.Ctx) error {
 			"error": err.Error(),
 		})
 	}
-	// ... (DeleteModule)
 	return c.JSON(fiber.Map{
 		"message": "Module updated successfully",
 	})

@@ -31,4 +31,9 @@ func (h *ResourceApi) Setup(app *fiber.App) {
 
 	// GET /api/resources - List all resources (admin only)
 	resources.Get("/", middleware.RequirePermission(h.roleService, "resources", "read"), h.controller.ListResources)
+
+	// GET /me/resources/:resource - Get resource metadata for UI
+	// Using a separate group for /me routes if desired, but here we can just attach it to app
+	me := app.Group("/me/resources", middleware.AuthMiddleware(h.config.SkipAuth))
+	me.Get("/:resource", h.controller.GetResourceMetadata)
 }

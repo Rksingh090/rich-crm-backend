@@ -3,6 +3,7 @@ package role
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	common_models "go-crm/internal/common/models"
@@ -156,9 +157,10 @@ func (s *RoleServiceImpl) CheckModulePermission(ctx context.Context, roleNames [
 			return false, err
 		}
 
-		resourceID := "crm." + moduleName // Assumption mapping
-		if moduleName == "*" {
-			resourceID = "*"
+		resourceID := moduleName
+		// Only add "crm." prefix if not already present
+		if moduleName != "*" && !strings.HasPrefix(moduleName, "crm.") && !strings.HasPrefix(moduleName, "erp.") {
+			resourceID = "crm." + moduleName
 		}
 
 		for _, p := range perms {

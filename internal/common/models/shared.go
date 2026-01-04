@@ -91,13 +91,15 @@ type LookupDef struct {
 }
 
 type ModuleField struct {
-	Name     string          `json:"name" bson:"name"`
-	Label    string          `json:"label" bson:"label"`
-	Type     FieldType       `json:"type" bson:"type"`
-	Required bool            `json:"required" bson:"required"`
-	Options  []SelectOptions `json:"options,omitempty" bson:"options,omitempty"`
-	Lookup   *LookupDef      `json:"lookup,omitempty" bson:"lookup,omitempty"`
-	IsSystem bool            `json:"is_system" bson:"is_system"`
+	Name       string          `json:"name" bson:"name"`
+	Label      string          `json:"label" bson:"label"`
+	Type       FieldType       `json:"type" bson:"type"`
+	Required   bool            `json:"required" bson:"required"`
+	Options    []SelectOptions `json:"options,omitempty" bson:"options,omitempty"`
+	Lookup     *LookupDef      `json:"lookup,omitempty" bson:"lookup,omitempty"`
+	IsSystem   bool            `json:"is_system" bson:"is_system"`
+	Filterable bool            `json:"filterable" bson:"filterable"`
+	Sortable   bool            `json:"sortable" bson:"sortable"`
 }
 
 // Entity (formerly Module) - Metadata Definition
@@ -113,6 +115,8 @@ type Entity struct {
 	IsSystem  bool               `json:"is_system" bson:"is_system"`
 	CreatedAt time.Time          `json:"created_at" bson:"created_at"`
 	UpdatedAt time.Time          `json:"updated_at" bson:"updated_at"`
+	DeletedAt *time.Time         `json:"deleted_at,omitempty" bson:"deleted_at,omitempty"`
+	DeletedBy string             `json:"deleted_by,omitempty" bson:"deleted_by,omitempty"`
 }
 
 // EntityRecord - The actual data
@@ -235,9 +239,14 @@ type PermissionGroup struct {
 	Groups   []PermissionGroup `json:"groups" bson:"groups"`
 }
 
+type ActionUI struct {
+	Filters []string `json:"filters,omitempty" bson:"filters,omitempty"`
+}
+
 type ActionPermission struct {
 	Allowed    bool             `json:"allowed" bson:"allowed"`
 	Conditions *PermissionGroup `json:"conditions,omitempty" bson:"conditions,omitempty"`
+	UI         *ActionUI        `json:"ui,omitempty" bson:"ui,omitempty"`
 }
 
 type Filter struct {

@@ -3,6 +3,7 @@ package module
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"go-crm/internal/common/models"
 	"go-crm/internal/database"
@@ -10,15 +11,17 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type ModuleRepository interface {
-	Create(ctx context.Context, module *Module) error
-	FindByName(ctx context.Context, name string) (*Module, error)
-	List(ctx context.Context, product string) ([]Module, error)
-	Update(ctx context.Context, module *Module) error
-	Delete(ctx context.Context, name string) error
-	FindUsingLookup(ctx context.Context, targetModule string) ([]Module, error)
+	Create(ctx context.Context, module *models.Entity) error
+	FindByName(ctx context.Context, name string) (*models.Entity, error)
+	List(ctx context.Context) ([]models.Entity, error)
+	Update(ctx context.Context, module *models.Entity) error
+	Delete(ctx context.Context, name string, userID string) error
+	FindUsingLookup(ctx context.Context, targetModule string) ([]models.Entity, error)
+	EnsureIndexes(ctx context.Context) error
 }
 
 type ModuleRepositoryImpl struct {
@@ -33,7 +36,7 @@ func NewModuleRepository(mongodb *database.MongodbDB) ModuleRepository {
 	}
 }
 
-func (r *ModuleRepositoryImpl) Create(ctx context.Context, module *Module) error {
+func (r *ModuleRepositoryImpl) Create(ctx context.Context, module *models.Entity) error {
 	tenantID, ok := ctx.Value(models.TenantIDKey).(string)
 	if !ok || tenantID == "" {
 		return fmt.Errorf("organization context missing")
@@ -48,7 +51,7 @@ func (r *ModuleRepositoryImpl) Create(ctx context.Context, module *Module) error
 	return err
 }
 
-func (r *ModuleRepositoryImpl) FindByName(ctx context.Context, name string) (*Module, error) {
+func (r *ModuleRepositoryImpl) FindByName(ctx context.Context, name string) (*models.Entity, error) {
 	tenantID, ok := ctx.Value(models.TenantIDKey).(string)
 	if !ok || tenantID == "" {
 		return nil, fmt.Errorf("organization context missing")
@@ -58,16 +61,20 @@ func (r *ModuleRepositoryImpl) FindByName(ctx context.Context, name string) (*Mo
 		return nil, err
 	}
 
-	var module Module
-	// Lookup by Slug (name field in Entity struct seems to be internal name/slug)
-	err = r.Collection.FindOne(ctx, bson.M{"name": name, "tenant_id": oid}).Decode(&module)
+	filter := bson.M{
+		"name":       name,
+		"tenant_id":  oid,
+		"deleted_at": bson.M{"$exists": false},
+	}
+	var module models.Entity
+	err = r.Collection.FindOne(ctx, filter).Decode(&module)
 	if err != nil {
 		return nil, err
 	}
 	return &module, nil
 }
 
-func (r *ModuleRepositoryImpl) List(ctx context.Context, product string) ([]Module, error) {
+func (r *ModuleRepositoryImpl) List(ctx context.Context) ([]models.Entity, error) {
 	tenantID, ok := ctx.Value(models.TenantIDKey).(string)
 	if !ok || tenantID == "" {
 		return nil, fmt.Errorf("organization context missing")
@@ -77,8 +84,13 @@ func (r *ModuleRepositoryImpl) List(ctx context.Context, product string) ([]Modu
 		return nil, err
 	}
 
-	filter := bson.M{"tenant_id": oid}
-	if product != "" {
+	filter := bson.M{
+		"tenant_id":  oid,
+		"deleted_at": bson.M{"$exists": false},
+	}
+
+	// Read product from context (set by middleware)
+	if product, ok := ctx.Value("product").(string); ok && product != "" {
 		filter["product"] = product
 	}
 
@@ -88,14 +100,14 @@ func (r *ModuleRepositoryImpl) List(ctx context.Context, product string) ([]Modu
 	}
 	defer cursor.Close(ctx)
 
-	var modules []Module
+	var modules []models.Entity
 	if err = cursor.All(ctx, &modules); err != nil {
 		return nil, err
 	}
 	return modules, nil
 }
 
-func (r *ModuleRepositoryImpl) Update(ctx context.Context, module *Module) error {
+func (r *ModuleRepositoryImpl) Update(ctx context.Context, module *models.Entity) error {
 	tenantID, ok := ctx.Value(models.TenantIDKey).(string)
 	if !ok || tenantID == "" {
 		return fmt.Errorf("organization context missing")
@@ -111,7 +123,7 @@ func (r *ModuleRepositoryImpl) Update(ctx context.Context, module *Module) error
 	return err
 }
 
-func (r *ModuleRepositoryImpl) Delete(ctx context.Context, name string) error {
+func (r *ModuleRepositoryImpl) Delete(ctx context.Context, name string, userID string) error {
 	tenantID, ok := ctx.Value(models.TenantIDKey).(string)
 	if !ok || tenantID == "" {
 		return fmt.Errorf("organization context missing")
@@ -121,18 +133,20 @@ func (r *ModuleRepositoryImpl) Delete(ctx context.Context, name string) error {
 		return err
 	}
 
-	// 1. Delete associated records
-	_, err = r.DB.Collection("entity_records").DeleteMany(ctx, bson.M{"entity": name, "tenant_id": oid})
-	if err != nil {
-		return fmt.Errorf("failed to delete module records: %w", err)
+	// Soft delete: set deleted_at and deleted_by
+	now := time.Now()
+	update := bson.M{
+		"$set": bson.M{
+			"deleted_at": now,
+			"deleted_by": userID,
+		},
 	}
-
-	// 2. Delete module metadata
-	_, err = r.Collection.DeleteOne(ctx, bson.M{"name": name, "tenant_id": oid})
+	filter := bson.M{"name": name, "tenant_id": oid}
+	_, err = r.Collection.UpdateOne(ctx, filter, update)
 	return err
 }
 
-func (r *ModuleRepositoryImpl) FindUsingLookup(ctx context.Context, targetModule string) ([]Module, error) {
+func (r *ModuleRepositoryImpl) FindUsingLookup(ctx context.Context, targetModule string) ([]models.Entity, error) {
 	tenantID, ok := ctx.Value(models.TenantIDKey).(string)
 	if !ok || tenantID == "" {
 		return nil, fmt.Errorf("organization context missing")
@@ -144,7 +158,8 @@ func (r *ModuleRepositoryImpl) FindUsingLookup(ctx context.Context, targetModule
 
 	// Find modules that have at least one field where field.lookup.module == targetModule
 	filter := bson.M{
-		"tenant_id": oid,
+		"tenant_id":  oid,
+		"deleted_at": bson.M{"$exists": false},
 		"fields": bson.M{
 			"$elemMatch": bson.M{
 				"type":          "lookup",
@@ -159,9 +174,31 @@ func (r *ModuleRepositoryImpl) FindUsingLookup(ctx context.Context, targetModule
 	}
 	defer cursor.Close(ctx)
 
-	var modules []Module
+	var modules []models.Entity
 	if err = cursor.All(ctx, &modules); err != nil {
 		return nil, err
 	}
 	return modules, nil
+}
+
+func (r *ModuleRepositoryImpl) EnsureIndexes(ctx context.Context) error {
+	indexes := []mongo.IndexModel{
+		{
+			Keys: bson.D{
+				{Key: "name", Value: 1},
+				{Key: "tenant_id", Value: 1},
+			},
+			Options: options.Index().SetName("idx_name_tenant").SetUnique(true),
+		},
+		{
+			Keys: bson.D{
+				{Key: "fields.lookup.module", Value: 1},
+				{Key: "tenant_id", Value: 1},
+			},
+			Options: options.Index().SetName("idx_lookup_refs"),
+		},
+	}
+	// Note: sparse or partial index could be used for lookup refs, but standard is fine
+	_, err := r.Collection.Indexes().CreateMany(ctx, indexes)
+	return err
 }

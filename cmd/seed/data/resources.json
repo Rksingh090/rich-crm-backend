@@ -1,646 +1,739 @@
 [
-    {
-        "resource_id": "crm.settings",
-        "product": "crm",
-        "type": "page",
-        "key": "settings",
-        "label": "Settings",
-        "icon": "Settings",
-        "route": "/settings",
-        "actions": [
-            "read"
-        ],
-        "configurable": false,
-        "ui": {
-            "sidebar": true,
-            "order": 1,
-            "group": "System",
-            "location": "main"
-        }
+  {
+    "resource_id": "crm.settings",
+    "product": "crm",
+    "type": "page",
+    "key": "settings",
+    "label": "Settings",
+    "icon": "Settings",
+    "route": "/settings",
+    "actions": [
+      "read"
+    ],
+    "configurable": false,
+    "ui": {
+      "sidebar": true,
+      "order": 1,
+      "group": "System",
+      "location": "main"
     },
-    {
-        "resource_id": "crm.dashboard",
-        "product": "crm",
-        "type": "page",
-        "key": "dashboard",
-        "label": "Dashboard",
-        "icon": "LayoutDashboard",
-        "route": "/dashboard",
-        "actions": [
-            "read"
-        ],
-        "configurable": false,
-        "ui": {
-            "sidebar": true,
-            "order": 2,
-            "location": "main"
-        }
+    "scope": "global",
+    "is_system": true,
+    "is_override": false
+  },
+  {
+    "resource_id": "crm.dashboard",
+    "product": "crm",
+    "type": "page",
+    "key": "dashboard",
+    "label": "Dashboard",
+    "icon": "LayoutDashboard",
+    "route": "/dashboard",
+    "actions": [
+      "read"
+    ],
+    "configurable": false,
+    "ui": {
+      "sidebar": true,
+      "order": 2,
+      "location": "main"
     },
-    {
-        "resource_id": "crm.tickets",
-        "product": "crm",
-        "type": "module",
-        "key": "tickets",
-        "label": "Tickets",
-        "icon": "Ticket",
-        "route": "/dashboard/tickets",
-        "actions": [
-            "read",
-            "create",
-            "update",
-            "delete"
-        ],
-        "configurable": false,
-        "ui": {
-            "sidebar": true,
-            "order": 3,
-            "group": "Operations",
-            "group_order": 2,
-            "location": "main"
-        }
+    "scope": "global",
+    "is_system": true,
+    "is_override": false
+  },
+  {
+    "resource_id": "crm.tickets",
+    "product": "crm",
+    "type": "module",
+    "key": "tickets",
+    "label": "Tickets",
+    "icon": "Ticket",
+    "route": "/dashboard/tickets",
+    "actions": [
+      "read",
+      "create",
+      "update",
+      "delete"
+    ],
+    "configurable": false,
+    "ui": {
+      "sidebar": true,
+      "order": 3,
+      "group": "Operations",
+      "group_order": 2,
+      "location": "main"
     },
-    {
-        "resource_id": "crm.sla_tracking",
-        "product": "crm",
-        "type": "module",
-        "key": "sla_tracking",
-        "label": "SLA Tracking",
-        "icon": "Timer",
-        "route": "/dashboard/sla-tracking",
-        "actions": [
-            "read"
-        ],
-        "configurable": false,
-        "ui": {
-            "sidebar": true,
-            "order": 4,
-            "group": "Operations",
-            "location": "main"
-        }
+    "scope": "global",
+    "is_system": true,
+    "is_override": false
+  },
+  {
+    "resource_id": "crm.sla_tracking",
+    "product": "crm",
+    "type": "module",
+    "key": "sla_tracking",
+    "label": "SLA Tracking",
+    "icon": "Timer",
+    "route": "/dashboard/sla-tracking",
+    "actions": [
+      "read"
+    ],
+    "configurable": false,
+    "ui": {
+      "sidebar": true,
+      "order": 4,
+      "group": "Operations",
+      "location": "main"
     },
-    {
-        "resource_id": "crm.calendar",
-        "product": "crm",
-        "type": "module",
-        "key": "calendar",
-        "label": "Calendar",
-        "icon": "Calendar",
-        "route": "/dashboard/calendar",
-        "actions": [
-            "read",
-            "create",
-            "update",
-            "delete"
-        ],
-        "configurable": false,
-        "ui": {
-            "sidebar": true,
-            "order": 5,
-            "group": "Operations",
-            "location": "main"
-        }
+    "scope": "global",
+    "is_system": true,
+    "is_override": false
+  },
+  {
+    "resource_id": "crm.calendar",
+    "product": "crm",
+    "type": "module",
+    "key": "calendar",
+    "label": "Calendar",
+    "icon": "Calendar",
+    "route": "/dashboard/calendar",
+    "actions": [
+      "read",
+      "create",
+      "update",
+      "delete"
+    ],
+    "configurable": false,
+    "ui": {
+      "sidebar": true,
+      "order": 5,
+      "group": "Operations",
+      "location": "main"
     },
-    {
-        "resource_id": "crm.settings_email",
-        "product": "crm",
-        "type": "setting",
-        "key": "smtp",
-        "label": "SMTP Settings",
-        "icon": "Mail",
-        "route": "/settings/email",
-        "actions": [
-            "read",
-            "update"
-        ],
-        "configurable": false,
-        "ui": {
-            "sidebar": true,
-            "order": 1,
-            "location": "settings"
-        }
+    "scope": "global",
+    "is_system": true,
+    "is_override": false
+  },
+  {
+    "resource_id": "crm.settings_email",
+    "product": "crm",
+    "type": "setting",
+    "key": "smtp",
+    "label": "SMTP Settings",
+    "icon": "Mail",
+    "route": "/settings/email",
+    "actions": [
+      "read",
+      "update"
+    ],
+    "configurable": false,
+    "ui": {
+      "sidebar": true,
+      "order": 1,
+      "location": "settings"
     },
-    {
-        "resource_id": "crm.settings_general",
-        "product": "crm",
-        "type": "setting",
-        "key": "general",
-        "label": "General",
-        "icon": "Settings",
-        "route": "/settings/general",
-        "actions": [
-            "read"
-        ],
-        "configurable": false,
-        "ui": {
-            "sidebar": true,
-            "location": "settings",
-            "group": "General",
-            "order": 0
-        }
+    "scope": "global",
+    "is_system": true,
+    "is_override": false
+  },
+  {
+    "resource_id": "crm.settings_general",
+    "product": "crm",
+    "type": "setting",
+    "key": "general",
+    "label": "General",
+    "icon": "Settings",
+    "route": "/settings/general",
+    "actions": [
+      "read"
+    ],
+    "configurable": false,
+    "ui": {
+      "sidebar": true,
+      "location": "settings",
+      "group": "General",
+      "order": 0
     },
-    {
-        "resource_id": "crm.settings_email_templates",
-        "product": "crm",
-        "type": "setting",
-        "key": "email_templates",
-        "label": "Email Templates",
-        "icon": "LayoutTemplate",
-        "route": "/settings/email-templates",
-        "actions": [
-            "read"
-        ],
-        "configurable": false,
-        "ui": {
-            "sidebar": true,
-            "location": "settings",
-            "group": "General",
-            "order": 2
-        }
+    "scope": "global",
+    "is_system": true,
+    "is_override": false
+  },
+  {
+    "resource_id": "crm.settings_email_templates",
+    "product": "crm",
+    "type": "setting",
+    "key": "email_templates",
+    "label": "Email Templates",
+    "icon": "LayoutTemplate",
+    "route": "/settings/email-templates",
+    "actions": [
+      "read"
+    ],
+    "configurable": false,
+    "ui": {
+      "sidebar": true,
+      "location": "settings",
+      "group": "General",
+      "order": 2
     },
-    {
-        "resource_id": "crm.settings_modules",
-        "product": "crm",
-        "type": "setting",
-        "key": "module_builder",
-        "label": "Module Builder",
-        "icon": "Layers",
-        "route": "/settings/modules",
-        "actions": [
-            "read"
-        ],
-        "configurable": false,
-        "ui": {
-            "sidebar": true,
-            "location": "settings",
-            "group": "General",
-            "order": 3
-        }
+    "scope": "global",
+    "is_system": true,
+    "is_override": false
+  },
+  {
+    "resource_id": "crm.settings_modules",
+    "product": "crm",
+    "type": "setting",
+    "key": "module_builder",
+    "label": "Module Builder",
+    "icon": "Layers",
+    "route": "/settings/modules",
+    "actions": [
+      "read"
+    ],
+    "configurable": false,
+    "ui": {
+      "sidebar": true,
+      "location": "settings",
+      "group": "General",
+      "order": 3
     },
-    {
-        "resource_id": "crm.settings_audit_logs",
-        "product": "crm",
-        "type": "setting",
-        "key": "audit_logs",
-        "label": "Audit Logs",
-        "icon": "History",
-        "route": "/settings/audit-logs",
-        "actions": [
-            "read"
-        ],
-        "configurable": false,
-        "ui": {
-            "sidebar": true,
-            "location": "settings",
-            "group": "General",
-            "order": 4
-        }
+    "scope": "global",
+    "is_system": true,
+    "is_override": false
+  },
+  {
+    "resource_id": "crm.settings_audit_logs",
+    "product": "crm",
+    "type": "setting",
+    "key": "audit_logs",
+    "label": "Audit Logs",
+    "icon": "History",
+    "route": "/settings/audit-logs",
+    "actions": [
+      "read"
+    ],
+    "configurable": false,
+    "ui": {
+      "sidebar": true,
+      "location": "settings",
+      "group": "General",
+      "order": 4
     },
-    {
-        "resource_id": "crm.settings_developer",
-        "product": "crm",
-        "type": "setting",
-        "key": "developer",
-        "label": "Developer Reference",
-        "icon": "Code",
-        "route": "/settings/developer",
-        "actions": [
-            "read"
-        ],
-        "configurable": false,
-        "ui": {
-            "sidebar": true,
-            "location": "settings",
-            "group": "General",
-            "order": 5
-        }
+    "scope": "global",
+    "is_system": true,
+    "is_override": false
+  },
+  {
+    "resource_id": "crm.settings_developer",
+    "product": "crm",
+    "type": "setting",
+    "key": "developer",
+    "label": "Developer Reference",
+    "icon": "Code",
+    "route": "/settings/developer",
+    "actions": [
+      "read"
+    ],
+    "configurable": false,
+    "ui": {
+      "sidebar": true,
+      "location": "settings",
+      "group": "General",
+      "order": 5
     },
-    {
-        "resource_id": "crm.settings_file_sharing",
-        "product": "crm",
-        "type": "setting",
-        "key": "file_sharing",
-        "label": "File Sharing",
-        "icon": "Files",
-        "route": "/settings/file-sharing",
-        "actions": [
-            "read"
-        ],
-        "configurable": false,
-        "ui": {
-            "sidebar": true,
-            "location": "settings",
-            "group": "General",
-            "order": 6
-        }
+    "scope": "global",
+    "is_system": true,
+    "is_override": false
+  },
+  {
+    "resource_id": "crm.settings_file_sharing",
+    "product": "crm",
+    "type": "setting",
+    "key": "file_sharing",
+    "label": "File Sharing",
+    "icon": "Files",
+    "route": "/settings/file-sharing",
+    "actions": [
+      "read"
+    ],
+    "configurable": false,
+    "ui": {
+      "sidebar": true,
+      "location": "settings",
+      "group": "General",
+      "order": 6
     },
-    {
-        "resource_id": "crm.settings_users",
-        "product": "crm",
-        "type": "setting",
-        "key": "users",
-        "label": "Users",
-        "icon": "Users",
-        "route": "/settings/users",
-        "actions": [
-            "read",
-            "create",
-            "update",
-            "delete"
-        ],
-        "configurable": false,
-        "ui": {
-            "sidebar": true,
-            "location": "settings",
-            "group": "User Management",
-            "order": 1
-        }
+    "scope": "global",
+    "is_system": true,
+    "is_override": false
+  },
+  {
+    "resource_id": "crm.settings_users",
+    "product": "crm",
+    "type": "setting",
+    "key": "users",
+    "label": "Users",
+    "icon": "Users",
+    "route": "/settings/users",
+    "actions": [
+      "read",
+      "create",
+      "update",
+      "delete"
+    ],
+    "configurable": false,
+    "ui": {
+      "sidebar": true,
+      "location": "settings",
+      "group": "User Management",
+      "order": 1
     },
-    {
-        "resource_id": "crm.settings_roles",
-        "product": "crm",
-        "type": "setting",
-        "key": "roles",
-        "label": "Roles & Permissions",
-        "icon": "ShieldCheck",
-        "route": "/settings/roles",
-        "actions": [
-            "read",
-            "create",
-            "update",
-            "delete"
-        ],
-        "configurable": false,
-        "ui": {
-            "sidebar": true,
-            "location": "settings",
-            "group": "User Management",
-            "order": 2
-        }
+    "scope": "global",
+    "is_system": true,
+    "is_override": false
+  },
+  {
+    "resource_id": "crm.settings_roles",
+    "product": "crm",
+    "type": "setting",
+    "key": "roles",
+    "label": "Roles & Permissions",
+    "icon": "ShieldCheck",
+    "route": "/settings/roles",
+    "actions": [
+      "read",
+      "create",
+      "update",
+      "delete"
+    ],
+    "configurable": false,
+    "ui": {
+      "sidebar": true,
+      "location": "settings",
+      "group": "User Management",
+      "order": 2
     },
-    {
-        "resource_id": "crm.settings_groups",
-        "product": "crm",
-        "type": "setting",
-        "key": "groups",
-        "label": "Groups",
-        "icon": "UsersRound",
-        "route": "/settings/groups",
-        "actions": [
-            "read",
-            "create",
-            "update",
-            "delete"
-        ],
-        "configurable": false,
-        "ui": {
-            "sidebar": true,
-            "location": "settings",
-            "group": "User Management",
-            "order": 3
-        }
+    "scope": "global",
+    "is_system": true,
+    "is_override": false
+  },
+  {
+    "resource_id": "crm.settings_groups",
+    "product": "crm",
+    "type": "setting",
+    "key": "groups",
+    "label": "Groups",
+    "icon": "UsersRound",
+    "route": "/settings/groups",
+    "actions": [
+      "read",
+      "create",
+      "update",
+      "delete"
+    ],
+    "configurable": false,
+    "ui": {
+      "sidebar": true,
+      "location": "settings",
+      "group": "User Management",
+      "order": 3
     },
-    {
-        "resource_id": "crm.settings_workflows",
-        "product": "crm",
-        "type": "setting",
-        "key": "workflows",
-        "label": "Workflows",
-        "icon": "Workflow",
-        "route": "/settings/workflows",
-        "actions": [
-            "read",
-            "create",
-            "update",
-            "delete"
-        ],
-        "configurable": false,
-        "ui": {
-            "sidebar": true,
-            "location": "settings",
-            "group": "Automation",
-            "order": 1
-        }
+    "scope": "global",
+    "is_system": true,
+    "is_override": false
+  },
+  {
+    "resource_id": "crm.settings_workflows",
+    "product": "crm",
+    "type": "setting",
+    "key": "workflows",
+    "label": "Workflows",
+    "icon": "Workflow",
+    "route": "/settings/workflows",
+    "actions": [
+      "read",
+      "create",
+      "update",
+      "delete"
+    ],
+    "configurable": false,
+    "ui": {
+      "sidebar": true,
+      "location": "settings",
+      "group": "Automation",
+      "order": 1
     },
-    {
-        "resource_id": "crm.settings_automation_rules",
-        "product": "crm",
-        "type": "setting",
-        "key": "automation_rules",
-        "label": "Automation Rules",
-        "icon": "Zap",
-        "route": "/settings/automation",
-        "actions": [
-            "read",
-            "create",
-            "update",
-            "delete"
-        ],
-        "configurable": false,
-        "ui": {
-            "sidebar": true,
-            "location": "settings",
-            "group": "Automation",
-            "order": 2
-        }
+    "scope": "global",
+    "is_system": true,
+    "is_override": false
+  },
+  {
+    "resource_id": "crm.settings_automation_rules",
+    "product": "crm",
+    "type": "setting",
+    "key": "automation_rules",
+    "label": "Automation Rules",
+    "icon": "Zap",
+    "route": "/settings/automation",
+    "actions": [
+      "read",
+      "create",
+      "update",
+      "delete"
+    ],
+    "configurable": false,
+    "ui": {
+      "sidebar": true,
+      "location": "settings",
+      "group": "Automation",
+      "order": 2
     },
-    {
-        "resource_id": "crm.settings_cron_jobs",
-        "product": "crm",
-        "type": "setting",
-        "key": "cron_jobs",
-        "label": "Cron Jobs",
-        "icon": "CalendarClock",
-        "route": "/settings/cron-jobs",
-        "actions": [
-            "read",
-            "create",
-            "update",
-            "delete"
-        ],
-        "configurable": false,
-        "ui": {
-            "sidebar": true,
-            "location": "settings",
-            "group": "Automation",
-            "order": 3
-        }
+    "scope": "global",
+    "is_system": true,
+    "is_override": false
+  },
+  {
+    "resource_id": "crm.settings_cron_jobs",
+    "product": "crm",
+    "type": "setting",
+    "key": "cron_jobs",
+    "label": "Cron Jobs",
+    "icon": "CalendarClock",
+    "route": "/settings/cron-jobs",
+    "actions": [
+      "read",
+      "create",
+      "update",
+      "delete"
+    ],
+    "configurable": false,
+    "ui": {
+      "sidebar": true,
+      "location": "settings",
+      "group": "Automation",
+      "order": 3
     },
-    {
-        "resource_id": "crm.settings_sla_policies",
-        "product": "crm",
-        "type": "setting",
-        "key": "sla_policies",
-        "label": "SLA Policies",
-        "icon": "Hourglass",
-        "route": "/settings/sla-policies",
-        "actions": [
-            "read",
-            "create",
-            "update",
-            "delete"
-        ],
-        "configurable": false,
-        "ui": {
-            "sidebar": true,
-            "location": "settings",
-            "group": "Automation",
-            "order": 4
-        }
+    "scope": "global",
+    "is_system": true,
+    "is_override": false
+  },
+  {
+    "resource_id": "crm.settings_sla_policies",
+    "product": "crm",
+    "type": "setting",
+    "key": "sla_policies",
+    "label": "SLA Policies",
+    "icon": "Hourglass",
+    "route": "/settings/sla-policies",
+    "actions": [
+      "read",
+      "create",
+      "update",
+      "delete"
+    ],
+    "configurable": false,
+    "ui": {
+      "sidebar": true,
+      "location": "settings",
+      "group": "Automation",
+      "order": 4
     },
-    {
-        "resource_id": "crm.settings_escalation_rules",
-        "product": "crm",
-        "type": "setting",
-        "key": "escalation_rules",
-        "label": "Escalation Rules",
-        "icon": "ArrowUpCircle",
-        "route": "/settings/escalation-rules",
-        "actions": [
-            "read",
-            "create",
-            "update",
-            "delete"
-        ],
-        "configurable": false,
-        "ui": {
-            "sidebar": true,
-            "location": "settings",
-            "group": "Automation",
-            "order": 5
-        }
+    "scope": "global",
+    "is_system": true,
+    "is_override": false
+  },
+  {
+    "resource_id": "crm.settings_escalation_rules",
+    "product": "crm",
+    "type": "setting",
+    "key": "escalation_rules",
+    "label": "Escalation Rules",
+    "icon": "ArrowUpCircle",
+    "route": "/settings/escalation-rules",
+    "actions": [
+      "read",
+      "create",
+      "update",
+      "delete"
+    ],
+    "configurable": false,
+    "ui": {
+      "sidebar": true,
+      "location": "settings",
+      "group": "Automation",
+      "order": 5
     },
-    {
-        "resource_id": "crm.settings_webhooks",
-        "product": "crm",
-        "type": "setting",
-        "key": "webhooks",
-        "label": "Webhooks",
-        "icon": "Webhook",
-        "route": "/settings/webhooks",
-        "actions": [
-            "read",
-            "create",
-            "update",
-            "delete"
-        ],
-        "configurable": false,
-        "ui": {
-            "sidebar": true,
-            "location": "settings",
-            "group": "Integration",
-            "order": 1
-        }
+    "scope": "global",
+    "is_system": true,
+    "is_override": false
+  },
+  {
+    "resource_id": "crm.settings_webhooks",
+    "product": "crm",
+    "type": "setting",
+    "key": "webhooks",
+    "label": "Webhooks",
+    "icon": "Webhook",
+    "route": "/settings/webhooks",
+    "actions": [
+      "read",
+      "create",
+      "update",
+      "delete"
+    ],
+    "configurable": false,
+    "ui": {
+      "sidebar": true,
+      "location": "settings",
+      "group": "Integration",
+      "order": 1
     },
-    {
-        "resource_id": "crm.settings_extensions",
-        "product": "crm",
-        "type": "setting",
-        "key": "extensions",
-        "label": "Marketplace",
-        "icon": "Puzzle",
-        "route": "/settings/extensions",
-        "actions": [
-            "read"
-        ],
-        "configurable": false,
-        "ui": {
-            "sidebar": true,
-            "location": "settings",
-            "group": "Integration",
-            "order": 2
-        }
+    "scope": "global",
+    "is_system": true,
+    "is_override": false
+  },
+  {
+    "resource_id": "crm.settings_extensions",
+    "product": "crm",
+    "type": "setting",
+    "key": "extensions",
+    "label": "Marketplace",
+    "icon": "Puzzle",
+    "route": "/settings/extensions",
+    "actions": [
+      "read"
+    ],
+    "configurable": false,
+    "ui": {
+      "sidebar": true,
+      "location": "settings",
+      "group": "Integration",
+      "order": 2
     },
-    {
-        "resource_id": "crm.settings_sync",
-        "product": "crm",
-        "type": "setting",
-        "key": "sync",
-        "label": "Data Sync",
-        "icon": "RefreshCw",
-        "route": "/settings/sync",
-        "actions": [
-            "read",
-            "create",
-            "update",
-            "delete"
-        ],
-        "configurable": false,
-        "ui": {
-            "sidebar": true,
-            "location": "settings",
-            "group": "Integration",
-            "order": 3
-        }
+    "scope": "global",
+    "is_system": true,
+    "is_override": false
+  },
+  {
+    "resource_id": "crm.settings_sync",
+    "product": "crm",
+    "type": "setting",
+    "key": "sync",
+    "label": "Data Sync",
+    "icon": "RefreshCw",
+    "route": "/settings/sync",
+    "actions": [
+      "read",
+      "create",
+      "update",
+      "delete"
+    ],
+    "configurable": false,
+    "ui": {
+      "sidebar": true,
+      "location": "settings",
+      "group": "Integration",
+      "order": 3
     },
-    {
-        "resource_id": "crm.settings_import",
-        "product": "crm",
-        "type": "setting",
-        "key": "import",
-        "label": "Data Import",
-        "icon": "Import",
-        "route": "/settings/import",
-        "actions": [
-            "read",
-            "create",
-            "update",
-            "delete"
-        ],
-        "configurable": false,
-        "ui": {
-            "sidebar": true,
-            "location": "settings",
-            "group": "Integration",
-            "order": 4
-        }
+    "scope": "global",
+    "is_system": true,
+    "is_override": false
+  },
+  {
+    "resource_id": "crm.settings_import",
+    "product": "crm",
+    "type": "setting",
+    "key": "import",
+    "label": "Data Import",
+    "icon": "Import",
+    "route": "/settings/import",
+    "actions": [
+      "read",
+      "create",
+      "update",
+      "delete"
+    ],
+    "configurable": false,
+    "ui": {
+      "sidebar": true,
+      "location": "settings",
+      "group": "Integration",
+      "order": 4
     },
-    {
-        "resource_id": "crm.settings_reports",
-        "product": "crm",
-        "type": "setting",
-        "key": "reports",
-        "label": "Reports",
-        "icon": "FileBarChart",
-        "route": "/settings/reports",
-        "actions": [
-            "read"
-        ],
-        "configurable": false,
-        "ui": {
-            "sidebar": true,
-            "location": "settings",
-            "group": "Analytics & Reporting",
-            "order": 1
-        }
+    "scope": "global",
+    "is_system": true,
+    "is_override": false
+  },
+  {
+    "resource_id": "crm.settings_reports",
+    "product": "crm",
+    "type": "setting",
+    "key": "reports",
+    "label": "Reports",
+    "icon": "FileBarChart",
+    "route": "/settings/reports",
+    "actions": [
+      "read"
+    ],
+    "configurable": false,
+    "ui": {
+      "sidebar": true,
+      "location": "settings",
+      "group": "Analytics & Reporting",
+      "order": 1
     },
-    {
-        "resource_id": "crm.settings_reports_pivot",
-        "product": "crm",
-        "type": "setting",
-        "key": "pivot_reports",
-        "label": "Pivot Reports",
-        "icon": "Table",
-        "route": "/settings/reports/pivot",
-        "actions": [
-            "read"
-        ],
-        "configurable": false,
-        "ui": {
-            "sidebar": true,
-            "location": "settings",
-            "group": "Analytics & Reporting",
-            "order": 2
-        }
+    "scope": "global",
+    "is_system": true,
+    "is_override": false
+  },
+  {
+    "resource_id": "crm.settings_reports_pivot",
+    "product": "crm",
+    "type": "setting",
+    "key": "pivot_reports",
+    "label": "Pivot Reports",
+    "icon": "Table",
+    "route": "/settings/reports/pivot",
+    "actions": [
+      "read"
+    ],
+    "configurable": false,
+    "ui": {
+      "sidebar": true,
+      "location": "settings",
+      "group": "Analytics & Reporting",
+      "order": 2
     },
-    {
-        "resource_id": "crm.settings_scheduled_reports",
-        "product": "crm",
-        "type": "setting",
-        "key": "scheduled_reports",
-        "label": "Scheduled Reports",
-        "icon": "Clock",
-        "route": "/settings/scheduled-reports",
-        "actions": [
-            "read",
-            "create",
-            "update",
-            "delete"
-        ],
-        "configurable": false,
-        "ui": {
-            "sidebar": true,
-            "location": "settings",
-            "group": "Analytics & Reporting",
-            "order": 3
-        }
+    "scope": "global",
+    "is_system": true,
+    "is_override": false
+  },
+  {
+    "resource_id": "crm.settings_scheduled_reports",
+    "product": "crm",
+    "type": "setting",
+    "key": "scheduled_reports",
+    "label": "Scheduled Reports",
+    "icon": "Clock",
+    "route": "/settings/scheduled-reports",
+    "actions": [
+      "read",
+      "create",
+      "update",
+      "delete"
+    ],
+    "configurable": false,
+    "ui": {
+      "sidebar": true,
+      "location": "settings",
+      "group": "Analytics & Reporting",
+      "order": 3
     },
-    {
-        "resource_id": "crm.leads",
-        "product": "crm",
-        "type": "module",
-        "key": "leads",
-        "label": "Leads",
-        "icon": "Users",
-        "route": "/dashboard/modules/leads",
-        "actions": [
-            "read",
-            "create",
-            "update",
-            "delete"
-        ],
-        "configurable": false,
-        "ui": {
-            "sidebar": true,
-            "location": "main",
-            "group": "Modules",
-            "group_order": 1,
-            "order": 101
-        }
+    "scope": "global",
+    "is_system": true,
+    "is_override": false
+  },
+  {
+    "resource_id": "crm.leads",
+    "product": "crm",
+    "type": "module",
+    "key": "leads",
+    "label": "Leads",
+    "icon": "Users",
+    "route": "/dashboard/modules/leads",
+    "actions": [
+      "read",
+      "create",
+      "update",
+      "delete"
+    ],
+    "configurable": false,
+    "ui": {
+      "sidebar": true,
+      "location": "main",
+      "group": "Modules",
+      "group_order": 1,
+      "order": 101
     },
-    {
-        "resource_id": "crm.contacts",
-        "product": "crm",
-        "type": "module",
-        "key": "contacts",
-        "label": "Contacts",
-        "icon": "Contact",
-        "route": "/dashboard/modules/contacts",
-        "actions": [
-            "read",
-            "create",
-            "update",
-            "delete"
-        ],
-        "configurable": false,
-        "ui": {
-            "sidebar": true,
-            "location": "main",
-            "group": "Modules",
-            "order": 102
-        }
+    "scope": "global",
+    "is_system": true,
+    "is_override": false
+  },
+  {
+    "resource_id": "crm.contacts",
+    "product": "crm",
+    "type": "module",
+    "key": "contacts",
+    "label": "Contacts",
+    "icon": "Contact",
+    "route": "/dashboard/modules/contacts",
+    "actions": [
+      "read",
+      "create",
+      "update",
+      "delete"
+    ],
+    "configurable": false,
+    "ui": {
+      "sidebar": true,
+      "location": "main",
+      "group": "Modules",
+      "order": 102
     },
-    {
-        "resource_id": "crm.accounts",
-        "product": "crm",
-        "type": "module",
-        "key": "accounts",
-        "label": "Accounts",
-        "icon": "Building2",
-        "route": "/dashboard/modules/accounts",
-        "actions": [
-            "read",
-            "create",
-            "update",
-            "delete"
-        ],
-        "configurable": false,
-        "ui": {
-            "sidebar": true,
-            "location": "main",
-            "group": "Modules",
-            "order": 103
-        }
+    "scope": "global",
+    "is_system": true,
+    "is_override": false
+  },
+  {
+    "resource_id": "crm.accounts",
+    "product": "crm",
+    "type": "module",
+    "key": "accounts",
+    "label": "Accounts",
+    "icon": "Building2",
+    "route": "/dashboard/modules/accounts",
+    "actions": [
+      "read",
+      "create",
+      "update",
+      "delete"
+    ],
+    "configurable": false,
+    "ui": {
+      "sidebar": true,
+      "location": "main",
+      "group": "Modules",
+      "order": 103
     },
-    {
-        "resource_id": "crm.opportunities",
-        "product": "crm",
-        "type": "module",
-        "key": "opportunities",
-        "label": "Opportunities",
-        "icon": "Handshake",
-        "route": "/dashboard/modules/opportunities",
-        "actions": [
-            "read",
-            "create",
-            "update",
-            "delete"
-        ],
-        "configurable": false,
-        "ui": {
-            "sidebar": true,
-            "location": "main",
-            "group": "Modules",
-            "order": 104
-        }
-    }
+    "scope": "global",
+    "is_system": true,
+    "is_override": false
+  },
+  {
+    "resource_id": "crm.opportunities",
+    "product": "crm",
+    "type": "module",
+    "key": "opportunities",
+    "label": "Opportunities",
+    "icon": "Handshake",
+    "route": "/dashboard/modules/opportunities",
+    "actions": [
+      "read",
+      "create",
+      "update",
+      "delete"
+    ],
+    "configurable": false,
+    "ui": {
+      "sidebar": true,
+      "location": "main",
+      "group": "Modules",
+      "order": 104
+    },
+    "scope": "global",
+    "is_system": true,
+    "is_override": false
+  }
 ]

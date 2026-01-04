@@ -1,7 +1,7 @@
 package import_feature
 
 import (
-	"go-crm/internal/features/module"
+	common_models "go-crm/internal/common/models"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -47,5 +47,5 @@ type ImportPreview struct {
 	Headers      []string                 `json:"headers"`
 	SampleData   []map[string]interface{} `json:"sample_data"`
 	TotalRows    int                      `json:"total_rows"`
-	ModuleFields []module.ModuleField     `json:"module_fields"`
+	ModuleFields []common_models.ModuleField     `json:"module_fields"`
 }

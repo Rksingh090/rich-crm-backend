@@ -9,13 +9,16 @@ import (
 	"strings"
 	"time"
 
+	"go-crm/internal/common/models"
 	common_models "go-crm/internal/common/models"
 	"go-crm/internal/features/audit"
 	"go-crm/internal/features/file"
 	"go-crm/internal/features/module"
+	"go-crm/internal/features/permission"
 	"go-crm/internal/features/role"
 	"go-crm/internal/features/user"
 	"go-crm/internal/features/webhook"
+	"go-crm/pkg/condition"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -26,6 +29,7 @@ type RecordService interface {
 	CreateRecord(ctx context.Context, moduleName string, data map[string]interface{}, userID primitive.ObjectID) (interface{}, error)
 	GetRecord(ctx context.Context, moduleName, id string, userID primitive.ObjectID) (map[string]any, error)
 	ListRecords(ctx context.Context, moduleName string, filters []common_models.Filter, page, limit int64, sortBy string, sortOrder string, userID primitive.ObjectID) ([]map[string]any, int64, error)
+	QueryRecords(ctx context.Context, moduleName string, action string, filters []common_models.Filter, page, limit int64, sortBy string, sortOrder string, userID primitive.ObjectID) ([]map[string]any, int64, error)
 	UpdateRecord(ctx context.Context, moduleName, id string, data map[string]interface{}, userID primitive.ObjectID) error
 	DeleteRecord(ctx context.Context, moduleName, id string, userID primitive.ObjectID) error
 }
@@ -50,6 +54,7 @@ type RecordServiceImpl struct {
 	ApprovalService   ApprovalTrigger
 	AutomationService AutomationTrigger
 	WebhookService    webhook.WebhookService
+	PermissionService permission.PermissionService
 }
 
 func NewRecordService(
@@ -63,6 +68,7 @@ func NewRecordService(
 	approvalService ApprovalTrigger,
 	automationService AutomationTrigger,
 	webhookService webhook.WebhookService,
+	permissionService permission.PermissionService,
 ) RecordService {
 	return &RecordServiceImpl{
 		ModuleRepo:        moduleRepo,
@@ -75,6 +81,7 @@ func NewRecordService(
 		ApprovalService:   approvalService,
 		AutomationService: automationService,
 		WebhookService:    webhookService,
+		PermissionService: permissionService,
 	}
 }
 
@@ -270,6 +277,211 @@ func (s *RecordServiceImpl) ListRecords(ctx context.Context, moduleName string, 
 	return records, totalCount, nil
 }
 
+func (s *RecordServiceImpl) QueryRecords(ctx context.Context, moduleName string, action string, filters []common_models.Filter, page, limit int64, sortBy string, sortOrder string, userID primitive.ObjectID) ([]map[string]any, int64, error) {
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 {
+		limit = 10
+	}
+	if limit > 100 {
+		limit = 100
+	}
+	offset := (page - 1) * limit
+
+	// 1. Fetch Schema
+	m, err := s.ModuleRepo.FindByName(ctx, moduleName)
+	if err != nil {
+		return nil, 0, errors.New("module not found")
+	}
+
+	// 2. Fetch User & Permissions
+	user, err := s.UserRepo.FindByID(ctx, userID.Hex())
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// Create context for compiler
+	// Variable Resolution logic: $user.id, $user.path, $now
+	// We might need to fetch org info for path? Or is it on User?
+	// $user.path might refer to org structure or just Org ID?
+	// User Prompt: $user.path org path
+	// User struct has TenantID, Groups.
+	var userPath string
+	// Simplified assumption: TenantID is the path base, or we don't have tree yet.
+	// For now using tenantID as path or empty if not applicable.
+	userPath = user.TenantID.Hex()
+
+	compilerCtx := map[string]interface{}{
+		"user.id":   userID.Hex(),
+		"user.path": userPath,
+	}
+
+	perms, err := s.PermissionService.GetUserEffectivePermissions(ctx, userID)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// 3. Validate Action Allowed
+	var actionPerm *common_models.ActionPermission
+	if p, ok := perms[moduleName]; ok {
+		if ap, ok := p.Actions[action]; ok {
+			actionPerm = &ap
+		}
+	}
+	if actionPerm == nil {
+		if p, ok := perms["*"]; ok {
+			if ap, ok := p.Actions[action]; ok {
+				actionPerm = &ap
+			}
+		}
+	}
+
+	if actionPerm == nil || !actionPerm.Allowed {
+		return nil, 0, errors.New("permission denied")
+	}
+
+	// 4. Validate Requested Filters
+	allowedFiltersMap := make(map[string]bool)
+	if actionPerm.UI != nil && len(actionPerm.UI.Filters) > 0 {
+		for _, f := range actionPerm.UI.Filters {
+			allowedFiltersMap[f] = true
+		}
+	}
+
+	for _, f := range filters {
+		// System fields might be always allowed? Or strictly controlled?
+		// Requirement: "Validate requested filters ⊆ allowed filters"
+		// If map is empty (len 0), it means NO filters allowed ??
+		// "If permission does not define ui.filters, show none." implies none allowed.
+		if len(allowedFiltersMap) > 0 {
+			if !allowedFiltersMap[f.Field] {
+				// Allow if system ID? or just strict?
+				// Strict adherence to requirement implies blocking.
+				return nil, 0, fmt.Errorf("filter on field '%s' is not allowed", f.Field)
+			}
+		} else {
+			// If ui.filters is missing/empty, NO filters allowed?
+			// Or should we fallback to schema filterable?
+			// Requirement: "availableFilters = entity.fields where field.filterable == true"
+			// "effectiveFilters = availableFilters ∩ permission.actions[action].ui.filters"
+			// "If permission does not define ui.filters, show none."
+			// So yes, strictly none allowed if not defined.
+			return nil, 0, fmt.Errorf("filtering is not allowed for this action")
+		}
+	}
+
+	// 5. Build MongoDB Query
+	// A. Forced Conditions from Permission
+	var forcedCondition bson.M
+	if actionPerm.Conditions != nil {
+		compiler := condition.NewCompiler(compilerCtx)
+		cond, err := compiler.Compile(actionPerm.Conditions)
+		if err != nil {
+			return nil, 0, fmt.Errorf("failed to compile permission conditions: %v", err)
+		}
+		forcedCondition = cond
+	}
+
+	// B. User Filters
+	userFilters, err := s.prepareFilters(ctx, m, filters)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// C. Combine (AND)
+	finalQuery := bson.M{
+		"$and": []bson.M{
+			{"tenant_id": user.TenantID},             // Always limit to tenant
+			{"deleted_at": bson.M{"$exists": false}}, // Exclude soft deleted
+		},
+	}
+
+	andClauses := finalQuery["$and"].([]bson.M)
+
+	if len(forcedCondition) > 0 {
+		andClauses = append(andClauses, forcedCondition)
+	}
+
+	if len(userFilters) > 0 {
+		andClauses = append(andClauses, userFilters)
+	}
+
+	// Reassign back to map
+	finalQuery["$and"] = andClauses
+
+	sortOrderInt := -1
+	if strings.ToLower(sortOrder) == "asc" {
+		sortOrderInt = 1
+	}
+
+	// Execute List using direct repo method or passing custom filter
+	// Repo.List takes 'filter' and 'accessFilter'.
+	// filter is 'userFilters', accessFilter is 'permission restrictions'.
+	// We can pass empty 'userFilters' and put everything in 'accessFilter' or vice versa.
+	// Repo.List logic: filter AND accessFilter.
+	// So we can pass `userFilters` as filter, and `forcedCondition` as accessFilter?
+	// But our `ForcedCondition` logic replaces `GetAccessFilter`.
+	// We should probably expose `Repo.Find(query)` or just reuse List logic creatively.
+	// Repo.List matches: `filter` (bson.M) AND `accessFilter` (bson.M).
+	// So we can pass `userFilters` as filter, and `forcedCondition` as accessFilter.
+	// BUT Repo.List adds `tenant_id` internally inside `List` method?
+	// Let's check Repo.List implementation in `record/repository.go` (not read yet, but usually standard).
+	// Assuming Repo adds tenant_id constraint.
+	// Let's assume we pass `userFilters` as first arg, and `forcedCondition` as second.
+
+	records, err := s.RecordRepo.List(ctx, moduleName, userFilters, forcedCondition, limit, offset, sortBy, sortOrderInt)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	for _, record := range records {
+		_ = s.populateFiles(ctx, m.Fields, record)
+		_ = s.populateLookups(ctx, m.Fields, record)
+	}
+
+	// Count
+	totalCount, err := s.RecordRepo.Count(ctx, moduleName, userFilters, forcedCondition)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// Field Permissions (Read-Only/Hidden masking)
+	// We already fetched perms via GetUserEffectivePermissions, we can extract field rules from there?
+	// GetUserEffectivePermissions returns map[string]*Permission.
+	// Permission has FieldRules map[string]string.
+	// We should check that.
+	// s.RoleService.GetFieldPermissions uses UserRepo/Role permissions.
+	// We can reuse s.RoleService.GetFieldPermissions or iterate ourselves.
+	// For consistency, let's reuse s.RoleService.GetFieldPermissions OR extract from `perms`.
+	// If we use s.RoleService.GetFieldPermissions it re-fetches user/roles.
+	// We have `perms` (effective perms). We can construct `fieldPerms` from it.
+
+	fieldRules := make(map[string]string)
+	if p, ok := perms[moduleName]; ok {
+		for f, r := range p.FieldRules {
+			fieldRules[f] = r
+		}
+	} else if p, ok := perms["*"]; ok {
+		// Wildcard field rules?
+		for f, r := range p.FieldRules {
+			fieldRules[f] = r
+		}
+	}
+
+	if len(fieldRules) > 0 {
+		for _, record := range records {
+			for field, rule := range fieldRules {
+				if rule == "none" { // FieldPermNone
+					delete(record, field)
+				}
+			}
+		}
+	}
+
+	return records, totalCount, nil
+}
+
 func (s *RecordServiceImpl) UpdateRecord(ctx context.Context, moduleName, id string, data map[string]interface{}, userID primitive.ObjectID) error {
 	m, err := s.ModuleRepo.FindByName(ctx, moduleName)
 	if err != nil {
@@ -390,9 +602,9 @@ func (s *RecordServiceImpl) DeleteRecord(ctx context.Context, moduleName, id str
 	return err
 }
 
-func (s *RecordServiceImpl) populateFiles(ctx context.Context, fields []module.ModuleField, record map[string]any) error {
+func (s *RecordServiceImpl) populateFiles(ctx context.Context, fields []models.ModuleField, record map[string]any) error {
 	for _, field := range fields {
-		if field.Type == module.FieldTypeFile || field.Type == module.FieldTypeImage {
+		if field.Type == models.FieldTypeFile || field.Type == models.FieldTypeImage {
 			if val, ok := record[field.Name]; ok {
 				var idStr string
 				if oid, ok := val.(primitive.ObjectID); ok {
@@ -417,9 +629,9 @@ func (s *RecordServiceImpl) populateFiles(ctx context.Context, fields []module.M
 	return nil
 }
 
-func (s *RecordServiceImpl) populateLookups(ctx context.Context, fields []module.ModuleField, record map[string]any) error {
+func (s *RecordServiceImpl) populateLookups(ctx context.Context, fields []models.ModuleField, record map[string]any) error {
 	for _, field := range fields {
-		if field.Type == module.FieldTypeLookup && field.Lookup != nil {
+		if field.Type == models.FieldTypeLookup && field.Lookup != nil {
 			if val, ok := record[field.Name]; ok {
 				var idStr string
 				if oid, ok := val.(primitive.ObjectID); ok {
@@ -450,18 +662,18 @@ func (s *RecordServiceImpl) populateLookups(ctx context.Context, fields []module
 	return nil
 }
 
-func (s *RecordServiceImpl) validateAndConvert(ctx context.Context, field module.ModuleField, val interface{}) (interface{}, error) {
+func (s *RecordServiceImpl) validateAndConvert(ctx context.Context, field models.ModuleField, val interface{}) (interface{}, error) {
 	if val == nil {
 		return nil, nil
 	}
 	if strVal, ok := val.(string); ok && strVal == "" {
-		if field.Type != module.FieldTypeText && field.Type != module.FieldTypeTextArea && field.Type != module.FieldTypeSelect && field.Type != module.FieldTypeMultiSelect {
+		if field.Type != models.FieldTypeText && field.Type != models.FieldTypeTextArea && field.Type != models.FieldTypeSelect && field.Type != models.FieldTypeMultiSelect {
 			return nil, nil
 		}
 	}
 
 	switch field.Type {
-	case module.FieldTypeNumber:
+	case models.FieldTypeNumber:
 		switch v := val.(type) {
 		case float64:
 			return v, nil
@@ -481,7 +693,7 @@ func (s *RecordServiceImpl) validateAndConvert(ctx context.Context, field module
 		default:
 			return nil, errors.New("expected number")
 		}
-	case module.FieldTypeBoolean:
+	case models.FieldTypeBoolean:
 		if b, ok := val.(bool); ok {
 			return b, nil
 		}
@@ -496,7 +708,7 @@ func (s *RecordServiceImpl) validateAndConvert(ctx context.Context, field module
 			return b, nil
 		}
 		return nil, errors.New("expected boolean")
-	case module.FieldTypeDate:
+	case models.FieldTypeDate:
 		strVal, ok := val.(string)
 		if !ok {
 			return nil, errors.New("expected date string")
@@ -512,7 +724,7 @@ func (s *RecordServiceImpl) validateAndConvert(ctx context.Context, field module
 			}
 		}
 		return t, nil
-	case module.FieldTypeEmail:
+	case models.FieldTypeEmail:
 		strVal, ok := val.(string)
 		if !ok {
 			return nil, errors.New("expected string")
@@ -524,7 +736,7 @@ func (s *RecordServiceImpl) validateAndConvert(ctx context.Context, field module
 			return nil, errors.New("invalid email format")
 		}
 		return strVal, nil
-	case module.FieldTypeLookup:
+	case models.FieldTypeLookup:
 		var idStr string
 		switch v := val.(type) {
 		case string:
@@ -568,7 +780,7 @@ func (s *RecordServiceImpl) validateAndConvert(ctx context.Context, field module
 
 		return oid, nil
 
-	case module.FieldTypeFile:
+	case models.FieldTypeFile:
 		var idStr string
 		switch v := val.(type) {
 		case string:
@@ -610,7 +822,7 @@ func (s *RecordServiceImpl) validateAndConvert(ctx context.Context, field module
 
 		return idStr, nil
 
-	case module.FieldTypeImage:
+	case models.FieldTypeImage:
 		var idStr string
 		switch v := val.(type) {
 		case string:
