@@ -316,11 +316,11 @@
                 "name": "sku",
                 "label": "SKU",
                 "type": "text",
-                "required": true,
+                "required": false,
                 "is_system": true,
-                "filterable": false,
-                "sortable": false,
-                "unique": false,
+                "filterable": true,
+                "sortable": true,
+                "unique": true,
                 "default_value": "",
                 "placeholder": "",
                 "help_text": "",
@@ -837,8 +837,8 @@
                         "required": false,
                         "lookup": {
                             "lookup_module": "products",
-                            "lookup_label": "",
-                            "value_field": ""
+                            "lookup_label": "name",
+                            "value_field": "_id"
                         },
                         "sub_fields": null,
                         "is_system": false,
@@ -889,6 +889,294 @@
                 "placeholder": "",
                 "help_text": "",
                 "hidden": false
+            }
+        ]
+    },
+    {
+        "name": "purchase_receipts",
+        "label": "Purchase Receipts (GRN)",
+        "is_system": true,
+        "fields": [
+            {
+                "name": "receipt_number",
+                "label": "Receipt Number",
+                "type": "text",
+                "required": true,
+                "is_system": true
+            },
+            {
+                "name": "po_id",
+                "label": "Purchase Order",
+                "type": "lookup",
+                "required": true,
+                "lookup": {
+                    "lookup_module": "purchase_order",
+                    "lookup_label": "po_number",
+                    "value_field": "_id"
+                }
+            },
+            {
+                "name": "date",
+                "label": "Date Received",
+                "type": "date",
+                "required": true
+            },
+            {
+                "name": "items",
+                "label": "Items Received",
+                "type": "subform",
+                "sub_fields": [
+                    {
+                        "name": "product_id",
+                        "label": "Product",
+                        "type": "lookup",
+                        "lookup": {
+                            "lookup_module": "products",
+                            "lookup_label": "name",
+                            "value_field": "_id"
+                        }
+                    },
+                    {
+                        "name": "quantity",
+                        "label": "Quantity Received",
+                        "type": "number",
+                        "required": true
+                    },
+                    {
+                        "name": "unit_cost",
+                        "label": "Unit Cost",
+                        "type": "currency"
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "name": "shipments",
+        "label": "Shipments (Delivery Notes)",
+        "is_system": true,
+        "fields": [
+            {
+                "name": "shipment_number",
+                "label": "Shipment Number",
+                "type": "text",
+                "required": true,
+                "is_system": true
+            },
+            {
+                "name": "invoice_id",
+                "label": "Sales Invoice",
+                "type": "lookup",
+                "required": false,
+                "lookup": {
+                    "lookup_module": "invoices",
+                    "lookup_label": "invoice_number",
+                    "value_field": "_id"
+                }
+            },
+            {
+                "name": "date",
+                "label": "Date Shipped",
+                "type": "date",
+                "required": true
+            },
+            {
+                "name": "shipping_address",
+                "label": "Shipping Address",
+                "type": "textarea"
+            },
+            {
+                "name": "items",
+                "label": "Items Shipped",
+                "type": "subform",
+                "sub_fields": [
+                    {
+                        "name": "product_id",
+                        "label": "Product",
+                        "type": "lookup",
+                        "lookup": {
+                            "lookup_module": "products",
+                            "lookup_label": "name",
+                            "value_field": "_id"
+                        }
+                    },
+                    {
+                        "name": "quantity",
+                        "label": "Quantity Shipped",
+                        "type": "number",
+                        "required": true
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "name": "stock_adjustments",
+        "label": "Stock Adjustments",
+        "is_system": true,
+        "fields": [
+            {
+                "name": "reference_code",
+                "label": "Reference",
+                "type": "text",
+                "required": true
+            },
+            {
+                "name": "date",
+                "label": "Date",
+                "type": "date",
+                "required": true
+            },
+            {
+                "name": "reason",
+                "label": "Reason",
+                "type": "select",
+                "options": [
+                    {
+                        "label": "Damage",
+                        "value": "Damage"
+                    },
+                    {
+                        "label": "Theft",
+                        "value": "Theft"
+                    },
+                    {
+                        "label": "Stocktake Correction",
+                        "value": "Stocktake Correction"
+                    },
+                    {
+                        "label": "Return",
+                        "value": "Return"
+                    }
+                ]
+            },
+            {
+                "name": "items",
+                "label": "Adjustments",
+                "type": "subform",
+                "sub_fields": [
+                    {
+                        "name": "product_id",
+                        "label": "Product",
+                        "type": "lookup",
+                        "lookup": {
+                            "lookup_module": "products",
+                            "lookup_label": "name",
+                            "value_field": "_id"
+                        }
+                    },
+                    {
+                        "name": "quantity",
+                        "label": "Quantity Change (+/-)",
+                        "type": "number",
+                        "required": true,
+                        "help_text": "Use negative values for reduction"
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "name": "stock_movements",
+        "label": "Stock Movements (Ledger)",
+        "is_system": true,
+        "readonly": true,
+        "fields": [
+            {
+                "name": "product_id",
+                "label": "Product",
+                "type": "lookup",
+                "required": true,
+                "lookup": {
+                    "lookup_module": "products",
+                    "lookup_label": "name",
+                    "value_field": "_id"
+                }
+            },
+            {
+                "name": "quantity",
+                "label": "Quantity Change",
+                "type": "number",
+                "required": true
+            },
+            {
+                "name": "type",
+                "label": "Movement Type",
+                "type": "select",
+                "options": [
+                    {
+                        "label": "In",
+                        "value": "In"
+                    },
+                    {
+                        "label": "Out",
+                        "value": "Out"
+                    },
+                    {
+                        "label": "Adjustment",
+                        "value": "Adjustment"
+                    }
+                ],
+                "required": true
+            },
+            {
+                "name": "reference_module",
+                "label": "Ref Module",
+                "type": "text"
+            },
+            {
+                "name": "reference_id",
+                "label": "Ref ID",
+                "type": "text"
+            },
+            {
+                "name": "date",
+                "label": "Movement Date",
+                "type": "datetime",
+                "required": true
+            }
+        ]
+    },
+    {
+        "name": "inventory",
+        "label": "Inventory",
+        "is_system": true,
+        "readonly": true,
+        "fields": [
+            {
+                "name": "product_id",
+                "label": "Product",
+                "type": "lookup",
+                "required": true,
+                "unique": true,
+                "readonly": true,
+                "lookup": {
+                    "lookup_module": "products",
+                    "lookup_label": "name",
+                    "value_field": "_id"
+                }
+            },
+            {
+                "name": "stock_quantity",
+                "label": "Stock Quantity",
+                "type": "number",
+                "required": true,
+                "readonly": true,
+                "default_value": "0"
+            },
+            {
+                "name": "average_cost",
+                "label": "Average Cost",
+                "type": "currency",
+                "required": false,
+                "readonly": true,
+                "default_value": "0"
+            },
+            {
+                "name": "last_movement_at",
+                "label": "Last Movement",
+                "type": "datetime",
+                "required": false
             }
         ]
     }

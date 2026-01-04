@@ -20,6 +20,8 @@ import (
 	"go-crm/internal/features/webhook"
 	"go-crm/pkg/condition"
 
+	"go-crm/internal/features/inventory"
+
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -55,6 +57,7 @@ type RecordServiceImpl struct {
 	AutomationService AutomationTrigger
 	WebhookService    webhook.WebhookService
 	PermissionService permission.PermissionService
+	InventoryService  inventory.InventoryService
 }
 
 func NewRecordService(
@@ -69,6 +72,7 @@ func NewRecordService(
 	automationService AutomationTrigger,
 	webhookService webhook.WebhookService,
 	permissionService permission.PermissionService,
+	inventoryService inventory.InventoryService,
 ) RecordService {
 	return &RecordServiceImpl{
 		ModuleRepo:        moduleRepo,
@@ -82,6 +86,7 @@ func NewRecordService(
 		AutomationService: automationService,
 		WebhookService:    webhookService,
 		PermissionService: permissionService,
+		InventoryService:  inventoryService,
 	}
 }
 
@@ -166,6 +171,11 @@ func (s *RecordServiceImpl) CreateRecord(ctx context.Context, moduleName string,
 			}
 
 			_ = s.AutomationService.ExecuteFromTrigger(context.Background(), moduleName, validatedData, "create")
+
+			// Inventory Trigger
+			if s.InventoryService != nil {
+				_ = s.InventoryService.HandleStockUpdate(context.Background(), moduleName, mergedRecord)
+			}
 
 			// Webhook
 			s.WebhookService.Trigger(context.Background(), "record.updated", common_models.WebhookPayload{
@@ -589,6 +599,11 @@ func (s *RecordServiceImpl) UpdateRecord(ctx context.Context, moduleName, id str
 			}
 
 			_ = s.AutomationService.ExecuteFromTrigger(context.Background(), moduleName, mergedRecord, "update")
+
+			// Inventory Trigger
+			if s.InventoryService != nil {
+				_ = s.InventoryService.HandleStockUpdate(context.Background(), moduleName, mergedRecord)
+			}
 
 			s.WebhookService.Trigger(context.Background(), "record.updated", common_models.WebhookPayload{
 				Event:     "record.updated",

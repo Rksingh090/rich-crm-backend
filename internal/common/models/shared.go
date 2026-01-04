@@ -108,6 +108,7 @@ type ModuleField struct {
 	Placeholder  string          `json:"placeholder" bson:"placeholder"`
 	HelpText     string          `json:"help_text" bson:"help_text"`
 	Hidden       bool            `json:"hidden" bson:"hidden"`
+	ReadOnly     bool            `json:"readonly" bson:"readonly"`
 }
 
 // Entity (formerly Module) - Metadata Definition
@@ -120,6 +121,7 @@ type Entity struct {
 	Fields    []ModuleField      `json:"fields" bson:"fields"`
 	Indexes   []string           `json:"indexes" bson:"indexes"`
 	IsSystem  bool               `json:"is_system" bson:"is_system"`
+	ReadOnly  bool               `json:"readonly" bson:"readonly"`
 	CreatedAt time.Time          `json:"created_at" bson:"created_at"`
 	UpdatedAt time.Time          `json:"updated_at" bson:"updated_at"`
 	DeletedAt *time.Time         `json:"deleted_at,omitempty" bson:"deleted_at,omitempty"`

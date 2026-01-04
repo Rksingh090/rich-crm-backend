@@ -23,6 +23,7 @@ import (
 	"go-crm/internal/features/file"
 	"go-crm/internal/features/group"
 	import_feature "go-crm/internal/features/import"
+	"go-crm/internal/features/inventory"
 	"go-crm/internal/features/module"
 	"go-crm/internal/features/notification"
 	"go-crm/internal/features/organization"
@@ -319,8 +320,10 @@ func main() {
 			analytics.NewDataSourceService,
 			resource.NewResourceService,
 			permission.NewPermissionService,
+			inventory.NewInventoryService,
 
 			// Interface Adapters to break circular dependencies and satisfy Fx
+			func(r record.RecordRepository) inventory.RecordRepository { return r },
 			func(s approval.ApprovalService) record.ApprovalTrigger { return s },
 			func(s automation.AutomationService) record.AutomationTrigger { return s },
 			func(s role.RoleService) middleware.RoleService { return s },
