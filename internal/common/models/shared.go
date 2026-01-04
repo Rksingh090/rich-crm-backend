@@ -91,13 +91,18 @@ type LookupDef struct {
 }
 
 type ModuleField struct {
-	Name     string          `json:"name" bson:"name"`
-	Label    string          `json:"label" bson:"label"`
-	Type     FieldType       `json:"type" bson:"type"`
-	Required bool            `json:"required" bson:"required"`
-	Options  []SelectOptions `json:"options,omitempty" bson:"options,omitempty"`
-	Lookup   *LookupDef      `json:"lookup,omitempty" bson:"lookup,omitempty"`
-	IsSystem bool            `json:"is_system" bson:"is_system"`
+	Name         string          `json:"name" bson:"name"`
+	Label        string          `json:"label" bson:"label"`
+	Type         FieldType       `json:"type" bson:"type"`
+	Required     bool            `json:"required" bson:"required"`
+	Unique       bool            `json:"unique" bson:"unique"`
+	Options      []SelectOptions `json:"options,omitempty" bson:"options,omitempty"`
+	Lookup       *LookupDef      `json:"lookup,omitempty" bson:"lookup,omitempty"`
+	IsSystem     bool            `json:"is_system" bson:"is_system"`
+	DefaultValue string          `json:"default_value" bson:"default_value"`
+	Placeholder  string          `json:"placeholder" bson:"placeholder"`
+	HelpText     string          `json:"help_text" bson:"help_text"`
+	Hidden       bool            `json:"hidden" bson:"hidden"`
 }
 
 // Entity (formerly Module) - Metadata Definition
