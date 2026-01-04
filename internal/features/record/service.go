@@ -101,7 +101,10 @@ func (s *RecordServiceImpl) CreateRecord(ctx context.Context, moduleName string,
 	validatedData["owner"] = userID      // Mutable field - can be changed
 
 	// Fetch Field Permissions
-	perms, _ := s.RoleService.GetFieldPermissions(ctx, userID, moduleName)
+	perms, err := s.RoleService.GetFieldPermissions(ctx, userID, moduleName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check field permissions: %v", err)
+	}
 
 	for _, field := range m.Fields {
 		val, exists := data[field.Name]
@@ -200,9 +203,17 @@ func (s *RecordServiceImpl) GetRecord(ctx context.Context, moduleName, id string
 		return nil, err
 	}
 
+	// Populate Users
+	if err := s.populateUsers(ctx, m.Fields, record); err != nil {
+		return nil, err
+	}
+
 	// Apply Field Permissions
 	perms, err := s.RoleService.GetFieldPermissions(ctx, userID, moduleName)
-	if err == nil && perms != nil {
+	if err != nil {
+		return nil, fmt.Errorf("failed to check field permissions: %v", err)
+	}
+	if perms != nil {
 		for field, p := range perms {
 			if p == role.FieldPermNone {
 				delete(record, field)
@@ -256,6 +267,7 @@ func (s *RecordServiceImpl) ListRecords(ctx context.Context, moduleName string, 
 	for _, record := range records {
 		_ = s.populateFiles(ctx, m.Fields, record)
 		_ = s.populateLookups(ctx, m.Fields, record)
+		_ = s.populateUsers(ctx, m.Fields, record)
 	}
 
 	totalCount, err := s.RecordRepo.Count(ctx, moduleName, typedFilters, accessFilter)
@@ -264,7 +276,10 @@ func (s *RecordServiceImpl) ListRecords(ctx context.Context, moduleName string, 
 	}
 
 	perms, err := s.RoleService.GetFieldPermissions(ctx, userID, moduleName)
-	if err == nil && perms != nil {
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to check field permissions: %v", err)
+	}
+	if perms != nil {
 		for _, record := range records {
 			for field, p := range perms {
 				if p == role.FieldPermNone {
@@ -313,7 +328,7 @@ func (s *RecordServiceImpl) QueryRecords(ctx context.Context, moduleName string,
 	userPath = user.TenantID.Hex()
 
 	compilerCtx := map[string]interface{}{
-		"user.id":   userID.Hex(),
+		"user.id":   userID,
 		"user.path": userPath,
 	}
 
@@ -323,13 +338,27 @@ func (s *RecordServiceImpl) QueryRecords(ctx context.Context, moduleName string,
 	}
 
 	// 3. Validate Action Allowed
+	// Construct full resource key (e.g., "crm.leads")
+	// If Product is empty, it might just be the name (e.g. system modules?)
+	// But perms are usually keyed by "product.module".
+	resourceKey := fmt.Sprintf("%s.%s", m.Product, m.Name)
+
+	// Check specific resource permission
 	var actionPerm *common_models.ActionPermission
-	if p, ok := perms[moduleName]; ok {
+	if p, ok := perms[resourceKey]; ok {
+		if ap, ok := p.Actions[action]; ok {
+			actionPerm = &ap
+		}
+	} else if p, ok := perms[m.Name]; ok {
+		// Fallback to checking the exact resource request if constructed key fails
+		// This handles cases where maybe the input WAS the full key or product is implicitly included in name
 		if ap, ok := p.Actions[action]; ok {
 			actionPerm = &ap
 		}
 	}
+
 	if actionPerm == nil {
+		// Check wildcard
 		if p, ok := perms["*"]; ok {
 			if ap, ok := p.Actions[action]; ok {
 				actionPerm = &ap
@@ -342,32 +371,24 @@ func (s *RecordServiceImpl) QueryRecords(ctx context.Context, moduleName string,
 	}
 
 	// 4. Validate Requested Filters
+	// 4. Validate Requested Filters
 	allowedFiltersMap := make(map[string]bool)
+	hasExplicitFilterConfig := false
 	if actionPerm.UI != nil && len(actionPerm.UI.Filters) > 0 {
+		hasExplicitFilterConfig = true
 		for _, f := range actionPerm.UI.Filters {
 			allowedFiltersMap[f] = true
 		}
 	}
 
-	for _, f := range filters {
-		// System fields might be always allowed? Or strictly controlled?
-		// Requirement: "Validate requested filters ⊆ allowed filters"
-		// If map is empty (len 0), it means NO filters allowed ??
-		// "If permission does not define ui.filters, show none." implies none allowed.
-		if len(allowedFiltersMap) > 0 {
+	if hasExplicitFilterConfig {
+		for _, f := range filters {
+			// System fields might be always allowed? Or strictly controlled?
 			if !allowedFiltersMap[f.Field] {
 				// Allow if system ID? or just strict?
 				// Strict adherence to requirement implies blocking.
 				return nil, 0, fmt.Errorf("filter on field '%s' is not allowed", f.Field)
 			}
-		} else {
-			// If ui.filters is missing/empty, NO filters allowed?
-			// Or should we fallback to schema filterable?
-			// Requirement: "availableFilters = entity.fields where field.filterable == true"
-			// "effectiveFilters = availableFilters ∩ permission.actions[action].ui.filters"
-			// "If permission does not define ui.filters, show none."
-			// So yes, strictly none allowed if not defined.
-			return nil, 0, fmt.Errorf("filtering is not allowed for this action")
 		}
 	}
 
@@ -438,6 +459,7 @@ func (s *RecordServiceImpl) QueryRecords(ctx context.Context, moduleName string,
 	for _, record := range records {
 		_ = s.populateFiles(ctx, m.Fields, record)
 		_ = s.populateLookups(ctx, m.Fields, record)
+		_ = s.populateUsers(ctx, m.Fields, record)
 	}
 
 	// Count
@@ -499,7 +521,10 @@ func (s *RecordServiceImpl) UpdateRecord(ctx context.Context, moduleName, id str
 		}
 	}
 
-	perms, _ := s.RoleService.GetFieldPermissions(ctx, userID, moduleName)
+	perms, err := s.RoleService.GetFieldPermissions(ctx, userID, moduleName)
+	if err != nil {
+		return fmt.Errorf("failed to check field permissions: %v", err)
+	}
 
 	for _, field := range m.Fields {
 		val, exists := data[field.Name]
@@ -845,9 +870,80 @@ func (s *RecordServiceImpl) validateAndConvert(ctx context.Context, field models
 			return nil, errors.New("expected string or populated object for image")
 		}
 		return idStr, nil
+	case models.FieldTypeUser:
+		var idStr string
+		switch v := val.(type) {
+		case string:
+			idStr = v
+		case primitive.ObjectID:
+			idStr = v.Hex()
+		case map[string]interface{}:
+			if id, ok := v["id"].(string); ok {
+				idStr = id
+			} else if oid, ok := v["id"].(primitive.ObjectID); ok {
+				idStr = oid.Hex()
+			}
+		case primitive.M:
+			if id, ok := v["id"].(string); ok {
+				idStr = id
+			} else if oid, ok := v["id"].(primitive.ObjectID); ok {
+				idStr = oid.Hex()
+			}
+		default:
+			return nil, errors.New("expected string or populated object for user")
+		}
+
+		if idStr == "" {
+			return nil, nil
+		}
+
+		if _, err := primitive.ObjectIDFromHex(idStr); err == nil {
+			// Validate user exists
+			_, err = s.UserRepo.FindByID(ctx, idStr)
+			if err != nil {
+				return nil, errors.New("referenced user not found")
+			}
+			return idStr, nil
+		}
+		return idStr, nil
 	default:
 		return val, nil
 	}
+}
+
+func (s *RecordServiceImpl) populateUsers(ctx context.Context, fields []models.ModuleField, record map[string]any) error {
+	for _, field := range fields {
+		if field.Type == models.FieldTypeUser {
+			if val, ok := record[field.Name]; ok {
+				var idStr string
+				if oid, ok := val.(primitive.ObjectID); ok {
+					idStr = oid.Hex()
+				} else if s, ok := val.(string); ok {
+					idStr = s
+				}
+
+				if idStr != "" {
+					user, err := s.UserRepo.FindByID(ctx, idStr)
+					if err == nil {
+						// Format user name
+						displayName := user.Username
+						if user.FirstName != "" || user.LastName != "" {
+							displayName = fmt.Sprintf("%s %s", user.FirstName, user.LastName)
+							displayName = strings.TrimSpace(displayName)
+						}
+
+						record[field.Name] = map[string]interface{}{
+							"id":         idStr,
+							"name":       displayName,
+							"email":      user.Email,
+							"avatar_url": "", // Could add avatar if available
+						}
+					}
+				}
+			}
+		}
+	}
+	return nil
 }
 
 func (s *RecordServiceImpl) prepareFilters(ctx context.Context, m *common_models.Entity, filters []common_models.Filter) (bson.M, error) {

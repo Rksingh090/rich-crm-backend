@@ -151,8 +151,8 @@ func resolvePath(path string, data map[string]interface{}) (interface{}, bool) {
 // This includes user ID, organization ID, and user groups
 func PrepareContextData(userID primitive.ObjectID, orgID primitive.ObjectID, groups []string) map[string]interface{} {
 	return map[string]interface{}{
-		"user.id":     userID.Hex(), // Store as string to match stored IDs in EntityRecord
-		"user.org_id": orgID.Hex(),
+		"user.id":     userID,
+		"user.org_id": orgID,
 		"user.groups": groups, // Array of group names for "in" operator
 	}
 }

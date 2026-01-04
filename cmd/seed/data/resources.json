@@ -45,7 +45,7 @@
   {
     "resource_id": "crm.tickets",
     "product": "crm",
-    "type": "module",
+    "type": "system",
     "key": "tickets",
     "label": "Tickets",
     "icon": "Ticket",
@@ -71,7 +71,7 @@
   {
     "resource_id": "crm.sla_tracking",
     "product": "crm",
-    "type": "module",
+    "type": "system",
     "key": "sla_tracking",
     "label": "SLA Tracking",
     "icon": "Timer",
@@ -93,7 +93,7 @@
   {
     "resource_id": "crm.calendar",
     "product": "crm",
-    "type": "module",
+    "type": "system",
     "key": "calendar",
     "label": "Calendar",
     "icon": "Calendar",

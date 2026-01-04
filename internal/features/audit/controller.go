@@ -3,20 +3,26 @@ package audit
 import (
 	"strconv"
 
+	"go-crm/internal/middleware"
+
 	"github.com/gofiber/fiber/v2"
 )
 
 type AuditController struct {
-	Service AuditService
+	Service     AuditService
+	RoleService middleware.RoleService
 }
 
-func NewAuditController(service AuditService) *AuditController {
-	return &AuditController{Service: service}
+func NewAuditController(service AuditService, roleService middleware.RoleService) *AuditController {
+	return &AuditController{
+		Service:     service,
+		RoleService: roleService,
+	}
 }
 
 // ListLogs godoc
 // @Summary List audit logs
-// @Description Retrieve a list of audit logs with optional filtering
+// @Description Retrieve a list of audit logs with optional filtering. Requires 'crm.settings_audit_logs' permission OR 'read' permission for the specific module being filtered.
 // @Tags audit
 // @Accept json
 // @Produce json
@@ -37,6 +43,42 @@ func (ctrl *AuditController) ListLogs(c *fiber.Ctx) error {
 	}
 	if recordID := c.Query("record_id"); recordID != "" {
 		filters["record_id"] = recordID
+	}
+
+	// Permission Check
+	// 1. If filtering by module, check if user has access to that module
+	// 2. Otherwise/If failed, check for global audit log permission
+	hasAccess := false
+	moduleName := c.Query("module")
+
+	if moduleName != "" {
+		rolesInterface := c.Locals("roles")
+		if rolesInterface != nil {
+			if roles, ok := rolesInterface.([]string); ok {
+				hasPermission, err := ctrl.RoleService.CheckModulePermission(c.UserContext(), roles, moduleName, "read")
+				if err == nil && hasPermission {
+					hasAccess = true
+				}
+			}
+		}
+	}
+
+	if !hasAccess {
+		rolesInterface := c.Locals("roles")
+		if rolesInterface != nil {
+			if roles, ok := rolesInterface.([]string); ok {
+				hasPermission, err := ctrl.RoleService.CheckModulePermission(c.UserContext(), roles, "crm.settings_audit_logs", "read")
+				if err == nil && hasPermission {
+					hasAccess = true
+				}
+			}
+		}
+	}
+
+	if !hasAccess {
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"error": "Access denied: Insufficient permissions for this action",
+		})
 	}
 
 	logs, err := ctrl.Service.ListLogs(c.UserContext(), filters, page, limit)

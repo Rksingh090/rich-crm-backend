@@ -24,5 +24,6 @@ func NewAuditApi(controller *AuditController, config *config.Config, roleService
 func (h *AuditApi) Setup(app *fiber.App) {
 	audit := app.Group("/api/audit-logs", middleware.AuthMiddleware(h.config.SkipAuth))
 
-	audit.Get("/", middleware.RequirePermission(h.roleService, "crm.settings_audit_logs", "read"), h.controller.ListLogs)
+	// Remove rigid middleware check; controller now handles it dynamically
+	audit.Get("/", h.controller.ListLogs)
 }

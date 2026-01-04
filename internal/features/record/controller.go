@@ -304,10 +304,18 @@ func (ctrl *RecordController) QueryRecords(c *fiber.Ctx) error {
 		// But existing logic in ListRecords handles string split.
 		// Here we take raw interface{}.
 
+		// Handle comma-separated strings for 'in' operator if explicit array not provided
+		val := v
+		if operator == "in" || operator == "nin" {
+			if strVal, ok := v.(string); ok && strings.Contains(strVal, ",") {
+				val = strings.Split(strVal, ",")
+			}
+		}
+
 		filters = append(filters, common_models.Filter{
 			Field:    field,
 			Operator: operator,
-			Value:    v,
+			Value:    val,
 		})
 	}
 

@@ -77,6 +77,7 @@ const (
 	FieldTypeMultiSelect FieldType = "multiselect"
 	FieldTypeCurrency    FieldType = "currency"
 	FieldTypeImage       FieldType = "image"
+	FieldTypeUser        FieldType = "user"
 )
 
 type SelectOptions struct {
@@ -114,7 +115,6 @@ type Entity struct {
 	Product   Product            `json:"product" bson:"product"`
 	Name      string             `json:"name" bson:"name"` // Slug/Internal Name
 	Label     string             `json:"label" bson:"label"`
-	Slug      string             `json:"slug" bson:"slug"`
 	Fields    []ModuleField      `json:"fields" bson:"fields"`
 	Indexes   []string           `json:"indexes" bson:"indexes"`
 	IsSystem  bool               `json:"is_system" bson:"is_system"`

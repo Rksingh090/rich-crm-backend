@@ -35,14 +35,21 @@ func (h *UserApi) Setup(app *fiber.App) {
 	// User routes group with auth middleware
 	users := app.Group("/api/users", middleware.AuthMiddleware(h.config.SkipAuth))
 
-	// User CRUD - require "users" module permissions
-	users.Post("/", middleware.RequirePermission(h.roleService, "users", "create"), h.controller.CreateUser)
-	users.Get("/", middleware.RequirePermission(h.roleService, "users", "read"), h.controller.ListUsers)
-	users.Get("/:id", middleware.RequirePermission(h.roleService, "users", "read"), h.controller.GetUser)
-	users.Put("/:id", middleware.RequirePermission(h.roleService, "users", "update"), h.controller.UpdateUser)
-	users.Delete("/:id", middleware.RequirePermission(h.roleService, "users", "delete"), h.controller.DeleteUser)
+	// User CRUD
+	// Create: requires explicit create permission
+	users.Post("/", middleware.RequirePermission(h.roleService, "crm.settings_users", "create"), h.controller.CreateUser)
+
+	// List: requires explicit read permission (for listing everyone)
+	users.Get("/", middleware.RequirePermission(h.roleService, "crm.settings_users", "read"), h.controller.ListUsers)
+
+	// Get One: Dynamic permission check in controller (Self or Admin)
+	users.Get("/:id", h.controller.GetUser)
+
+	// Update/Delete: requires explicit permission
+	users.Put("/:id", middleware.RequirePermission(h.roleService, "crm.settings_users", "update"), h.controller.UpdateUser)
+	users.Delete("/:id", middleware.RequirePermission(h.roleService, "crm.settings_users", "delete"), h.controller.DeleteUser)
 
 	// User sub-resources
-	users.Put("/:id/roles", middleware.RequirePermission(h.roleService, "users", "update"), h.controller.UpdateUserRoles)
-	users.Put("/:id/status", middleware.RequirePermission(h.roleService, "users", "update"), h.controller.UpdateUserStatus)
+	users.Put("/:id/roles", middleware.RequirePermission(h.roleService, "crm.settings_users", "update"), h.controller.UpdateUserRoles)
+	users.Put("/:id/status", middleware.RequirePermission(h.roleService, "crm.settings_users", "update"), h.controller.UpdateUserStatus)
 }

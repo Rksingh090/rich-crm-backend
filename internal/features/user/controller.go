@@ -4,6 +4,8 @@ import (
 	"strconv"
 
 	"go-crm/internal/common/models"
+	"go-crm/internal/middleware"
+	"go-crm/pkg/utils"
 
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -11,11 +13,13 @@ import (
 
 type UserController struct {
 	UserService UserService
+	RoleService middleware.RoleService
 }
 
-func NewUserController(userService UserService) *UserController {
+func NewUserController(userService UserService, roleService middleware.RoleService) *UserController {
 	return &UserController{
 		UserService: userService,
+		RoleService: roleService,
 	}
 }
 
@@ -98,6 +102,45 @@ func (ctrl *UserController) ListUsers(c *fiber.Ctx) error {
 // @Router       /users/{id} [get]
 func (ctrl *UserController) GetUser(c *fiber.Ctx) error {
 	id := c.Params("id")
+
+	// Helper function for claims (can be refactored)
+	getUserID := func() string {
+		if claims, ok := c.UserContext().Value(utils.UserClaimsKey).(*utils.UserClaims); ok {
+			return claims.UserID
+		}
+		// Fallback for fiber context locals if middleware sets it differently
+		if uid := c.Locals("userID"); uid != nil {
+			return uid.(string)
+		}
+		return ""
+	}
+
+	currentUserID := getUserID()
+	hasAccess := false
+
+	// 1. Allow if requesting own profile
+	if currentUserID != "" && currentUserID == id {
+		hasAccess = true
+	}
+
+	// 2. Allow if has system permission
+	if !hasAccess {
+		rolesInterface := c.Locals("roles")
+		if rolesInterface != nil {
+			if roles, ok := rolesInterface.([]string); ok {
+				hasPermission, err := ctrl.RoleService.CheckModulePermission(c.UserContext(), roles, "crm.settings_users", "read")
+				if err == nil && hasPermission {
+					hasAccess = true
+				}
+			}
+		}
+	}
+
+	if !hasAccess {
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"error": "Access denied: Insufficient permissions",
+		})
+	}
 
 	user, err := ctrl.UserService.GetUserByID(c.UserContext(), id)
 	if err != nil {

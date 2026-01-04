@@ -190,14 +190,6 @@ func (s *RoleServiceImpl) CheckModulePermission(ctx context.Context, roleNames [
 // ... GetFieldPermissions ...
 
 func (s *RoleServiceImpl) GetFieldPermissions(ctx context.Context, userID primitive.ObjectID, moduleName string) (map[string]string, error) {
-	// ... implementation same as before but referring to FieldPermissions which is separate ...
-	// Checking previous code: FieldPermissions is a separate map on Role.
-	// So this method likely doesn't check ModulePermissions/Permissions.
-	// Let's verify existing code content.
-	// Existing code just accesses Role.FieldPermissions. This is fine.
-	// I will just copy it or leave it if not touched.
-	// Wait, I am replacing the whole block, so I need to include it.
-
 	// 1. Get User
 	user, err := s.UserRepo.FindByID(ctx, userID.Hex())
 	if err != nil {
@@ -207,47 +199,77 @@ func (s *RoleServiceImpl) GetFieldPermissions(ctx context.Context, userID primit
 		return nil, fmt.Errorf("user not found")
 	}
 
-	// 2. Iterate Roles
-	finalPerms := make(map[string]string)
-	hasFieldRules := false
-
+	// 2. Check Role-based Admin Bypass
 	for _, roleID := range user.Roles {
 		role, err := s.RoleRepo.FindByID(ctx, roleID.Hex())
-		if err != nil || role == nil {
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch role %s: %v", roleID.Hex(), err)
+		}
+		if role == nil {
 			continue
 		}
-
-		if role.FieldPermissions != nil {
-			if modPerms, ok := role.FieldPermissions[moduleName]; ok {
-				hasFieldRules = true
-				for field, p := range modPerms {
-					current, exists := finalPerms[field]
-					if !exists {
-						finalPerms[field] = p
-					} else {
-						switch p {
-						case FieldPermReadWrite:
-							finalPerms[field] = FieldPermReadWrite
-						case FieldPermReadOnly:
-							if current == FieldPermNone {
-								finalPerms[field] = FieldPermReadOnly
-							}
-						}
-					}
-				}
-			}
-		}
-
-		if role.FieldPermissions == nil || role.FieldPermissions[moduleName] == nil {
+		if role.Name == "Super Admin" || role.Name == "admin" {
 			return nil, nil // Full access
 		}
 	}
 
-	if !hasFieldRules {
-		return nil, nil
+	// 3. Get Effective Permissions from PermissionService
+	perms, err := s.PermissionService.GetUserEffectivePermissions(ctx, userID)
+	if err != nil {
+		return nil, err
 	}
 
-	return finalPerms, nil
+	// 4. Resolve Resource ID (e.g. "contacts" -> "crm.contacts")
+	resourceID := moduleName
+	if moduleName != "*" && !strings.HasPrefix(moduleName, "crm.") && !strings.HasPrefix(moduleName, "erp.") {
+		resourceID = "crm." + moduleName
+	}
+
+	// 5. Extract Field Rules
+	// Check specific resource ID first, then short name, then wildcard
+	// GetUserEffectivePermissions returns a map of ResourceID -> Permission
+	// We need to check if there is an entry for this resource.
+
+	var fieldRules map[string]string
+
+	// Helper to merge rules
+	mergeRules := func(rules map[string]string) {
+		if len(rules) == 0 {
+			return
+		}
+		if fieldRules == nil {
+			fieldRules = make(map[string]string)
+		}
+		for f, r := range rules {
+			// If we already have a rule, we only overwrite if the new one is MORE permissive?
+			// Actually, GetUserEffectivePermissions already handled aggregation.
+			// So we just grab the one matching entry.
+			// But we might match multiple keys (e.g. "contacts" AND "crm.contacts").
+			// Strict match preferred.
+			fieldRules[f] = r
+		}
+	}
+
+	// Check canonical resource ID (e.g. "crm.contacts")
+	if p, ok := perms[resourceID]; ok {
+		mergeRules(p.FieldRules)
+	}
+
+	// Check short name if different (e.g. "contacts")
+	if resourceID != moduleName {
+		if p, ok := perms[moduleName]; ok {
+			mergeRules(p.FieldRules)
+		}
+	}
+
+	// Check wildcard "*"
+	if fieldRules == nil {
+		if p, ok := perms["*"]; ok {
+			mergeRules(p.FieldRules)
+		}
+	}
+
+	return fieldRules, nil
 }
 
 func (s *RoleServiceImpl) GetAccessFilter(ctx context.Context, userID primitive.ObjectID, moduleName string, action string) (primitive.M, error) {

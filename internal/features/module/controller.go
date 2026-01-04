@@ -41,6 +41,16 @@ func (ctrl *ModuleController) CreateModule(c *fiber.Ctx) error {
 		userID, _ = primitive.ObjectIDFromHex(idStr)
 	}
 
+	// Set Product from Header
+	product := c.Get("X-Rich-Product")
+	if product != "" {
+		m.Product = models.Product(product)
+	} else {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Product not found in header",
+		})
+	}
+
 	if err := ctrl.Service.CreateModule(c.UserContext(), &m, userID); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": err.Error(),

@@ -171,8 +171,19 @@ func (s *ResourceServiceImpl) GetResourceMetadata(ctx context.Context, resourceN
 	// 3. Check Action Permission
 	var actionPerm *common_models.ActionPermission
 
+	// Construct full resource key (e.g., "crm.leads")
+	// If Product is empty, it might just be the name (e.g. system modules?)
+	// But perms are usually keyed by "product.module".
+	resourceKey := fmt.Sprintf("%s.%s", moduleEntity.Product, moduleEntity.Name)
+
 	// Check specific resource permission
-	if p, ok := perms[resourceName]; ok {
+	if p, ok := perms[resourceKey]; ok {
+		if ap, ok := p.Actions[action]; ok {
+			actionPerm = &ap
+		}
+	} else if p, ok := perms[resourceName]; ok {
+		// Fallback to checking the exact resource request if constructed key fails
+		// This handles cases where maybe the input WAS the full key or product is implicitly included in name
 		if ap, ok := p.Actions[action]; ok {
 			actionPerm = &ap
 		}

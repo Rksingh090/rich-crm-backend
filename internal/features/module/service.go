@@ -81,12 +81,13 @@ func (s *ModuleServiceImpl) CreateModule(ctx context.Context, m *common_models.E
 		"key":          m.Name,
 		"label":        m.Label,
 		"icon":         "database",
-		"route":        fmt.Sprintf("/%s/%s", m.Product, m.Name),
+		"route":        fmt.Sprintf("/dashboard/modules/%s", m.Name),
 		"actions":      []string{"create", "read", "update", "delete"},
 		"configurable": true,
 		"is_system":    m.IsSystem,
 		"scope":        "tenant", // Module resources are tenant-specific
 		"is_override":  false,
+		"tenant_id":    m.TenantID,
 		"ui": map[string]interface{}{
 			"sidebar":     true,
 			"order":       100,
@@ -291,7 +292,6 @@ func (s *ModuleServiceImpl) UpdateModule(ctx context.Context, m *common_models.E
 	m.ID = existingModule.ID
 	m.TenantID = existingModule.TenantID
 	m.Product = existingModule.Product
-	m.Slug = existingModule.Slug
 	m.Indexes = existingModule.Indexes
 	m.IsSystem = existingModule.IsSystem
 	m.CreatedAt = existingModule.CreatedAt
