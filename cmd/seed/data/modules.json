@@ -299,28 +299,46 @@
         "is_system": true,
         "fields": [
             {
-                "name": "sku",
-                "label": "SKU",
-                "type": "text",
-                "required": true
-            },
-            {
                 "name": "name",
                 "label": "Product Name",
                 "type": "text",
-                "required": true
+                "required": true,
+                "is_system": true,
+                "filterable": false,
+                "sortable": false,
+                "unique": false,
+                "default_value": "",
+                "placeholder": "",
+                "help_text": "",
+                "hidden": false
             },
             {
-                "name": "description",
-                "label": "Description",
-                "type": "textarea",
-                "required": false
-            },
-            {
-                "name": "hsn_code",
-                "label": "HSN Code",
+                "name": "sku",
+                "label": "SKU",
                 "type": "text",
-                "required": false
+                "required": true,
+                "is_system": true,
+                "filterable": false,
+                "sortable": false,
+                "unique": false,
+                "default_value": "",
+                "placeholder": "",
+                "help_text": "",
+                "hidden": false
+            },
+            {
+                "name": "barcode",
+                "label": "barcode",
+                "type": "text",
+                "required": false,
+                "is_system": true,
+                "filterable": false,
+                "sortable": false,
+                "unique": false,
+                "default_value": "",
+                "placeholder": "",
+                "help_text": "",
+                "hidden": false
             },
             {
                 "name": "unit_of_measure",
@@ -340,7 +358,57 @@
                         "label": "LTR",
                         "value": "LTR"
                     }
-                ]
+                ],
+                "is_system": true,
+                "filterable": false,
+                "sortable": false,
+                "unique": false,
+                "default_value": "",
+                "placeholder": "",
+                "help_text": "",
+                "hidden": false
+            },
+            {
+                "name": "description",
+                "label": "Description",
+                "type": "textarea",
+                "required": false,
+                "is_system": true,
+                "filterable": false,
+                "sortable": false,
+                "unique": false,
+                "default_value": "",
+                "placeholder": "",
+                "help_text": "",
+                "hidden": false
+            },
+            {
+                "name": "purchase_cost",
+                "label": "Purchase Cost",
+                "type": "number",
+                "required": false,
+                "is_system": true,
+                "filterable": false,
+                "sortable": false,
+                "unique": false,
+                "default_value": "",
+                "placeholder": "",
+                "help_text": "",
+                "hidden": false
+            },
+            {
+                "name": "selling_price",
+                "label": "Selling Price",
+                "type": "number",
+                "required": true,
+                "is_system": true,
+                "filterable": false,
+                "sortable": false,
+                "unique": false,
+                "default_value": "",
+                "placeholder": "",
+                "help_text": "",
+                "hidden": false
             },
             {
                 "name": "category_id",
@@ -351,7 +419,43 @@
                     "lookup_module": "categories",
                     "lookup_label": "name",
                     "value_field": "_id"
-                }
+                },
+                "is_system": true,
+                "filterable": false,
+                "sortable": false,
+                "unique": false,
+                "default_value": "",
+                "placeholder": "",
+                "help_text": "",
+                "hidden": false
+            },
+            {
+                "name": "low_stock_level",
+                "label": "Low Stock Level",
+                "type": "number",
+                "required": false,
+                "is_system": true,
+                "filterable": false,
+                "sortable": false,
+                "unique": false,
+                "default_value": "",
+                "placeholder": "",
+                "help_text": "",
+                "hidden": false
+            },
+            {
+                "name": "allow_negative_stock",
+                "label": "Allow Negative Stock",
+                "type": "boolean",
+                "required": false,
+                "is_system": true,
+                "filterable": false,
+                "sortable": false,
+                "unique": false,
+                "default_value": "",
+                "placeholder": "",
+                "help_text": "",
+                "hidden": false
             },
             {
                 "name": "brand_id",
@@ -362,213 +466,99 @@
                     "lookup_module": "brands",
                     "lookup_label": "name",
                     "value_field": "_id"
-                }
-            },
-            {
-                "name": "standard_price",
-                "label": "Standard Price",
-                "type": "number",
-                "required": true
-            },
-            {
-                "name": "purchase_cost",
-                "label": "Purchase Cost",
-                "type": "number",
-                "required": false
-            },
-            {
-                "name": "mrp",
-                "label": "MRP",
-                "type": "number",
-                "required": false
-            },
-            {
-                "name": "is_active",
-                "label": "Active",
-                "type": "boolean",
-                "required": true
+                },
+                "is_system": true,
+                "filterable": false,
+                "sortable": false,
+                "unique": false,
+                "default_value": "",
+                "placeholder": "",
+                "help_text": "",
+                "hidden": false
             },
             {
                 "name": "gst_rate",
                 "label": "GST Rate (%)",
                 "type": "number",
-                "required": false
+                "required": false,
+                "is_system": true,
+                "filterable": false,
+                "sortable": false,
+                "unique": false,
+                "default_value": "",
+                "placeholder": "",
+                "help_text": "",
+                "hidden": false
+            },
+            {
+                "name": "is_active",
+                "label": "Active",
+                "type": "boolean",
+                "required": true,
+                "is_system": true,
+                "filterable": false,
+                "sortable": false,
+                "unique": false,
+                "default_value": "",
+                "placeholder": "",
+                "help_text": "",
+                "hidden": false
+            },
+            {
+                "name": "created_at",
+                "label": "Created At",
+                "type": "date",
+                "required": false,
+                "is_system": true,
+                "filterable": false,
+                "sortable": false,
+                "unique": false,
+                "default_value": "",
+                "placeholder": "",
+                "help_text": "",
+                "hidden": false
+            },
+            {
+                "name": "updated_at",
+                "label": "Updated At",
+                "type": "date",
+                "required": false,
+                "is_system": true,
+                "filterable": false,
+                "sortable": false,
+                "unique": false,
+                "default_value": "",
+                "placeholder": "",
+                "help_text": "",
+                "hidden": false
             },
             {
                 "name": "product_image",
                 "label": "Product Image",
                 "type": "image",
-                "required": false
+                "required": false,
+                "is_system": true,
+                "filterable": false,
+                "sortable": false,
+                "unique": false,
+                "default_value": "",
+                "placeholder": "",
+                "help_text": "",
+                "hidden": false
             },
             {
                 "name": "brochure",
                 "label": "Brochure",
                 "type": "file",
-                "required": false
-            }
-        ]
-    },
-    {
-        "name": "tax_rates",
-        "label": "Tax Rates",
-        "is_system": true,
-        "fields": [
-            {
-                "name": "hsn_code",
-                "label": "HSN Code",
-                "type": "text",
-                "required": true
-            },
-            {
-                "name": "cgst_rate",
-                "label": "CGST Rate (%)",
-                "type": "number",
-                "required": true
-            },
-            {
-                "name": "sgst_rate",
-                "label": "SGST Rate (%)",
-                "type": "number",
-                "required": true
-            },
-            {
-                "name": "igst_rate",
-                "label": "IGST Rate (%)",
-                "type": "number",
-                "required": true
-            },
-            {
-                "name": "cess_amount",
-                "label": "CESS Amount",
-                "type": "number",
-                "required": false
-            }
-        ]
-    },
-    {
-        "name": "price_lists",
-        "label": "Price Lists",
-        "is_system": true,
-        "fields": [
-            {
-                "name": "name",
-                "label": "Price List Name",
-                "type": "text",
-                "required": true
-            },
-            {
-                "name": "valid_from",
-                "label": "Valid From",
-                "type": "date",
-                "required": true
-            },
-            {
-                "name": "valid_to",
-                "label": "Valid To",
-                "type": "date",
-                "required": false
-            }
-        ]
-    },
-    {
-        "name": "price_list_items",
-        "label": "Price List Items",
-        "is_system": true,
-        "fields": [
-            {
-                "name": "price_list_id",
-                "label": "Price List",
-                "type": "lookup",
-                "required": true,
-                "lookup": {
-                    "lookup_module": "price_lists",
-                    "lookup_label": "name",
-                    "value_field": "_id"
-                }
-            },
-            {
-                "name": "item_id",
-                "label": "Product",
-                "type": "lookup",
-                "required": true,
-                "lookup": {
-                    "lookup_module": "products",
-                    "lookup_label": "name",
-                    "value_field": "_id"
-                }
-            },
-            {
-                "name": "sale_price",
-                "label": "Sale Price",
-                "type": "number",
-                "required": true
-            },
-            {
-                "name": "discount_percent",
-                "label": "Discount (%)",
-                "type": "number",
-                "required": false
-            },
-            {
-                "name": "markup_percent",
-                "label": "Markup (%)",
-                "type": "number",
-                "required": false
-            }
-        ]
-    },
-    {
-        "name": "customers",
-        "label": "Customers",
-        "is_system": true,
-        "fields": [
-            {
-                "name": "name",
-                "label": "Customer Name",
-                "type": "text",
-                "required": true
-            },
-            {
-                "name": "gstin",
-                "label": "GSTIN",
-                "type": "text",
-                "required": false
-            },
-            {
-                "name": "billing_address",
-                "label": "Billing Address",
-                "type": "textarea",
-                "required": false
-            },
-            {
-                "name": "shipping_address",
-                "label": "Shipping Address",
-                "type": "textarea",
-                "required": false
-            },
-            {
-                "name": "state",
-                "label": "State",
-                "type": "select",
-                "required": true,
-                "options": [
-                    {
-                        "label": "Karnataka",
-                        "value": "Karnataka"
-                    },
-                    {
-                        "label": "Maharashtra",
-                        "value": "Maharashtra"
-                    },
-                    {
-                        "label": "Delhi",
-                        "value": "Delhi"
-                    },
-                    {
-                        "label": "Tamil Nadu",
-                        "value": "Tamil Nadu"
-                    }
-                ]
+                "required": false,
+                "is_system": true,
+                "filterable": false,
+                "sortable": false,
+                "unique": false,
+                "default_value": "",
+                "placeholder": "",
+                "help_text": "",
+                "hidden": false
             }
         ]
     },
@@ -581,305 +571,324 @@
                 "name": "name",
                 "label": "Vendor Name",
                 "type": "text",
-                "required": true
+                "required": true,
+                "is_system": true,
+                "filterable": false,
+                "sortable": false,
+                "unique": false,
+                "default_value": "",
+                "placeholder": "",
+                "help_text": "",
+                "hidden": false
             },
             {
-                "name": "gstin",
-                "label": "GSTIN",
+                "name": "contact_person",
+                "label": "Contact Person",
                 "type": "text",
-                "required": false
+                "required": false,
+                "is_system": true,
+                "filterable": false,
+                "sortable": false,
+                "unique": false,
+                "default_value": "",
+                "placeholder": "",
+                "help_text": "",
+                "hidden": false
+            },
+            {
+                "name": "phone",
+                "label": "Phone",
+                "type": "text",
+                "required": false,
+                "is_system": true,
+                "filterable": false,
+                "sortable": false,
+                "unique": false,
+                "default_value": "",
+                "placeholder": "",
+                "help_text": "",
+                "hidden": false
+            },
+            {
+                "name": "email",
+                "label": "Email",
+                "type": "text",
+                "required": false,
+                "is_system": true,
+                "filterable": false,
+                "sortable": false,
+                "unique": false,
+                "default_value": "",
+                "placeholder": "",
+                "help_text": "",
+                "hidden": false
+            },
+            {
+                "name": "created_at",
+                "label": "Created At",
+                "type": "date",
+                "required": false,
+                "is_system": true,
+                "filterable": false,
+                "sortable": false,
+                "unique": false,
+                "default_value": "",
+                "placeholder": "",
+                "help_text": "",
+                "hidden": false
+            },
+            {
+                "name": "updated_at",
+                "label": "Updated At",
+                "type": "date",
+                "required": false,
+                "is_system": true,
+                "filterable": false,
+                "sortable": false,
+                "unique": false,
+                "default_value": "",
+                "placeholder": "",
+                "help_text": "",
+                "hidden": false
             },
             {
                 "name": "address",
                 "label": "Address",
                 "type": "textarea",
-                "required": false
+                "required": false,
+                "is_system": true,
+                "filterable": false,
+                "sortable": false,
+                "unique": false,
+                "default_value": "",
+                "placeholder": "",
+                "help_text": "",
+                "hidden": false
             },
             {
-                "name": "state",
-                "label": "State",
-                "type": "select",
-                "required": true,
-                "options": [
-                    {
-                        "label": "Karnataka",
-                        "value": "Karnataka"
-                    },
-                    {
-                        "label": "Maharashtra",
-                        "value": "Maharashtra"
-                    },
-                    {
-                        "label": "Delhi",
-                        "value": "Delhi"
-                    },
-                    {
-                        "label": "Tamil Nadu",
-                        "value": "Tamil Nadu"
-                    }
-                ]
-            }
-        ]
-    },
-    {
-        "name": "invoices",
-        "label": "Sales Invoices",
-        "is_system": true,
-        "fields": [
-            {
-                "name": "invoice_number",
-                "label": "Invoice Number",
+                "name": "gstin",
+                "label": "GSTIN",
                 "type": "text",
-                "required": true
+                "required": false,
+                "is_system": true,
+                "filterable": false,
+                "sortable": false,
+                "unique": false,
+                "default_value": "",
+                "placeholder": "",
+                "help_text": "",
+                "hidden": false
             },
             {
-                "name": "date",
-                "label": "Invoice Date",
-                "type": "date",
-                "required": true
-            },
-            {
-                "name": "customer_id",
-                "label": "Customer",
-                "type": "lookup",
-                "required": true,
-                "lookup": {
-                    "lookup_module": "customers",
-                    "lookup_label": "name",
-                    "value_field": "_id"
-                }
-            },
-            {
-                "name": "state",
-                "label": "Place of Supply",
-                "type": "select",
-                "required": true,
-                "options": [
-                    {
-                        "label": "Karnataka",
-                        "value": "Karnataka"
-                    },
-                    {
-                        "label": "Maharashtra",
-                        "value": "Maharashtra"
-                    },
-                    {
-                        "label": "Delhi",
-                        "value": "Delhi"
-                    },
-                    {
-                        "label": "Tamil Nadu",
-                        "value": "Tamil Nadu"
-                    }
-                ]
-            },
-            {
-                "name": "total_value",
-                "label": "Total Value (Pre-tax)",
-                "type": "currency",
-                "required": true
-            },
-            {
-                "name": "total_tax",
-                "label": "Total Tax",
-                "type": "currency",
-                "required": true
-            },
-            {
-                "name": "net_amount",
-                "label": "Net Amount",
-                "type": "currency",
-                "required": true
+                "name": "active",
+                "label": "Active",
+                "type": "boolean",
+                "required": false,
+                "is_system": true,
+                "filterable": false,
+                "sortable": false,
+                "unique": false,
+                "default_value": "true",
+                "placeholder": "",
+                "help_text": "",
+                "hidden": false
             }
         ]
     },
     {
-        "name": "invoice_items",
-        "label": "Invoice Items",
+        "name": "purchase_order",
+        "label": "Purchase Order",
         "is_system": true,
         "fields": [
             {
-                "name": "invoice_id",
-                "label": "Invoice",
-                "type": "lookup",
-                "required": true,
-                "lookup": {
-                    "lookup_module": "invoices",
-                    "lookup_label": "invoice_number",
-                    "value_field": "_id"
-                }
-            },
-            {
-                "name": "item_id",
-                "label": "Product",
-                "type": "lookup",
-                "required": true,
-                "lookup": {
-                    "lookup_module": "products",
-                    "lookup_label": "name",
-                    "value_field": "_id"
-                }
-            },
-            {
-                "name": "qty",
-                "label": "Quantity",
-                "type": "number",
-                "required": true
-            },
-            {
-                "name": "unit_price",
-                "label": "Unit Price",
-                "type": "number",
-                "required": true
-            },
-            {
-                "name": "discount",
-                "label": "Discount",
-                "type": "number",
-                "required": false
-            },
-            {
-                "name": "taxable_value",
-                "label": "Taxable Value",
-                "type": "currency",
-                "required": true
-            },
-            {
-                "name": "cgst_amount",
-                "label": "CGST Amount",
-                "type": "currency",
-                "required": false
-            },
-            {
-                "name": "sgst_amount",
-                "label": "SGST Amount",
-                "type": "currency",
-                "required": false
-            },
-            {
-                "name": "igst_amount",
-                "label": "IGST Amount",
-                "type": "currency",
-                "required": false
-            },
-            {
-                "name": "total_line_amount",
-                "label": "Total Line Amount",
-                "type": "currency",
-                "required": true
-            }
-        ]
-    },
-    {
-        "name": "purchase_invoices",
-        "label": "Purchase Invoices",
-        "is_system": true,
-        "fields": [
-            {
-                "name": "invoice_number",
-                "label": "Invoice Number",
+                "name": "po_number",
+                "label": "Po Number",
                 "type": "text",
-                "required": true
+                "required": false,
+                "sub_fields": null,
+                "is_system": false,
+                "filterable": false,
+                "sortable": false,
+                "unique": false,
+                "default_value": "",
+                "placeholder": "",
+                "help_text": "",
+                "hidden": false
             },
             {
-                "name": "date",
-                "label": "Invoice Date",
+                "name": "created_at",
+                "label": "Created At",
                 "type": "date",
-                "required": true
+                "required": false,
+                "sub_fields": null,
+                "is_system": true,
+                "filterable": false,
+                "sortable": false,
+                "unique": false,
+                "default_value": "",
+                "placeholder": "",
+                "help_text": "",
+                "hidden": false
             },
             {
-                "name": "vendor_id",
+                "name": "updated_at",
+                "label": "Updated At",
+                "type": "date",
+                "required": false,
+                "sub_fields": null,
+                "is_system": true,
+                "filterable": false,
+                "sortable": false,
+                "unique": false,
+                "default_value": "",
+                "placeholder": "",
+                "help_text": "",
+                "hidden": false
+            },
+            {
+                "name": "vendor",
                 "label": "Vendor",
                 "type": "lookup",
-                "required": true,
+                "required": false,
                 "lookup": {
                     "lookup_module": "vendors",
                     "lookup_label": "name",
-                    "value_field": "_id"
-                }
+                    "value_field": ""
+                },
+                "sub_fields": null,
+                "is_system": false,
+                "filterable": false,
+                "sortable": false,
+                "unique": false,
+                "default_value": "",
+                "placeholder": "",
+                "help_text": "",
+                "hidden": false
             },
             {
-                "name": "total_value",
-                "label": "Total Value (Pre-tax)",
-                "type": "currency",
-                "required": true
+                "name": "status",
+                "label": "Status",
+                "type": "select",
+                "required": false,
+                "options": [
+                    {
+                        "label": "Draft",
+                        "value": "Draft"
+                    },
+                    {
+                        "label": "Ordered",
+                        "value": "Ordered"
+                    },
+                    {
+                        "label": "Received",
+                        "value": "Received"
+                    }
+                ],
+                "sub_fields": null,
+                "is_system": false,
+                "filterable": false,
+                "sortable": false,
+                "unique": false,
+                "default_value": "",
+                "placeholder": "",
+                "help_text": "",
+                "hidden": false
             },
             {
-                "name": "total_tax",
-                "label": "Total Tax",
-                "type": "currency",
-                "required": true
+                "name": "order_date",
+                "label": "Order Date",
+                "type": "date",
+                "required": false,
+                "sub_fields": null,
+                "is_system": false,
+                "filterable": false,
+                "sortable": false,
+                "unique": false,
+                "default_value": "",
+                "placeholder": "",
+                "help_text": "",
+                "hidden": false
             },
             {
-                "name": "net_amount",
-                "label": "Net Amount",
-                "type": "currency",
-                "required": true
-            }
-        ]
-    },
-    {
-        "name": "purchase_invoice_items",
-        "label": "Purchase Invoice Items",
-        "is_system": true,
-        "fields": [
-            {
-                "name": "purchase_invoice_id",
-                "label": "Purchase Invoice",
-                "type": "lookup",
-                "required": true,
-                "lookup": {
-                    "lookup_module": "purchase_invoices",
-                    "lookup_label": "invoice_number",
-                    "value_field": "_id"
-                }
+                "name": "expected_delivery_date",
+                "label": "Expected Delivery Date",
+                "type": "date",
+                "required": false,
+                "sub_fields": null,
+                "is_system": false,
+                "filterable": false,
+                "sortable": false,
+                "unique": false,
+                "default_value": "",
+                "placeholder": "",
+                "help_text": "",
+                "hidden": false
             },
             {
-                "name": "item_id",
-                "label": "Product",
-                "type": "lookup",
-                "required": true,
-                "lookup": {
-                    "lookup_module": "products",
-                    "lookup_label": "name",
-                    "value_field": "_id"
-                }
-            },
-            {
-                "name": "qty",
-                "label": "Quantity",
-                "type": "number",
-                "required": true
-            },
-            {
-                "name": "unit_price",
-                "label": "Cost Price",
-                "type": "number",
-                "required": true
-            },
-            {
-                "name": "taxable_value",
-                "label": "Taxable Value",
-                "type": "currency",
-                "required": true
-            },
-            {
-                "name": "igst_paid",
-                "label": "IGST Paid",
-                "type": "currency",
-                "required": false
-            },
-            {
-                "name": "input_credit",
-                "label": "Input Credit Claimed",
-                "type": "boolean",
-                "required": false
-            },
-            {
-                "name": "total_line_amount",
-                "label": "Total Line Amount",
-                "type": "currency",
-                "required": true
+                "name": "purchase_order_line",
+                "label": "Purchase Order Line",
+                "type": "subform",
+                "required": false,
+                "sub_fields": [
+                    {
+                        "name": "product",
+                        "label": "Product",
+                        "type": "lookup",
+                        "required": false,
+                        "lookup": {
+                            "lookup_module": "products",
+                            "lookup_label": "",
+                            "value_field": ""
+                        },
+                        "sub_fields": null,
+                        "is_system": false,
+                        "filterable": false,
+                        "sortable": false,
+                        "unique": false,
+                        "default_value": "",
+                        "placeholder": "",
+                        "help_text": "",
+                        "hidden": false
+                    },
+                    {
+                        "name": "quantity",
+                        "label": "Quantity",
+                        "type": "number",
+                        "required": false,
+                        "sub_fields": null,
+                        "is_system": false,
+                        "filterable": false,
+                        "sortable": false,
+                        "unique": false,
+                        "default_value": "",
+                        "placeholder": "",
+                        "help_text": "",
+                        "hidden": false
+                    },
+                    {
+                        "name": "purchase_cost",
+                        "label": "Purchase Cost",
+                        "type": "number",
+                        "required": false,
+                        "sub_fields": null,
+                        "is_system": false,
+                        "filterable": false,
+                        "sortable": false,
+                        "unique": false,
+                        "default_value": "",
+                        "placeholder": "",
+                        "help_text": "",
+                        "hidden": false
+                    }
+                ],
+                "is_system": false,
+                "filterable": false,
+                "sortable": false,
+                "unique": false,
+                "default_value": "",
+                "placeholder": "",
+                "help_text": "",
+                "hidden": false
             }
         ]
     }

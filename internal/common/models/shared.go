@@ -78,6 +78,7 @@ const (
 	FieldTypeCurrency    FieldType = "currency"
 	FieldTypeImage       FieldType = "image"
 	FieldTypeUser        FieldType = "user"
+	FieldTypeSubform     FieldType = "subform" // New: Nested Table/Array
 )
 
 type SelectOptions struct {
@@ -98,6 +99,7 @@ type ModuleField struct {
 	Required     bool            `json:"required" bson:"required"`
 	Options      []SelectOptions `json:"options,omitempty" bson:"options,omitempty"`
 	Lookup       *LookupDef      `json:"lookup,omitempty" bson:"lookup,omitempty"`
+	SubFields    []ModuleField   `json:"sub_fields" bson:"sub_fields"` // New: Schema for subform rows - Removed omitempty to ensure persistence
 	IsSystem     bool            `json:"is_system" bson:"is_system"`
 	Filterable   bool            `json:"filterable" bson:"filterable"`
 	Sortable     bool            `json:"sortable" bson:"sortable"`
