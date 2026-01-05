@@ -256,6 +256,323 @@
         ]
     },
     {
+        "name": "tasks",
+        "label": "Tasks",
+        "is_system": true,
+        "readonly": true,
+        "fields": [
+            {
+                "name": "subject",
+                "label": "Subject",
+                "type": "text",
+                "required": true
+            },
+            {
+                "name": "status",
+                "label": "Status",
+                "type": "select",
+                "required": true,
+                "options": [
+                    {
+                        "label": "Not Started",
+                        "value": "Not Started"
+                    },
+                    {
+                        "label": "In Progress",
+                        "value": "In Progress"
+                    },
+                    {
+                        "label": "Completed",
+                        "value": "Completed"
+                    },
+                    {
+                        "label": "Waiting on someone else",
+                        "value": "Waiting on someone else"
+                    },
+                    {
+                        "label": "Deferred",
+                        "value": "Deferred"
+                    }
+                ],
+                "default_value": "Not Started"
+            },
+            {
+                "name": "priority",
+                "label": "Priority",
+                "type": "select",
+                "required": true,
+                "options": [
+                    {
+                        "label": "Low",
+                        "value": "Low"
+                    },
+                    {
+                        "label": "Normal",
+                        "value": "Normal"
+                    },
+                    {
+                        "label": "High",
+                        "value": "High"
+                    }
+                ],
+                "default_value": "Normal"
+            },
+            {
+                "name": "due_date",
+                "label": "Due Date",
+                "type": "date",
+                "required": false
+            },
+            {
+                "name": "description",
+                "label": "Description",
+                "type": "textarea",
+                "required": false
+            },
+            {
+                "name": "assigned_to",
+                "label": "Assigned To",
+                "type": "user",
+                "required": false
+            },
+            {
+                "name": "contact",
+                "label": "Contact",
+                "type": "lookup",
+                "required": false,
+                "lookup": {
+                    "lookup_module": "contacts",
+                    "lookup_label": "first_name",
+                    "value_field": "_id"
+                }
+            },
+            {
+                "name": "account",
+                "label": "Account",
+                "type": "lookup",
+                "required": false,
+                "lookup": {
+                    "lookup_module": "accounts",
+                    "lookup_label": "name",
+                    "value_field": "_id"
+                }
+            }
+        ]
+    },
+    {
+        "name": "meetings",
+        "label": "Meetings",
+        "is_system": true,
+        "readonly": true,
+        "fields": [
+            {
+                "name": "subject",
+                "label": "Subject",
+                "type": "text",
+                "required": true
+            },
+            {
+                "name": "start_time",
+                "label": "Start Time",
+                "type": "date",
+                "required": true
+            },
+            {
+                "name": "end_time",
+                "label": "End Time",
+                "type": "date",
+                "required": true
+            },
+            {
+                "name": "location",
+                "label": "Location",
+                "type": "text",
+                "required": false
+            },
+            {
+                "name": "status",
+                "label": "Status",
+                "type": "select",
+                "required": true,
+                "options": [
+                    {
+                        "label": "Planned",
+                        "value": "Planned"
+                    },
+                    {
+                        "label": "Held",
+                        "value": "Held"
+                    },
+                    {
+                        "label": "Not Held",
+                        "value": "Not Held"
+                    }
+                ],
+                "default_value": "Planned"
+            },
+            {
+                "name": "description",
+                "label": "Description",
+                "type": "textarea",
+                "required": false
+            },
+            {
+                "name": "host",
+                "label": "Host",
+                "type": "user",
+                "required": false
+            },
+            {
+                "name": "contact",
+                "label": "Contact",
+                "type": "lookup",
+                "required": false,
+                "lookup": {
+                    "lookup_module": "contacts",
+                    "lookup_label": "first_name",
+                    "value_field": "_id"
+                }
+            },
+            {
+                "name": "account",
+                "label": "Account",
+                "type": "lookup",
+                "required": false,
+                "lookup": {
+                    "lookup_module": "accounts",
+                    "lookup_label": "name",
+                    "value_field": "_id"
+                }
+            }
+        ]
+    },
+    {
+        "name": "calls",
+        "label": "Calls",
+        "is_system": true,
+        "readonly": true,
+        "fields": [
+            {
+                "name": "subject",
+                "label": "Subject",
+                "type": "text",
+                "required": true
+            },
+            {
+                "name": "call_type",
+                "label": "Call Type",
+                "type": "select",
+                "required": true,
+                "options": [
+                    {
+                        "label": "Inbound",
+                        "value": "Inbound"
+                    },
+                    {
+                        "label": "Outbound",
+                        "value": "Outbound"
+                    }
+                ],
+                "default_value": "Outbound"
+            },
+            {
+                "name": "start_time",
+                "label": "Start Time",
+                "type": "date",
+                "required": true
+            },
+            {
+                "name": "duration",
+                "label": "Duration (mins)",
+                "type": "number",
+                "required": false
+            },
+            {
+                "name": "status",
+                "label": "Status",
+                "type": "select",
+                "required": true,
+                "options": [
+                    {
+                        "label": "Planned",
+                        "value": "Planned"
+                    },
+                    {
+                        "label": "Held",
+                        "value": "Held"
+                    },
+                    {
+                        "label": "Missed",
+                        "value": "Missed"
+                    }
+                ],
+                "default_value": "Planned"
+            },
+            {
+                "name": "outcome",
+                "label": "Outcome",
+                "type": "select",
+                "required": false,
+                "options": [
+                    {
+                        "label": "No Answer",
+                        "value": "No Answer"
+                    },
+                    {
+                        "label": "Busy",
+                        "value": "Busy"
+                    },
+                    {
+                        "label": "Connected",
+                        "value": "Connected"
+                    },
+                    {
+                        "label": "Left Voicemail",
+                        "value": "Left Voicemail"
+                    },
+                    {
+                        "label": "Wrong Number",
+                        "value": "Wrong Number"
+                    }
+                ]
+            },
+            {
+                "name": "description",
+                "label": "Description",
+                "type": "textarea",
+                "required": false
+            },
+            {
+                "name": "assigned_to",
+                "label": "Assigned To",
+                "type": "user",
+                "required": false
+            },
+            {
+                "name": "contact",
+                "label": "Contact",
+                "type": "lookup",
+                "required": false,
+                "lookup": {
+                    "lookup_module": "contacts",
+                    "lookup_label": "first_name",
+                    "value_field": "_id"
+                }
+            },
+            {
+                "name": "account",
+                "label": "Account",
+                "type": "lookup",
+                "required": false,
+                "lookup": {
+                    "lookup_module": "accounts",
+                    "lookup_label": "name",
+                    "value_field": "_id"
+                }
+            }
+        ]
+    },
+    {
         "name": "categories",
         "label": "Categories",
         "is_system": true,

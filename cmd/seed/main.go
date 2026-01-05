@@ -291,6 +291,9 @@ func Seed(
 					"contacts":      true,
 					"leads":         true,
 					"opportunities": true,
+					"tasks":         true,
+					"meetings":      true,
+					"calls":         true,
 				}
 				erpModules := map[string]bool{
 					"products":               true,

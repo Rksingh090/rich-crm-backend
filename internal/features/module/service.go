@@ -242,6 +242,11 @@ func (s *ModuleServiceImpl) UpdateModule(ctx context.Context, m *common_models.E
 		}
 	}
 
+	// Immutable Check
+	if existingModule.ReadOnly {
+		return errors.New("cannot update immutable system module")
+	}
+
 	// Identify removed fields
 	existingFieldsMap := make(map[string]common_models.ModuleField)
 	for _, f := range existingModule.Fields {

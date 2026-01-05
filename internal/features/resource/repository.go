@@ -138,26 +138,38 @@ func (r *ResourceRepositoryImpl) FindByID(ctx context.Context, id string) (*Reso
 }
 
 func (r *ResourceRepositoryImpl) FindByResourceID(ctx context.Context, resourceID string) (*Resource, error) {
-	tenantID, ok := ctx.Value(models.TenantIDKey).(string)
-	if !ok || tenantID == "" {
-		return nil, fmt.Errorf("organization context missing")
-	}
-	oid, err := primitive.ObjectIDFromHex(tenantID)
-	if err != nil {
-		return nil, err
+	tenantID, _ := ctx.Value(models.TenantIDKey).(string)
+	var oid primitive.ObjectID
+	if tenantID != "" {
+		oid, _ = primitive.ObjectIDFromHex(tenantID)
 	}
 
+	// 1. Try to find tenant-specific or override
+	if !oid.IsZero() {
+		filter := bson.M{
+			"resource":   resourceID,
+			"tenant_id":  oid,
+			"deleted_at": bson.M{"$exists": false},
+		}
+		var res Resource
+		err := r.collection.FindOne(ctx, filter).Decode(&res)
+		if err == nil {
+			return &res, nil
+		}
+	}
+
+	// 2. Fallback to global
 	filter := bson.M{
 		"resource":   resourceID,
-		"tenant_id":  oid,
+		"scope":      "global",
 		"deleted_at": bson.M{"$exists": false},
 	}
-	var resource Resource
-	err = r.collection.FindOne(ctx, filter).Decode(&resource)
+	var res Resource
+	err := r.collection.FindOne(ctx, filter).Decode(&res)
 	if err != nil {
 		return nil, err
 	}
-	return &resource, nil
+	return &res, nil
 }
 
 func (r *ResourceRepositoryImpl) FindByKey(ctx context.Context, key string) (*Resource, error) {
@@ -194,16 +206,19 @@ func (r *ResourceRepositoryImpl) Create(ctx context.Context, resource *Resource)
 }
 
 func (r *ResourceRepositoryImpl) Update(ctx context.Context, resource *Resource) error {
-	tenantID, ok := ctx.Value(models.TenantIDKey).(string)
-	if !ok || tenantID == "" {
-		return fmt.Errorf("organization context missing")
-	}
-	oid, err := primitive.ObjectIDFromHex(tenantID)
-	if err != nil {
-		return err
+	filter := bson.M{"_id": resource.ID}
+
+	// For non-global resources, strictly enforce tenant_id
+	if resource.Scope != "global" {
+		tenantID, ok := ctx.Value(models.TenantIDKey).(string)
+		if !ok || tenantID == "" {
+			return fmt.Errorf("organization context missing")
+		}
+		oid, _ := primitive.ObjectIDFromHex(tenantID)
+		filter["tenant_id"] = oid
 	}
 
-	_, err = r.collection.ReplaceOne(ctx, bson.M{"_id": resource.ID, "tenant_id": oid}, resource)
+	_, err := r.collection.ReplaceOne(ctx, filter, resource)
 	return err
 }
 
@@ -467,7 +482,7 @@ func (r *ResourceRepositoryImpl) EnsureIndexes(ctx context.Context) error {
 				{Key: "resource", Value: 1},
 				{Key: "tenant_id", Value: 1},
 			},
-			Options: options.Index().SetName("idx_resource_tenant"),
+			Options: options.Index().SetName("idx_resource_tenant").SetUnique(true),
 		},
 		{
 			Keys: bson.D{

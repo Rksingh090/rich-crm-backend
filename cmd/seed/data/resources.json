@@ -735,5 +735,80 @@
     "scope": "global",
     "is_system": true,
     "is_override": false
+  },
+  {
+    "resource_id": "crm.tasks",
+    "product": "crm",
+    "type": "module",
+    "key": "tasks",
+    "label": "Tasks",
+    "icon": "CheckSquare",
+    "route": "/dashboard/modules/tasks",
+    "actions": [
+      "read",
+      "create",
+      "update",
+      "delete"
+    ],
+    "configurable": false,
+    "ui": {
+      "sidebar": true,
+      "location": "main",
+      "group": "Activities",
+      "order": 1
+    },
+    "scope": "global",
+    "is_system": true,
+    "is_override": false
+  },
+  {
+    "resource_id": "crm.meetings",
+    "product": "crm",
+    "type": "module",
+    "key": "meetings",
+    "label": "Meetings",
+    "icon": "Calendar",
+    "route": "/dashboard/modules/meetings",
+    "actions": [
+      "read",
+      "create",
+      "update",
+      "delete"
+    ],
+    "configurable": false,
+    "ui": {
+      "sidebar": true,
+      "location": "main",
+      "group": "Activities",
+      "order": 2
+    },
+    "scope": "global",
+    "is_system": true,
+    "is_override": false
+  },
+  {
+    "resource_id": "crm.calls",
+    "product": "crm",
+    "type": "module",
+    "key": "calls",
+    "label": "Calls",
+    "icon": "Phone",
+    "route": "/dashboard/modules/calls",
+    "actions": [
+      "read",
+      "create",
+      "update",
+      "delete"
+    ],
+    "configurable": false,
+    "ui": {
+      "sidebar": true,
+      "location": "main",
+      "group": "Activities",
+      "order": 3
+    },
+    "scope": "global",
+    "is_system": true,
+    "is_override": false
   }
 ]

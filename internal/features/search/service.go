@@ -5,9 +5,12 @@ import (
 	"fmt"
 	"strings"
 
+	"go-crm/internal/common/models"
 	"go-crm/internal/database"
 	"go-crm/internal/features/module"
 	"go-crm/internal/features/record"
+	"go-crm/internal/features/resource"
+	"go-crm/internal/features/role"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -28,16 +31,26 @@ type SearchService interface {
 }
 
 type SearchServiceImpl struct {
-	db            *database.MongodbDB
-	moduleService module.ModuleService
-	recordService record.RecordService
+	db              *database.MongodbDB
+	moduleService   module.ModuleService
+	recordService   record.RecordService
+	resourceService resource.ResourceService
+	roleService     role.RoleService
 }
 
-func NewSearchService(db *database.MongodbDB, moduleService module.ModuleService, recordService record.RecordService) SearchService {
+func NewSearchService(
+	db *database.MongodbDB,
+	moduleService module.ModuleService,
+	recordService record.RecordService,
+	resourceService resource.ResourceService,
+	roleService role.RoleService,
+) SearchService {
 	return &SearchServiceImpl{
-		db:            db,
-		moduleService: moduleService,
-		recordService: recordService,
+		db:              db,
+		moduleService:   moduleService,
+		recordService:   recordService,
+		resourceService: resourceService,
+		roleService:     roleService,
 	}
 }
 
@@ -48,58 +61,62 @@ func (s *SearchServiceImpl) GlobalSearch(ctx context.Context, query string, user
 		return results, nil
 	}
 
-	// 1. Search Modules
-	modules, err := s.moduleService.ListModules(ctx, userID)
-	if err == nil {
-		for _, m := range modules {
-			if strings.Contains(strings.ToLower(m.Name), strings.ToLower(query)) || strings.Contains(strings.ToLower(m.Label), strings.ToLower(query)) {
-				results = append(results, SearchResult{
-					Type:        "module",
-					Title:       m.Label,
-					Name:        m.Name,
-					Description: fmt.Sprintf("Go to %s module", m.Label),
-					Link:        fmt.Sprintf("/dashboard/modules/%s", m.Name),
-					Icon:        "box",
-				})
-			}
+	// 1. Fetch TenantID from Context
+	tenantID, _ := ctx.Value(models.TenantIDKey).(string)
+	tenantOID, _ := primitive.ObjectIDFromHex(tenantID)
+
+	// 2. Fetch permitted resources
+	allResources, err := s.resourceService.ListResources(ctx)
+	if err != nil {
+		return results, err
+	}
+
+	var permittedModules []resource.Resource
+	queryLower := strings.ToLower(query)
+
+	for _, res := range allResources {
+		// Permission check
+		allowed, err := s.roleService.CheckPermission(ctx, userID, res.ResourceID, "read")
+		if err != nil || !allowed {
+			continue
 		}
-	}
 
-	// 2. Search Static Pages (Settings)
-	staticPages := []SearchResult{
-		{Type: "page", Title: "Overview", Description: "Overview", Link: "/dashboard", Icon: "layout-dashboard"},
-		{Type: "page", Title: "Tickets", Description: "Tickets", Link: "/dashboard/tickets", Icon: "ticket"},
-		{Type: "page", Title: "Reports", Description: "Reports", Link: "/dashboard/reports", Icon: "file-text"},
-		{Type: "page", Title: "General", Description: "General Settings", Link: "/settings", Icon: "settings"},
-		{Type: "page", Title: "Email Configuration", Description: "Email Configuration", Link: "/settings/email", Icon: "mail"},
-		{Type: "page", Title: "Module Builder", Description: "Module Builder", Link: "/settings/modules", Icon: "layers"},
-		{Type: "page", Title: "Audit Logs", Description: "Audit Logs", Link: "/settings/audit-logs", Icon: "file-text"},
-		{Type: "page", Title: "User Management", Description: "User Management", Link: "/settings/users", Icon: "users"},
-		{Type: "page", Title: "Roles & Permissions", Description: "Roles & Permissions", Link: "/settings/roles", Icon: "shield"},
-		{Type: "page", Title: "Groups", Description: "Groups", Link: "/settings/groups", Icon: "users"},
-		{Type: "page", Title: "Automation", Description: "Automation", Link: "/settings/automation", Icon: "workflow"},
-		{Type: "page", Title: "Workflow Automation", Description: "Workflow Automation", Link: "/settings/workflows", Icon: "workflow"},
-		{Type: "page", Title: "SLA Policies", Description: "SLA Policies", Link: "/settings/sla-policies", Icon: "clock"},
-		{Type: "page", Title: "Escalation Rules", Description: "Escalation Rules", Link: "/settings/escalation-rules", Icon: "alert-triangle"},
-		{Type: "page", Title: "Integration", Description: "Integration", Link: "/settings/integration", Icon: "integration"},
-		{Type: "page", Title: "Webhooks", Description: "Webhooks", Link: "/settings/webhooks", Icon: "webhooks"},
-		{Type: "page", Title: "Marketplace", Description: "Marketplace", Link: "/settings/marketplace", Icon: "marketplace"},
-		{Type: "page", Title: "Data Sync", Description: "Data Sync", Link: "/settings/data-sync", Icon: "data-sync"},
-	}
+		// Match query in label
+		if strings.Contains(strings.ToLower(res.Label), queryLower) {
+			resType := "page"
+			if res.Type == "module" {
+				resType = "module"
+				permittedModules = append(permittedModules, res)
+			} else if res.Type == "setting" || res.UI.Location == "settings" {
+				resType = "page"
+			}
 
-	for _, p := range staticPages {
-		if strings.Contains(strings.ToLower(p.Title), strings.ToLower(query)) {
-			results = append(results, p)
+			results = append(results, SearchResult{
+				Type:        resType,
+				Title:       res.Label,
+				Name:        res.Key,
+				Description: fmt.Sprintf("Go to %s", res.Label),
+				Link:        res.Route,
+				Icon:        res.Icon,
+			})
+		} else if res.Type == "module" {
+			// Even if label doesn't match, we still want to search records if it's a module
+			permittedModules = append(permittedModules, res)
 		}
 	}
 
 	// 3. Search Records
 	if len(query) > 2 {
-		for _, m := range modules {
-			filter := bson.M{"$or": []bson.M{}}
+		for _, m := range permittedModules {
+			// Fetch full module entity to get fields for record search
+			moduleEntity, err := s.moduleService.GetModuleByName(ctx, m.Key, userID)
+			if err != nil {
+				continue
+			}
+
 			stringFields := []string{}
-			for _, f := range m.Fields {
-				if f.Type == "text" || f.Type == "email" || f.Type == "textarea" {
+			for _, f := range moduleEntity.Fields {
+				if f.Type == models.FieldTypeText || f.Type == models.FieldTypeEmail || f.Type == models.FieldTypeTextArea {
 					stringFields = append(stringFields, f.Name)
 				}
 			}
@@ -110,11 +127,20 @@ func (s *SearchServiceImpl) GlobalSearch(ctx context.Context, query string, user
 
 			orConditions := []bson.M{}
 			for _, fieldName := range stringFields {
-				orConditions = append(orConditions, bson.M{fieldName: primitive.Regex{Pattern: query, Options: "i"}})
+				orConditions = append(orConditions, bson.M{"data." + fieldName: primitive.Regex{Pattern: query, Options: "i"}})
 			}
-			filter["$or"] = orConditions
 
-			collectionName := "module_" + m.Name
+			// Add filters for unified collection
+			filter := bson.M{
+				"entity":  moduleEntity.Name,
+				"deleted": bson.M{"$ne": true},
+				"$or":     orConditions,
+			}
+			if !tenantOID.IsZero() {
+				filter["tenant_id"] = tenantOID
+			}
+
+			collectionName := "entity_records"
 			cursor, err := s.db.DB.Collection(collectionName).Find(ctx, filter, options.Find().SetLimit(3))
 			if err != nil {
 				continue
@@ -124,16 +150,21 @@ func (s *SearchServiceImpl) GlobalSearch(ctx context.Context, query string, user
 			var records []map[string]interface{}
 			if err = cursor.All(ctx, &records); err == nil {
 				for _, r := range records {
+					data, _ := r["data"].(map[string]interface{})
+					if data == nil {
+						continue
+					}
+
 					title := "Unknown Record"
-					if t, ok := r["name"].(string); ok {
+					if t, ok := data["name"].(string); ok {
 						title = t
-					} else if t, ok := r["title"].(string); ok {
+					} else if t, ok := data["title"].(string); ok {
 						title = t
-					} else if t, ok := r["subject"].(string); ok {
+					} else if t, ok := data["subject"].(string); ok {
 						title = t
 					} else {
 						if len(stringFields) > 0 {
-							if val, ok := r[stringFields[0]].(string); ok {
+							if val, ok := data[stringFields[0]].(string); ok {
 								title = val
 							}
 						}
@@ -147,8 +178,8 @@ func (s *SearchServiceImpl) GlobalSearch(ctx context.Context, query string, user
 					results = append(results, SearchResult{
 						Type:        "record",
 						Title:       title,
-						Description: fmt.Sprintf("%s Record", m.Label),
-						Link:        fmt.Sprintf("/dashboard/modules/%s/%s", m.Name, id),
+						Description: fmt.Sprintf("%s Record", moduleEntity.Label),
+						Link:        fmt.Sprintf("/dashboard/modules/%s/%s", moduleEntity.Name, id),
 						Icon:        "file",
 					})
 				}
