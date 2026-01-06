@@ -129,7 +129,7 @@ func mapFieldToDB(field string) string {
 	case "status":
 		return "data.status"
 	case "assignedTo", "assigned_to":
-		return "data.assignedTo"
+		return "data.assigned_to"
 	default:
 		// All other fields are assumed to be in the data object
 		return "data." + field

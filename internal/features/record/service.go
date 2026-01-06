@@ -891,18 +891,18 @@ func (s *RecordServiceImpl) validateAndConvert(ctx context.Context, field models
 		case string:
 			idStr = v
 		case primitive.ObjectID:
-			idStr = v.Hex()
+			return v, nil
 		case map[string]interface{}:
 			if id, ok := v["id"].(string); ok {
 				idStr = id
 			} else if oid, ok := v["id"].(primitive.ObjectID); ok {
-				idStr = oid.Hex()
+				return oid, nil
 			}
 		case primitive.M:
 			if id, ok := v["id"].(string); ok {
 				idStr = id
 			} else if oid, ok := v["id"].(primitive.ObjectID); ok {
-				idStr = oid.Hex()
+				return oid, nil
 			}
 		default:
 			return nil, errors.New("expected string or populated object for user")
@@ -912,15 +912,17 @@ func (s *RecordServiceImpl) validateAndConvert(ctx context.Context, field models
 			return nil, nil
 		}
 
-		if _, err := primitive.ObjectIDFromHex(idStr); err == nil {
-			// Validate user exists
-			_, err = s.UserRepo.FindByID(ctx, idStr)
-			if err != nil {
-				return nil, errors.New("referenced user not found")
-			}
-			return idStr, nil
+		oid, err := primitive.ObjectIDFromHex(idStr)
+		if err != nil {
+			return nil, errors.New("invalid objectID for user")
 		}
-		return idStr, nil
+
+		// Validate user exists
+		_, err = s.UserRepo.FindByID(ctx, idStr)
+		if err != nil {
+			return nil, errors.New("referenced user not found")
+		}
+		return oid, nil
 	default:
 		return val, nil
 	}
@@ -1077,16 +1079,63 @@ func (s *RecordServiceImpl) prepareFilters(ctx context.Context, m *common_models
 				}
 			}
 		} else {
-			typedVal, err := s.validateAndConvert(ctx, *field, val)
+			var typedVal interface{}
+			var err error
+
+			// Handle slice for in/nin operators
+			if operator == "in" || operator == "nin" {
+				if sliceVal, ok := val.([]string); ok {
+					var typedSlice []interface{}
+					for _, sVal := range sliceVal {
+						tVal, err := s.validateAndConvert(ctx, *field, sVal)
+						if err != nil {
+							return nil, err
+						}
+						typedSlice = append(typedSlice, tVal)
+					}
+					typedVal = typedSlice
+				} else if sliceVal, ok := val.([]interface{}); ok {
+					var typedSlice []interface{}
+					for _, sVal := range sliceVal {
+						tVal, err := s.validateAndConvert(ctx, *field, sVal)
+						if err != nil {
+							return nil, err
+						}
+						typedSlice = append(typedSlice, tVal)
+					}
+					typedVal = typedSlice
+				} else {
+					typedVal, err = s.validateAndConvert(ctx, *field, val)
+				}
+			} else {
+				typedVal, err = s.validateAndConvert(ctx, *field, val)
+			}
+
 			if err != nil {
 				return nil, fmt.Errorf("invalid filter value for '%s': %v", field.Label, err)
 			}
 
 			switch operator {
 			case "", "eq":
-				typedFilters[fieldName] = typedVal
+				if field.Type == models.FieldTypeUser || field.Type == models.FieldTypeLookup {
+					if oid, ok := typedVal.(primitive.ObjectID); ok {
+						typedFilters[fieldName] = bson.M{"$in": []interface{}{oid, oid.Hex()}}
+					} else {
+						typedFilters[fieldName] = typedVal
+					}
+				} else {
+					typedFilters[fieldName] = typedVal
+				}
 			case "ne":
-				typedFilters[fieldName] = bson.M{"$ne": typedVal}
+				if field.Type == models.FieldTypeUser || field.Type == models.FieldTypeLookup {
+					if oid, ok := typedVal.(primitive.ObjectID); ok {
+						typedFilters[fieldName] = bson.M{"$nin": []interface{}{oid, oid.Hex()}}
+					} else {
+						typedFilters[fieldName] = bson.M{"$ne": typedVal}
+					}
+				} else {
+					typedFilters[fieldName] = bson.M{"$ne": typedVal}
+				}
 			case "contains":
 				if strVal, ok := typedVal.(string); ok {
 					typedFilters[fieldName] = bson.M{"$regex": primitive.Regex{Pattern: strVal, Options: "i"}}
@@ -1102,9 +1151,41 @@ func (s *RecordServiceImpl) prepareFilters(ctx context.Context, m *common_models
 			case "lte":
 				typedFilters[fieldName] = bson.M{"$lte": typedVal}
 			case "in":
-				typedFilters[fieldName] = bson.M{"$in": typedVal}
+				if field.Type == models.FieldTypeUser || field.Type == models.FieldTypeLookup {
+					if slice, ok := typedVal.([]interface{}); ok {
+						var expandedSlice []interface{}
+						for _, item := range slice {
+							if oid, ok := item.(primitive.ObjectID); ok {
+								expandedSlice = append(expandedSlice, oid, oid.Hex())
+							} else {
+								expandedSlice = append(expandedSlice, item)
+							}
+						}
+						typedFilters[fieldName] = bson.M{"$in": expandedSlice}
+					} else {
+						typedFilters[fieldName] = bson.M{"$in": typedVal}
+					}
+				} else {
+					typedFilters[fieldName] = bson.M{"$in": typedVal}
+				}
 			case "nin":
-				typedFilters[fieldName] = bson.M{"$nin": typedVal}
+				if field.Type == models.FieldTypeUser || field.Type == models.FieldTypeLookup {
+					if slice, ok := typedVal.([]interface{}); ok {
+						var expandedSlice []interface{}
+						for _, item := range slice {
+							if oid, ok := item.(primitive.ObjectID); ok {
+								expandedSlice = append(expandedSlice, oid, oid.Hex())
+							} else {
+								expandedSlice = append(expandedSlice, item)
+							}
+						}
+						typedFilters[fieldName] = bson.M{"$nin": expandedSlice}
+					} else {
+						typedFilters[fieldName] = bson.M{"$nin": typedVal}
+					}
+				} else {
+					typedFilters[fieldName] = bson.M{"$nin": typedVal}
+				}
 			case "starts_with":
 				if strVal, ok := typedVal.(string); ok {
 					typedFilters[fieldName] = bson.M{"$regex": primitive.Regex{Pattern: "^" + strVal, Options: "i"}}

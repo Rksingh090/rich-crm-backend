@@ -242,7 +242,7 @@ func (r *RecordRepositoryImpl) Count(ctx context.Context, moduleName string, fil
 
 	userQuery := bson.M{}
 	for k, v := range filter {
-		if k == "_id" || k == "created_at" || k == "updated_at" {
+		if k == "_id" || k == "created_at" || k == "updated_at" || k == "created_by" {
 			userQuery[k] = v
 		} else {
 			userQuery["data."+k] = v
