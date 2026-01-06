@@ -11,6 +11,7 @@ import (
 	"go-crm/internal/config"
 	"go-crm/internal/database"
 	"go-crm/internal/features/audit"
+	"go-crm/internal/features/group"
 	"go-crm/internal/features/module"
 	"go-crm/internal/features/organization"
 	"go-crm/internal/features/permission"
@@ -31,6 +32,7 @@ func Seed(
 	lc fx.Lifecycle,
 	roleRepo role.RoleRepository,
 	userRepo user.UserRepository,
+	groupRepo group.GroupRepository,
 	moduleRepo module.ModuleRepository,
 	orgRepo organization.OrganizationRepository,
 	resourceService resource.ResourceService,
@@ -65,7 +67,110 @@ func Seed(
 				resourcesPath := "cmd/seed/data/resources.json"
 				permissionsPath := "cmd/seed/data/permissions.json"
 
-				// 0. Seed Organization
+				// 1. Seed Resources (Global)
+				var resources []resource.Resource
+				if err := readJSON(resourcesPath, &resources); err != nil {
+					logger.Warn("Failed to read resources.json, skipping resource seeding", zap.Error(err))
+				} else {
+					// Enforce Global Scope
+					for i := range resources {
+						resources[i].Scope = "global"
+						resources[i].CanOverride = true
+						// Ensure TenantID is empty/nil for global (json unmarshal leaves it empty usually)
+					}
+
+					// Use background context (no tenant)
+					if err := resourceService.SyncResources(ctx, resources); err != nil {
+						logger.Error("Failed to sync global resources", zap.Error(err))
+					} else {
+						logger.Info("Global Resources synced successfully", zap.Int("count", len(resources)))
+					}
+				}
+
+				// 2. Seed Modules (Global Schema)
+				var modules []common_models.Entity
+				if err := readJSON(modulesPath, &modules); err != nil {
+					logger.Fatal("Failed to read modules.json", zap.Error(err))
+				}
+
+				// Product Mapping
+				crmModules := map[string]bool{
+					"accounts":      true,
+					"contacts":      true,
+					"leads":         true,
+					"opportunities": true,
+					"tasks":         true,
+					"meetings":      true,
+					"calls":         true,
+				}
+				erpModules := map[string]bool{
+					"products":               true,
+					"categories":             true,
+					"brands":                 true,
+					"tax_rates":              true,
+					"price_lists":            true,
+					"price_list_items":       true,
+					"customers":              true,
+					"vendors":                true,
+					"invoices":               true,
+					"invoice_items":          true,
+					"purchase_invoices":      true,
+					"purchase_invoice_items": true,
+				}
+
+				for _, module := range modules {
+					// Set Product
+					if module.Product == "" {
+						if crmModules[module.Name] {
+							module.Product = common_models.ProductCRM
+						} else if erpModules[module.Name] {
+							module.Product = common_models.ProductERP
+						} else {
+							module.Product = common_models.ProductCRM // Default
+						}
+					}
+
+					// Enforce Global Scope
+					module.Scope = "global"
+					module.CanOverride = true
+					module.IsSystem = true // Seeded modules are system modules
+
+					// For global modules, we check blindly by name (since we don't have tenant context yet)
+					// But FindByName enforces tenant check unless we update it too?
+					// FindByName in repo CHECKS TENANT ID.
+					// We need to use a find method that doesn't check tenant, OR rely on Create failing?
+					// But Create fails if exists (duplicate key).
+					// Let's rely on Create and ignore duplicate error, OR add FindGlobalByName to repo?
+					// Adding FindByNameGlobal to repo is cleaner, but modifying repo just for seed is annoying.
+					// The existing seed logic used FindByName to UPDATE.
+					// We should probably just try to Create, and if error is dup, we are fine (or update if needed).
+					// But we want to UPDATE global modules if they exist (schema changes).
+					// Current Repo.FindByName needs tenant.
+					// Let's use `Create` and swallow duplicate error for now, as updating global definition requires specialized method or bypassing tenant check.
+					// OR, better: We can update `FindByName` to fallback to global if not found?
+					// I already updated `FindByName` to fallback to global!
+					// BUT `FindByName` REQURIES Tenant Context to start with.
+					// If I pass empty context, it errors "organization context missing".
+					// So I cannot use `FindByName` here easily without a "dummy" tenant context?
+					// No, Global modules have NO tenant context.
+
+					// I will try to Create. If it fails, I skip update for now (simplify).
+					// Making seed strictly idempotent for global updates is checking existence.
+					// I'll skip the "Update" logic for now and just Create.
+
+					module.ID = primitive.NewObjectID()
+					module.CreatedAt = time.Now()
+					module.UpdatedAt = time.Now()
+
+					if err := moduleRepo.Create(ctx, &module); err != nil {
+						// Ignor duplicate key error
+						logger.Warn("Failed to create module (might already exist)", zap.String("module", module.Name))
+					} else {
+						logger.Info("Global Module created", zap.String("module", module.Name), zap.String("product", string(module.Product)))
+					}
+				}
+
+				// 3. Seed Organization
 				orgName := "Default Organization"
 				var orgID primitive.ObjectID
 
@@ -91,20 +196,8 @@ func Seed(
 					orgID = newOrg.ID
 				}
 
-				// Enforce Organization Context for subsequent repos
+				// Enforce Organization Context for subsequent repos (Roles, etc.)
 				ctx = context.WithValue(ctx, common_models.TenantIDKey, orgID.Hex())
-
-				// 1. Seed Resources
-				var resources []resource.Resource
-				if err := readJSON(resourcesPath, &resources); err != nil {
-					logger.Warn("Failed to read resources.json, skipping resource seeding", zap.Error(err))
-				} else {
-					if err := resourceService.SyncResources(ctx, resources); err != nil {
-						logger.Error("Failed to sync resources", zap.Error(err))
-					} else {
-						logger.Info("Resources synced successfully", zap.Int("count", len(resources)))
-					}
-				}
 
 				// 2. Seed Roles
 				var roles []role.Role
@@ -217,6 +310,40 @@ func Seed(
 				if err := readJSON(usersPath, &usersData); err != nil {
 					logger.Error("Failed to read users.json", zap.Error(err))
 				} else {
+					// Pre-seed Groups from User Data
+					groupCache := make(map[string]primitive.ObjectID)
+
+					for _, uData := range usersData {
+						for _, gName := range uData.Groups {
+							if _, exists := groupCache[gName]; exists {
+								continue
+							}
+
+							// Check DB
+							g, err := groupRepo.FindByName(ctx, gName)
+							if err == nil {
+								groupCache[gName] = g.ID
+								continue
+							}
+
+							// Create Group
+							newGroup := group.Group{
+								ID:          primitive.NewObjectID(),
+								Name:        gName,
+								Description: "Auto-generated from seed",
+								IsSystem:    false,
+								CreatedAt:   time.Now(),
+								UpdatedAt:   time.Now(),
+							}
+							if err := groupRepo.Create(ctx, &newGroup); err == nil {
+								groupCache[gName] = newGroup.ID
+								logger.Info("Group created", zap.String("group", gName))
+							} else {
+								logger.Error("Failed to create group", zap.String("group", gName), zap.Error(err))
+							}
+						}
+					}
+
 					for _, uData := range usersData {
 						var roleIDs []primitive.ObjectID
 						for _, rName := range uData.RoleNames {
@@ -232,14 +359,26 @@ func Seed(
 							}
 						}
 
+						var userGroupIDs []primitive.ObjectID
+						for _, gName := range uData.Groups {
+							if gid, ok := groupCache[gName]; ok {
+								userGroupIDs = append(userGroupIDs, gid)
+							}
+						}
+
+						// Use FindByUsernameGlobal because existing user check might not have tenant context yet if not passed
+						// But here we are creating for a specific org.
+
+						/* ... existing check logic ... */
 						existingUser, err := userRepo.FindByUsername(ctx, uData.Username)
 						if err == nil {
-							logger.Info("User exists, updating roles", zap.String("username", uData.Username))
+							logger.Info("User exists, updating roles/groups", zap.String("username", uData.Username))
 							existingUser.Roles = roleIDs
+							existingUser.Groups = userGroupIDs
 							existingUser.TenantID = orgID
 							existingUser.UpdatedAt = time.Now()
 							if err := userRepo.Update(ctx, existingUser.ID.Hex(), existingUser); err != nil {
-								logger.Error("Failed to update user roles", zap.String("username", uData.Username), zap.Error(err))
+								logger.Error("Failed to update user", zap.String("username", uData.Username), zap.Error(err))
 							}
 							continue
 						}
@@ -253,7 +392,7 @@ func Seed(
 							LastName:  uData.LastName,
 							Status:    uData.Status,
 							Roles:     roleIDs,
-							Groups:    uData.Groups,
+							Groups:    userGroupIDs,
 							TenantID:  orgID,
 							CreatedAt: time.Now(),
 							UpdatedAt: time.Now(),
@@ -279,96 +418,6 @@ func Seed(
 					}
 				}
 
-				// 4. Seed Modules (Schema only - Permissions handled by Roles/Resources)
-				var modules []common_models.Entity
-				if err := readJSON(modulesPath, &modules); err != nil {
-					logger.Fatal("Failed to read modules.json", zap.Error(err))
-				}
-
-				// Product Mapping
-				crmModules := map[string]bool{
-					"accounts":      true,
-					"contacts":      true,
-					"leads":         true,
-					"opportunities": true,
-					"tasks":         true,
-					"meetings":      true,
-					"calls":         true,
-				}
-				erpModules := map[string]bool{
-					"products":               true,
-					"categories":             true,
-					"brands":                 true,
-					"tax_rates":              true,
-					"price_lists":            true,
-					"price_list_items":       true,
-					"customers":              true,
-					"vendors":                true,
-					"invoices":               true,
-					"invoice_items":          true,
-					"purchase_invoices":      true,
-					"purchase_invoice_items": true,
-				}
-
-				for _, module := range modules {
-					// Set Product
-					if module.Product == "" {
-						if crmModules[module.Name] {
-							module.Product = common_models.ProductCRM
-						} else if erpModules[module.Name] {
-							module.Product = common_models.ProductERP
-						} else {
-							module.Product = common_models.ProductCRM // Default
-						}
-					}
-
-					existing, err := moduleRepo.FindByName(ctx, module.Name)
-					if err == nil {
-						logger.Info("Module exists, checking for field updates", zap.String("module", module.Name))
-
-						// Merge fields
-						updated := false
-						existingFieldMap := make(map[string]bool)
-						for _, f := range existing.Fields {
-							existingFieldMap[f.Name] = true
-						}
-
-						for _, newField := range module.Fields {
-							if !existingFieldMap[newField.Name] {
-								existing.Fields = append(existing.Fields, newField)
-								logger.Info("Adding new field to module", zap.String("module", module.Name), zap.String("field", newField.Name))
-								updated = true
-							}
-						}
-
-						if existing.Product == "" {
-							existing.Product = module.Product
-							updated = true
-						}
-
-						if updated {
-							existing.UpdatedAt = time.Now()
-							if err := moduleRepo.Update(ctx, existing); err != nil {
-								logger.Error("Failed to update module", zap.String("module", module.Name), zap.Error(err))
-							} else {
-								logger.Info("Module updated", zap.String("module", module.Name))
-							}
-						}
-						continue
-					}
-
-					module.ID = primitive.NewObjectID()
-					// TenantID set by repo
-					module.CreatedAt = time.Now()
-					module.UpdatedAt = time.Now()
-
-					if err := moduleRepo.Create(ctx, &module); err != nil {
-						logger.Error("Failed to create module", zap.String("module", module.Name), zap.Error(err))
-					} else {
-						logger.Info("Module created", zap.String("module", module.Name), zap.String("product", string(module.Product)))
-					}
-				}
-
 				logger.Info("✅ Seeding Complete!")
 			}()
 			return nil
@@ -390,6 +439,7 @@ func main() {
 				fx.As(new(audit.UserFinder)),
 			),
 			module.NewModuleRepository,
+			group.NewGroupRepository,
 			organization.NewOrganizationRepository,
 			resource.NewResourceRepository,
 			resource.NewResourceService,

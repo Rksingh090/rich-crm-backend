@@ -21,15 +21,18 @@ type RecordRepository interface {
 	Update(ctx context.Context, moduleName, id string, data map[string]any) error
 	Delete(ctx context.Context, moduleName, id string, userID primitive.ObjectID) error
 	Aggregate(ctx context.Context, moduleName string, pipeline mongo.Pipeline) ([]map[string]any, error)
+	GetNextSequence(ctx context.Context, moduleName, fieldName string) (int64, error)
 }
 
 type RecordRepositoryImpl struct {
-	Collection *mongo.Collection
+	Collection         *mongo.Collection
+	CountersCollection *mongo.Collection
 }
 
 func NewRecordRepository(mongodb *database.MongodbDB) RecordRepository {
 	return &RecordRepositoryImpl{
-		Collection: mongodb.DB.Collection("entity_records"),
+		Collection:         mongodb.DB.Collection("entity_records"),
+		CountersCollection: mongodb.DB.Collection("counters"),
 	}
 }
 
@@ -286,4 +289,34 @@ func (r *RecordRepositoryImpl) flattenRecord(rec *models.EntityRecord) map[strin
 	// flat["entity"] = rec.Entity
 	// flat["product"] = rec.Product
 	return flat
+}
+
+func (r *RecordRepositoryImpl) GetNextSequence(ctx context.Context, moduleName, fieldName string) (int64, error) {
+	tenantID, ok := ctx.Value(models.TenantIDKey).(string)
+	if !ok || tenantID == "" {
+		return 0, fmt.Errorf("organization context missing")
+	}
+
+	filter := bson.M{
+		"tenant_id": tenantID,
+		"module":    moduleName,
+		"field":     fieldName,
+	}
+
+	update := bson.M{
+		"$inc": bson.M{"seq": 1},
+	}
+
+	opts := options.FindOneAndUpdate().SetUpsert(true).SetReturnDocument(options.After)
+
+	var result struct {
+		Seq int64 `bson:"seq"`
+	}
+
+	err := r.CountersCollection.FindOneAndUpdate(ctx, filter, update, opts).Decode(&result)
+	if err != nil {
+		return 0, err
+	}
+
+	return result.Seq, nil
 }

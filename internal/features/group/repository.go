@@ -20,6 +20,7 @@ type GroupRepository interface {
 	AddMember(ctx context.Context, groupID, userID primitive.ObjectID) error
 	RemoveMember(ctx context.Context, groupID, userID primitive.ObjectID) error
 	FindByMember(ctx context.Context, userID primitive.ObjectID) ([]Group, error)
+	FindByName(ctx context.Context, name string) (*Group, error)
 }
 
 type GroupRepositoryImpl struct {
@@ -129,4 +130,13 @@ func (r *GroupRepositoryImpl) FindByMember(ctx context.Context, userID primitive
 	}
 
 	return groups, nil
+}
+
+func (r *GroupRepositoryImpl) FindByName(ctx context.Context, name string) (*Group, error) {
+	var group Group
+	err := r.collection.FindOne(ctx, bson.M{"name": name}).Decode(&group)
+	if err != nil {
+		return nil, err
+	}
+	return &group, nil
 }

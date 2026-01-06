@@ -140,6 +140,18 @@ func (s *RecordServiceImpl) CreateRecord(ctx context.Context, moduleName string,
 		validatedData[field.Name] = cleanVal
 	}
 
+	// Handle AutoIncrement Fields
+	for _, field := range m.Fields {
+		if field.Type == models.FieldTypeNumber && field.AutoIncrement {
+			// Generate Sequence
+			seq, err := s.RecordRepo.GetNextSequence(ctx, moduleName, field.Name)
+			if err != nil {
+				return nil, fmt.Errorf("failed to generate sequence for field '%s': %v", field.Label, err)
+			}
+			validatedData[field.Name] = float64(seq) // Store as float64 because Number type expects it (or should we store INT? MongoDB numbers are double by default in JSON unmarshal usually)
+		}
+	}
+
 	// 3. Initialize Approval Workflow
 	approvalState, err := s.ApprovalService.InitializeApproval(ctx, moduleName, validatedData)
 	if err != nil {
@@ -223,11 +235,9 @@ func (s *RecordServiceImpl) GetRecord(ctx context.Context, moduleName, id string
 	if err != nil {
 		return nil, fmt.Errorf("failed to check field permissions: %v", err)
 	}
-	if perms != nil {
-		for field, p := range perms {
-			if p == role.FieldPermNone {
-				delete(record, field)
-			}
+	for field, p := range perms {
+		if p == role.FieldPermNone {
+			delete(record, field)
 		}
 	}
 

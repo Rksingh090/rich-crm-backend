@@ -44,6 +44,9 @@ func (s *ResourceServiceImpl) ListResources(ctx context.Context) ([]Resource, er
 }
 
 func (s *ResourceServiceImpl) SyncResources(ctx context.Context, resources []Resource) error {
+	// Get TenantID from context
+	tenantID, _ := ctx.Value(common_models.TenantIDKey).(string)
+
 	for _, res := range resources {
 		// Populate ResourceID if missing (legacy support or new convention)
 		if res.ResourceID == "" {
@@ -53,13 +56,51 @@ func (s *ResourceServiceImpl) SyncResources(ctx context.Context, resources []Res
 		// Try to find existing resource by ResourceID (unique string identifier)
 		existing, err := s.repo.FindByResourceID(ctx, res.ResourceID)
 		if err == nil && existing != nil {
-			// Update existing resource
+			// Found existing resource.
+			// Logic:
+			// 1. If existing is Global and we are in Tenant context:
+			//    - This means we are attempting to "update" or "override" a global resource.
+			//    - Check CanOverride.
+			if existing.Scope == "global" && tenantID != "" {
+				if !existing.CanOverride {
+					// Cannot override. Fail? Or skip?
+					// Strictly, if we are trying to sync/update it, it's an error.
+					// But for bulk sync, maybe we should skip?
+					// Let's error to be safe/strict.
+					return fmt.Errorf("cannot override system resource '%s'", existing.ResourceID)
+				}
+
+				// Create Override
+				// We do NOT update the existing global resource.
+				// We create a new one (or update existing override if we already created one, but here existing Is Global).
+				// Wait, FindByResourceID returns the "effective" resource.
+				// If we already had an override, FindByResourceID would return the override (Scope=tenant).
+				// So if it returned Scope=global, it means NO override exists yet.
+				// So we create a new override.
+
+				res.ID = primitive.NewObjectID()
+				res.TenantID, _ = primitive.ObjectIDFromHex(tenantID)
+				res.Scope = "tenant"
+				res.IsOverride = true
+				res.BaseResourceID = existing.ResourceID
+				res.CreatedAt = time.Now()
+				res.UpdatedAt = time.Now()
+
+				if err := s.repo.Create(ctx, &res); err != nil {
+					return err
+				}
+				continue // Done with this resource
+			}
+
+			// 2. Normal Update (Tenant updating Tenant, or Global updating Global if no tenant context? or standard update)
 			res.ID = existing.ID             // Keep the existing ObjectID
-			res.TenantID = existing.TenantID // Preserve existing tenant_id if set
+			res.TenantID = existing.TenantID // Preserve existing tenant_id
+			res.Scope = existing.Scope       // Preserve scope
+			res.IsOverride = existing.IsOverride
 			res.CreatedAt = existing.CreatedAt
 			res.UpdatedAt = time.Now()
+
 			if err := s.repo.Update(ctx, &res); err != nil {
-				// If update fails due to tenant mismatch, try direct update
 				return err
 			}
 		} else {
@@ -67,6 +108,16 @@ func (s *ResourceServiceImpl) SyncResources(ctx context.Context, resources []Res
 			if res.ID.IsZero() {
 				res.ID = primitive.NewObjectID()
 			}
+
+			// Default scope if not set
+			if res.Scope == "" {
+				if tenantID != "" {
+					res.Scope = "tenant"
+				} else {
+					res.Scope = "global"
+				}
+			}
+
 			res.CreatedAt = time.Now()
 			res.UpdatedAt = time.Now()
 			if err := s.repo.Create(ctx, &res); err != nil {
@@ -123,6 +174,28 @@ func (s *ResourceServiceImpl) ListSidebarResources(ctx context.Context, product 
 }
 
 func (s *ResourceServiceImpl) CreateResource(ctx context.Context, resource *Resource) error {
+	// Check if this resource already exists (Global)
+	// If it does, checks if we can override it.
+	if resource.ResourceID != "" {
+		existing, err := s.repo.FindByResourceID(ctx, resource.ResourceID)
+		if err == nil && existing != nil {
+			tenantID, _ := ctx.Value(common_models.TenantIDKey).(string)
+			// If we are tenant, and existing is global
+			if tenantID != "" && existing.Scope == "global" {
+				if !existing.CanOverride {
+					return fmt.Errorf("cannot override system resource '%s'", existing.ResourceID)
+				}
+				// We are allowed to override.
+				// Ensure the new resource is marked as override
+				resource.IsOverride = true
+				resource.BaseResourceID = existing.ResourceID
+			} else if tenantID != "" && existing.TenantID.Hex() == tenantID {
+				// Already exists for tenant, return error (dup)
+				return fmt.Errorf("resource already exists")
+			}
+		}
+	}
+
 	if resource.ID.IsZero() {
 		resource.ID = primitive.NewObjectID()
 	}

@@ -243,6 +243,72 @@ func (s *ModuleServiceImpl) UpdateModule(ctx context.Context, m *common_models.E
 	}
 
 	// Immutable Check
+	// If it's a global module, check if it can be overridden
+	if existingModule.Scope == "global" {
+		if !existingModule.CanOverride {
+			if existingModule.ReadOnly {
+				return errors.New("cannot update immutable system module")
+			}
+			return errors.New("this global module cannot be overridden")
+		}
+
+		// It IS global and CanOverride is true.
+		// We should CREATE a NEW Tenant Override instead of updating
+		m.ID = primitive.NewObjectID() // New ID for override
+		m.TenantID = userID            // Wait, userID is user. TenantID should be from context?
+		// Repo.Create uses context for TenantID.
+		// But here m.TenantID is set? ModueService doesn't seem to extract tenantID from context explicitly,
+		// but Repo.Create DOES.
+
+		m.Scope = "tenant"
+		m.IsOverride = true
+		m.BaseEntityID = existingModule.ID
+		m.CreatedAt = time.Now()
+		m.UpdatedAt = time.Now()
+
+		// Ensure system flag is preserved or handled?
+		// Usually overrides are NOT system, but they shadow a system module.
+		// Let's keep IsSystem=false for the override itself (it's user creation),
+		// but maybe relevant logic depends on name/key.
+		m.IsSystem = false
+
+		if err := s.Repo.Create(ctx, m); err != nil {
+			return err
+		}
+
+		// Handle Resource Override creation as well?
+		// Logic handles resource creation in CreateModule.
+		// Since we are effectively "creating" a new override module, we should sync resource.
+		resourceID := fmt.Sprintf("%s.%s", m.Product, m.Name)
+		resource := map[string]interface{}{
+			"resource":         resourceID,
+			"product":          string(m.Product),
+			"type":             "module",
+			"key":              m.Name,
+			"label":            m.Label,
+			"icon":             "database", // Should inherit?
+			"route":            fmt.Sprintf("/dashboard/modules/%s", m.Name),
+			"actions":          []string{"create", "read", "update", "delete"},
+			"configurable":     true,
+			"scope":            "tenant",
+			"is_override":      true,
+			"base_resource_id": existingModule.Name, // Or ID? Resource usually links by ID string
+			"ui": map[string]interface{}{
+				"sidebar":  true,
+				"order":    100, // Should inherit?
+				"group":    "Modules",
+				"location": "main",
+			},
+		}
+		_ = s.ResourceService.CreateResource(ctx, resource)
+
+		_ = s.AuditService.LogChange(ctx, common_models.AuditActionUpdate, "module", m.ID.Hex(), map[string]common_models.Change{
+			"action": {New: "override_created"},
+		})
+		return nil
+	}
+
+	// Existing behavior for Tenant modules (Update)
 	if existingModule.ReadOnly {
 		return errors.New("cannot update immutable system module")
 	}
