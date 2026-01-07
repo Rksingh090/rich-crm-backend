@@ -54,6 +54,9 @@ func (m *MockRecordRepo) Delete(ctx context.Context, moduleName, id string, user
 func (m *MockRecordRepo) Aggregate(ctx context.Context, moduleName string, pipeline mongo.Pipeline) ([]map[string]any, error) {
 	return nil, nil
 }
+func (m *MockRecordRepo) GetNextSequence(ctx context.Context, moduleName, fieldName string) (int64, error) {
+	return 1, nil
+}
 
 type MockAuditService struct {
 }

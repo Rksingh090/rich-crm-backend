@@ -117,11 +117,14 @@ func (s *UserServiceImpl) UpdateUser(ctx context.Context, id string, updates map
 		user.Status = status
 	}
 	if groups, ok := updates["groups"].([]interface{}); ok {
-		// Convert []interface{} to []string
-		var newGroups []string
+		// Convert []interface{} to []primitive.ObjectID
+		var newGroups []primitive.ObjectID
 		for _, g := range groups {
 			if str, ok := g.(string); ok {
-				newGroups = append(newGroups, str)
+				oid, err := primitive.ObjectIDFromHex(str)
+				if err == nil {
+					newGroups = append(newGroups, oid)
+				}
 			}
 		}
 		changes["groups"] = models.Change{Old: user.Groups, New: newGroups}

@@ -164,11 +164,14 @@ func (s *AuthServiceImpl) Login(ctx context.Context, username, password string) 
 	}
 
 	// Generate JWT with user groups
-	userGroups := usr.Groups
-	if userGroups == nil {
-		userGroups = []string{}
+	var userGroupStrings []string
+	if usr.Groups != nil {
+		for _, oid := range usr.Groups {
+			userGroupStrings = append(userGroupStrings, oid.Hex())
+		}
 	}
-	token, err := utils.GenerateToken(usr.ID, usr.TenantID, roleNames, roleIDs, userGroups)
+
+	token, err := utils.GenerateToken(usr.ID, usr.TenantID, roleNames, roleIDs, userGroupStrings)
 
 	if err != nil {
 		return "", err

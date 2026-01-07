@@ -56,7 +56,6 @@ const (
 	ProductCRM       Product = "crm"
 	ProductERP       Product = "erp"
 	ProductAnalytics Product = "analytics"
-	ProductReporting Product = "reporting"
 )
 
 // Field Definitions (Moved from Module)
@@ -78,6 +77,7 @@ const (
 	FieldTypeCurrency    FieldType = "currency"
 	FieldTypeImage       FieldType = "image"
 	FieldTypeUser        FieldType = "user"
+	FieldTypeRadio       FieldType = "radio"   // New: Radio buttons
 	FieldTypeSubform     FieldType = "subform" // New: Nested Table/Array
 )
 
@@ -93,39 +93,52 @@ type LookupDef struct {
 }
 
 type ModuleField struct {
-	Name         string          `json:"name" bson:"name"`
-	Label        string          `json:"label" bson:"label"`
-	Type         FieldType       `json:"type" bson:"type"`
-	Required     bool            `json:"required" bson:"required"`
-	Options      []SelectOptions `json:"options,omitempty" bson:"options,omitempty"`
-	Lookup       *LookupDef      `json:"lookup,omitempty" bson:"lookup,omitempty"`
-	SubFields    []ModuleField   `json:"sub_fields" bson:"sub_fields"` // New: Schema for subform rows - Removed omitempty to ensure persistence
-	IsSystem     bool            `json:"is_system" bson:"is_system"`
-	Filterable   bool            `json:"filterable" bson:"filterable"`
-	Sortable     bool            `json:"sortable" bson:"sortable"`
-	Unique       bool            `json:"unique" bson:"unique"`
-	DefaultValue string          `json:"default_value" bson:"default_value"`
-	Placeholder  string          `json:"placeholder" bson:"placeholder"`
-	HelpText     string          `json:"help_text" bson:"help_text"`
-	Hidden       bool            `json:"hidden" bson:"hidden"`
-	ReadOnly     bool            `json:"readonly" bson:"readonly"`
+	Name          string          `json:"name" bson:"name"`
+	Label         string          `json:"label" bson:"label"`
+	Type          FieldType       `json:"type" bson:"type"`
+	Required      bool            `json:"required" bson:"required"`
+	Options       []SelectOptions `json:"options,omitempty" bson:"options,omitempty"`
+	Lookup        *LookupDef      `json:"lookup,omitempty" bson:"lookup,omitempty"`
+	SubFields     []ModuleField   `json:"sub_fields" bson:"sub_fields"` // New: Schema for subform rows - Removed omitempty to ensure persistence
+	IsSystem      bool            `json:"is_system" bson:"is_system"`
+	Filterable    bool            `json:"filterable" bson:"filterable"`
+	Sortable      bool            `json:"sortable" bson:"sortable"`
+	Unique        bool            `json:"unique" bson:"unique"`
+	DefaultValue  string          `json:"default_value" bson:"default_value"`
+	Placeholder   string          `json:"placeholder" bson:"placeholder"`
+	HelpText      string          `json:"help_text" bson:"help_text"`
+	Hidden        bool            `json:"hidden" bson:"hidden"`
+	ReadOnly      bool            `json:"readonly" bson:"readonly"`
+	AutoIncrement bool            `json:"auto_increment" bson:"auto_increment"` // New: Auto-increment for numbers
+	SectionID     string          `json:"section_id" bson:"section_id"`         // New: Section ID
+}
+
+type Section struct {
+	ID    string `bson:"id" json:"id"`
+	Name  string `bson:"name" json:"name"`
+	Order int    `bson:"order" json:"order"`
 }
 
 // Entity (formerly Module) - Metadata Definition
 type Entity struct {
-	ID        primitive.ObjectID `json:"id" bson:"_id,omitempty"`
-	TenantID  primitive.ObjectID `json:"tenant_id" bson:"tenant_id"`
-	Product   Product            `json:"product" bson:"product"`
-	Name      string             `json:"name" bson:"name"` // Slug/Internal Name
-	Label     string             `json:"label" bson:"label"`
-	Fields    []ModuleField      `json:"fields" bson:"fields"`
-	Indexes   []string           `json:"indexes" bson:"indexes"`
-	IsSystem  bool               `json:"is_system" bson:"is_system"`
-	ReadOnly  bool               `json:"readonly" bson:"readonly"`
-	CreatedAt time.Time          `json:"created_at" bson:"created_at"`
-	UpdatedAt time.Time          `json:"updated_at" bson:"updated_at"`
-	DeletedAt *time.Time         `json:"deleted_at,omitempty" bson:"deleted_at,omitempty"`
-	DeletedBy string             `json:"deleted_by,omitempty" bson:"deleted_by,omitempty"`
+	ID           primitive.ObjectID `json:"id" bson:"_id,omitempty"`
+	TenantID     primitive.ObjectID `json:"tenant_id" bson:"tenant_id"`
+	Product      Product            `json:"product" bson:"product"`
+	Name         string             `json:"name" bson:"name"` // Slug/Internal Name
+	Label        string             `json:"label" bson:"label"`
+	Sections     []Section          `json:"sections" bson:"sections"` // New: Sections
+	Fields       []ModuleField      `json:"fields" bson:"fields"`
+	Indexes      []string           `json:"indexes" bson:"indexes"`
+	IsSystem     bool               `json:"is_system" bson:"is_system"`
+	Scope        string             `json:"scope" bson:"scope"`                                       // "global" or "tenant"
+	IsOverride   bool               `json:"is_override" bson:"is_override"`                           // Is this a tenant override of a global entity?
+	BaseEntityID primitive.ObjectID `json:"base_entity_id,omitempty" bson:"base_entity_id,omitempty"` // If Override, ID of the global entity
+	CanOverride  bool               `json:"can_override" bson:"can_override"`                         // Can this entity be overridden? (for global entities)
+	ReadOnly     bool               `json:"readonly" bson:"readonly"`
+	CreatedAt    time.Time          `json:"created_at" bson:"created_at"`
+	UpdatedAt    time.Time          `json:"updated_at" bson:"updated_at"`
+	DeletedAt    *time.Time         `json:"deleted_at,omitempty" bson:"deleted_at,omitempty"`
+	DeletedBy    string             `json:"deleted_by,omitempty" bson:"deleted_by,omitempty"`
 }
 
 // EntityRecord - The actual data
@@ -145,32 +158,36 @@ type EntityRecord struct {
 }
 
 type Organization struct {
-	ID              primitive.ObjectID `bson:"_id,omitempty" json:"id"`
-	Name            string             `bson:"name" json:"name"`
-	Slug            string             `bson:"slug" json:"slug"`
-	Plan            string             `bson:"plan" json:"plan"` // e.g. "enterprise"
-	EnabledProducts []Product          `bson:"enabled_products" json:"enabled_products"`
-	OwnerID         primitive.ObjectID `bson:"owner_id" json:"owner_id"`
-	CreatedAt       time.Time          `bson:"created_at" json:"created_at"`
-	UpdatedAt       time.Time          `bson:"updated_at" json:"updated_at"`
+	ID                      primitive.ObjectID                     `bson:"_id,omitempty" json:"id"`
+	Name                    string                                 `bson:"name" json:"name"`
+	Slug                    string                                 `bson:"slug" json:"slug"`
+	Plan                    string                                 `bson:"plan" json:"plan"` // e.g. "enterprise"
+	EnabledProducts         []Product                              `bson:"enabled_products" json:"enabled_products"`
+	OwnerID                 primitive.ObjectID                     `bson:"owner_id" json:"owner_id"`
+	DefaultPermissions      map[string]map[string]ActionPermission `bson:"default_permissions,omitempty" json:"default_permissions,omitempty"`             // Default actions for any user in org
+	DefaultFieldPermissions map[string]map[string]string           `bson:"default_field_permissions,omitempty" json:"default_field_permissions,omitempty"` // Default field access
+	CreatedAt               time.Time                              `bson:"created_at" json:"created_at"`
+	UpdatedAt               time.Time                              `bson:"updated_at" json:"updated_at"`
 }
 
 type User struct {
-	ID        primitive.ObjectID   `bson:"_id,omitempty" json:"id"`
-	TenantID  primitive.ObjectID   `bson:"tenant_id,omitempty" json:"tenant_id,omitempty"`
-	Username  string               `bson:"username" json:"username"`
-	Password  string               `bson:"password" json:"-"`
-	Email     string               `bson:"email" json:"email"`
-	FirstName string               `bson:"first_name,omitempty" json:"first_name,omitempty"`
-	LastName  string               `bson:"last_name,omitempty" json:"last_name,omitempty"`
-	Phone     string               `bson:"phone,omitempty" json:"phone,omitempty"`
-	Status    string               `bson:"status" json:"status"`                             // active, inactive, suspended
-	Roles     []primitive.ObjectID `bson:"roles" json:"roles"`                               // References to Role IDs
-	Groups    []string             `bson:"groups,omitempty" json:"groups,omitempty"`         // User groups for ABAC (e.g., ["sales_team_west", "managers"])
-	ReportsTo *primitive.ObjectID  `bson:"reports_to,omitempty" json:"reports_to,omitempty"` // Manager ID
-	LastLogin *time.Time           `bson:"last_login,omitempty" json:"last_login,omitempty"`
-	CreatedAt time.Time            `bson:"created_at" json:"created_at"`
-	UpdatedAt time.Time            `bson:"updated_at" json:"updated_at"`
+	ID               primitive.ObjectID                     `bson:"_id,omitempty" json:"id"`
+	TenantID         primitive.ObjectID                     `bson:"tenant_id,omitempty" json:"tenant_id,omitempty"`
+	Username         string                                 `bson:"username" json:"username"`
+	Password         string                                 `bson:"password" json:"-"`
+	Email            string                                 `bson:"email" json:"email"`
+	FirstName        string                                 `bson:"first_name,omitempty" json:"first_name,omitempty"`
+	LastName         string                                 `bson:"last_name,omitempty" json:"last_name,omitempty"`
+	Phone            string                                 `bson:"phone,omitempty" json:"phone,omitempty"`
+	Status           string                                 `bson:"status" json:"status"`                                           // active, inactive, suspended
+	Roles            []primitive.ObjectID                   `bson:"roles" json:"roles"`                                             // References to Role IDs
+	Groups           []primitive.ObjectID                   `bson:"groups,omitempty" json:"groups,omitempty"`                       // References to Group IDs
+	Permissions      map[string]map[string]ActionPermission `bson:"permissions,omitempty" json:"permissions,omitempty"`             // Direct user overrides
+	FieldPermissions map[string]map[string]string           `bson:"field_permissions,omitempty" json:"field_permissions,omitempty"` // Direct user field overrides
+	ReportsTo        *primitive.ObjectID                    `bson:"reports_to,omitempty" json:"reports_to,omitempty"`               // Manager ID
+	LastLogin        *time.Time                             `bson:"last_login,omitempty" json:"last_login,omitempty"`
+	CreatedAt        time.Time                              `bson:"created_at" json:"created_at"`
+	UpdatedAt        time.Time                              `bson:"updated_at" json:"updated_at"`
 }
 
 type Log struct {
@@ -188,18 +205,6 @@ type WebhookPayload struct {
 	Data      interface{}    `json:"data"`
 	Timestamp time.Time      `json:"timestamp"`
 	Extra     map[string]any `json:"extra,omitempty"`
-}
-
-// Rule Models
-type RuleCondition struct {
-	Field    string      `json:"field" bson:"field"`
-	Operator string      `json:"operator" bson:"operator"`
-	Value    interface{} `json:"value" bson:"value"`
-}
-
-type RuleAction struct {
-	Type   string                 `json:"type" bson:"type"`
-	Config map[string]interface{} `json:"config" bson:"config"`
 }
 
 // Approval Models

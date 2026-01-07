@@ -289,9 +289,15 @@ func (s *RoleServiceImpl) GetAccessFilter(ctx context.Context, userID primitive.
 	orgID := user.TenantID
 	userGroups := user.Groups
 	if userGroups == nil {
-		userGroups = []string{}
+		userGroups = []primitive.ObjectID{}
 	}
-	contextData := PrepareContextData(userID, orgID, userGroups)
+
+	var userGroupStrings []string
+	for _, oid := range userGroups {
+		userGroupStrings = append(userGroupStrings, oid.Hex())
+	}
+
+	contextData := PrepareContextData(userID, orgID, userGroupStrings)
 
 	for _, roleID := range user.Roles {
 		// Check Admin Bypass (Optional, but safe)

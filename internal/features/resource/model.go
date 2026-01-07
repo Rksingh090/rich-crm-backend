@@ -33,6 +33,7 @@ type Resource struct {
 	Scope          string               `bson:"scope" json:"scope"`                                           // "global" or "tenant"
 	IsOverride     bool                 `bson:"is_override" json:"is_override"`                               // True if this is a tenant override
 	BaseResourceID string               `bson:"base_resource_id,omitempty" json:"base_resource_id,omitempty"` // For overrides, points to global resource
+	CanOverride    bool                 `bson:"can_override" json:"can_override"`                             // Can this resource be overridden?
 	UI             ResourceUI           `bson:"ui" json:"ui"`
 
 	CreatedAt time.Time  `bson:"created_at" json:"created_at"`
