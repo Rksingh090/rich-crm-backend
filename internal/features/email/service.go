@@ -81,13 +81,18 @@ func (s *EmailServiceImpl) SendEmail(ctx context.Context, to []string, subject, 
 		_ = s.Repo.Create(ctx, emailRecord)
 	}
 
-	msg := []byte(fmt.Sprintf("To: %s\r\n"+
-		"Subject: %s\r\n"+
-		"\r\n"+
-		"%s\r\n", to[0], subject, body))
+	// Build email with proper MIME headers for HTML
+	var msg bytes.Buffer
+	msg.WriteString(fmt.Sprintf("From: %s\r\n", from))
+	msg.WriteString(fmt.Sprintf("To: %s\r\n", to[0]))
+	msg.WriteString(fmt.Sprintf("Subject: %s\r\n", subject))
+	msg.WriteString("MIME-Version: 1.0\r\n")
+	msg.WriteString("Content-Type: text/html; charset=utf-8\r\n")
+	msg.WriteString("\r\n")
+	msg.WriteString(body)
 
 	log.Printf("Sending email to %v via %s...", to, addr)
-	err = smtp.SendMail(addr, auth, from, to, msg)
+	err = smtp.SendMail(addr, auth, from, to, msg.Bytes())
 
 	status := EmailSent
 	errMsg := ""
