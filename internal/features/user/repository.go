@@ -145,9 +145,57 @@ func (r *UserRepositoryImpl) List(ctx context.Context, filter map[string]interfa
 	}
 	defer cursor.Close(ctx)
 
-	var users []models.User
-	if err = cursor.All(ctx, &users); err != nil {
+	// Decode into maps first to handle invalid data types (e.g. string roles)
+	var results []bson.M
+	if err = cursor.All(ctx, &results); err != nil {
 		return nil, 0, err
+	}
+
+	var users []models.User
+	for _, doc := range results {
+		// Fix roles if present and invalid
+		if rolesRaw, ok := doc["roles"]; ok {
+			var safeRoles []primitive.ObjectID
+			if rolesSlice, ok := rolesRaw.(primitive.A); ok {
+				for _, r := range rolesSlice {
+					if oid, ok := r.(primitive.ObjectID); ok {
+						safeRoles = append(safeRoles, oid)
+					} else if str, ok := r.(string); ok {
+						if oid, err := primitive.ObjectIDFromHex(str); err == nil {
+							safeRoles = append(safeRoles, oid)
+						}
+					}
+				}
+			}
+			doc["roles"] = safeRoles
+		}
+
+		// Fix groups if present and invalid
+		if groupsRaw, ok := doc["groups"]; ok {
+			var safeGroups []primitive.ObjectID
+			if groupsSlice, ok := groupsRaw.(primitive.A); ok {
+				for _, g := range groupsSlice {
+					if oid, ok := g.(primitive.ObjectID); ok {
+						safeGroups = append(safeGroups, oid)
+					} else if str, ok := g.(string); ok {
+						if oid, err := primitive.ObjectIDFromHex(str); err == nil {
+							safeGroups = append(safeGroups, oid)
+						}
+					}
+				}
+			}
+			doc["groups"] = safeGroups
+		}
+
+		// Marshal back to bytes then unmarshal to struct
+		data, err := bson.Marshal(doc)
+		if err != nil {
+			continue
+		}
+		var user models.User
+		if err := bson.Unmarshal(data, &user); err == nil {
+			users = append(users, user)
+		}
 	}
 
 	total, err := r.Collection.CountDocuments(ctx, filter)
