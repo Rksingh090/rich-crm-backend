@@ -1,8 +1,8 @@
 [
     {
-        "role_name": "Super Admin",
+        "app": "crm", "role_name": "Super Admin",
         "resource": {
-            "type": "module",
+            "type": "*",
             "id": "*"
         },
         "actions": {
@@ -21,7 +21,7 @@
         }
     },
     {
-        "role_name": "Sales Manager",
+        "app": "crm", "role_name": "Sales Manager",
         "resource": {
             "type": "module",
             "id": "crm.leads"
@@ -42,7 +42,7 @@
         }
     },
     {
-        "role_name": "Sales Rep",
+        "app": "crm", "role_name": "Sales Rep",
         "resource": {
             "type": "module",
             "id": "crm.leads"
@@ -106,7 +106,7 @@
         }
     },
     {
-        "role_name": "Sales Rep",
+        "app": "crm", "role_name": "Sales Rep",
         "resource": {
             "type": "module",
             "id": "crm.contacts"
@@ -138,7 +138,7 @@
         }
     },
     {
-        "role_name": "Support Agent",
+        "app": "crm", "role_name": "Support Agent",
         "resource": {
             "type": "page",
             "id": "crm.tickets"
@@ -170,7 +170,7 @@
         }
     },
     {
-        "role_name": "Support Agent",
+        "app": "crm", "role_name": "Support Agent",
         "resource": {
             "type": "module",
             "id": "crm.leads"
@@ -198,7 +198,7 @@
         }
     },
     {
-        "role_name": "Viewer",
+        "app": "crm", "role_name": "Viewer",
         "resource": {
             "type": "module",
             "id": "crm.leads"
@@ -219,7 +219,7 @@
         }
     },
     {
-        "role_name": "Viewer",
+        "app": "crm", "role_name": "Viewer",
         "resource": {
             "type": "module",
             "id": "crm.contacts"
@@ -240,7 +240,7 @@
         }
     },
     {
-        "role_name": "Viewer",
+        "app": "crm", "role_name": "Viewer",
         "resource": {
             "type": "system",
             "id": "modules"
@@ -261,7 +261,7 @@
         }
     },
     {
-        "role_name": "Viewer",
+        "app": "crm", "role_name": "Viewer",
         "resource": {
             "type": "setting",
             "id": "crm.settings_audit_logs"
@@ -273,7 +273,7 @@
         }
     },
     {
-        "role_name": "Sales Rep",
+        "app": "crm", "role_name": "Sales Rep",
         "resource": {
             "type": "system",
             "id": "modules"
@@ -294,7 +294,7 @@
         }
     },
     {
-        "role_name": "Sales Manager",
+        "app": "crm", "role_name": "Sales Manager",
         "resource": {
             "type": "system",
             "id": "modules"
@@ -315,7 +315,7 @@
         }
     },
     {
-        "role_name": "Support Agent",
+        "app": "crm", "role_name": "Support Agent",
         "resource": {
             "type": "system",
             "id": "modules"

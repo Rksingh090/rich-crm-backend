@@ -20,7 +20,7 @@ type Resource struct {
 	ID             primitive.ObjectID   `bson:"_id,omitempty" json:"id"`
 	ResourceID     string               `bson:"resource" json:"resource_id"`
 	TenantID       primitive.ObjectID   `bson:"tenant_id,omitempty" json:"tenant_id,omitempty"` // Empty for global resources
-	Product        string               `bson:"product" json:"product"`
+	App            models.App           `bson:"app" json:"app"`
 	Type           string               `bson:"type" json:"type"`
 	Key            string               `bson:"key" json:"key"`
 	Label          string               `bson:"label" json:"label"`

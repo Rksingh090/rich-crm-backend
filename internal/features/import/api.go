@@ -2,7 +2,7 @@ package import_feature
 
 import (
 	"go-crm/internal/config"
-	"go-crm/internal/features/role"
+	"go-crm/internal/core/role"
 	"go-crm/internal/middleware"
 
 	"github.com/gofiber/fiber/v2"

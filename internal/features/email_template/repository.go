@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"go-crm/internal/common/models"
 	"go-crm/internal/database"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -47,8 +48,15 @@ func (r *EmailTemplateRepositoryImpl) GetByID(ctx context.Context, id string) (*
 		return nil, err
 	}
 
+	filter := bson.M{"_id": oid}
+
+	// Add tenant check
+	if tenantID, ok := ctx.Value(models.TenantIDKey).(primitive.ObjectID); ok {
+		filter["tenant_id"] = tenantID
+	}
+
 	var template EmailTemplate
-	err = r.collection.FindOne(ctx, bson.M{"_id": oid}).Decode(&template)
+	err = r.collection.FindOne(ctx, filter).Decode(&template)
 	if err != nil {
 		return nil, err
 	}
@@ -59,13 +67,24 @@ func (r *EmailTemplateRepositoryImpl) GetByID(ctx context.Context, id string) (*
 func (r *EmailTemplateRepositoryImpl) List(ctx context.Context, moduleName string) ([]EmailTemplate, error) {
 	filter := bson.M{}
 
+	// Add tenant check
+	if tenantID, ok := ctx.Value(models.TenantIDKey).(primitive.ObjectID); ok {
+		filter["tenant_id"] = tenantID
+	}
+
 	if moduleName != "" {
-		filter = bson.M{
-			"$or": []bson.M{
+		if _, ok := filter["tenant_id"]; ok {
+			// If we have tenant_id, we can just add module_name to the filter
+			filter["module_name"] = moduleName
+		} else {
+			// Original logic for when tenant_id might not be present (though it should be)
+			// Retaining logic but combining with tenant check if present
+			orFilter := []bson.M{
 				{"module_name": moduleName},
 				{"module_name": ""},
 				{"module_name": bson.M{"$exists": false}},
-			},
+			}
+			filter["$or"] = orFilter
 		}
 	}
 
@@ -87,6 +106,12 @@ func (r *EmailTemplateRepositoryImpl) Update(ctx context.Context, template *Emai
 	template.UpdatedAt = time.Now()
 
 	filter := bson.M{"_id": template.ID}
+
+	// Add tenant check
+	if tenantID, ok := ctx.Value(models.TenantIDKey).(primitive.ObjectID); ok {
+		filter["tenant_id"] = tenantID
+	}
+
 	update := bson.M{"$set": template}
 
 	_, err := r.collection.UpdateOne(ctx, filter, update)
@@ -99,6 +124,13 @@ func (r *EmailTemplateRepositoryImpl) Delete(ctx context.Context, id string) err
 		return err
 	}
 
-	_, err = r.collection.DeleteOne(ctx, bson.M{"_id": oid})
+	filter := bson.M{"_id": oid}
+
+	// Add tenant check
+	if tenantID, ok := ctx.Value(models.TenantIDKey).(primitive.ObjectID); ok {
+		filter["tenant_id"] = tenantID
+	}
+
+	_, err = r.collection.DeleteOne(ctx, filter)
 	return err
 }

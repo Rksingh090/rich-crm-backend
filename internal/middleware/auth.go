@@ -17,7 +17,7 @@ func AuthMiddleware(skipAuth bool) fiber.Handler {
 			dummyClaims := &utils.UserClaims{
 				UserID:   "678e9a1b2c3d4e5f6a7b8c9d", // Valid ObjectID format
 				TenantID: "678e9a1b2c3d4e5f6a7b8c9e", // Valid ObjectID format
-				Roles:    []string{"admin"},
+				Roles:    []string{"admin", "Super Admin"},
 				Groups:   []string{"admins", "managers"}, // For ABAC testing
 			}
 			c.Locals(utils.UserClaimsKey, dummyClaims)
@@ -61,6 +61,7 @@ func AuthMiddleware(skipAuth bool) fiber.Handler {
 		c.Locals("tenant_id", claims.TenantID)
 		c.Locals("roles", claims.Roles)
 		c.Locals("groups", claims.Groups)
+		c.Locals("is_platform_admin", claims.IsPlatformAdmin)
 
 		ctx := context.WithValue(c.UserContext(), models.TenantIDKey, claims.TenantID)
 		c.SetUserContext(ctx)

@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"go-crm/internal/common/models"
-	"go-crm/internal/features/audit"
+	"go-crm/internal/core/audit"
 	"go-crm/internal/features/record"
 	"time"
 

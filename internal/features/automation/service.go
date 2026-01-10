@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	common_models "go-crm/internal/common/models"
-	"go-crm/internal/features/audit"
+	"go-crm/internal/core/audit"
 	"strings"
 )
 
@@ -91,12 +91,27 @@ func (s *AutomationServiceImpl) ExecuteFromTrigger(ctx context.Context, moduleNa
 	}
 
 	for _, rule := range rules {
-		if !rule.Active || rule.TriggerType != triggerType {
+		if !rule.Active {
+			continue
+		}
+
+		// Check if trigger matches
+		// 1. Exact match (e.g. "create" == "create")
+		// 2. "create_or_update" matches if incoming trigger is "create" or "update"
+		isMatch := rule.TriggerType == triggerType
+		if rule.TriggerType == "create_or_update" && (triggerType == "create" || triggerType == "update") {
+			isMatch = true
+		}
+
+		if !isMatch {
 			continue
 		}
 
 		if s.evaluateConditions(rule.Conditions, record) {
-			if err := s.executeActions(ctx, rule.Actions, moduleName, record); err != nil {
+			// Inject TenantID into context for action execution
+			// This is required for fetching settings and other tenant-specific operations
+			execCtx := context.WithValue(ctx, common_models.TenantIDKey, rule.TenantID.Hex())
+			if err := s.executeActions(execCtx, rule.Actions, moduleName, record); err != nil {
 				fmt.Printf("Error executing automation rule '%s': %v\n", rule.Name, err)
 			}
 		}

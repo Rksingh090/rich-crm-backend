@@ -9,17 +9,17 @@ import (
 
 	common_models "go-crm/internal/common/models"
 	"go-crm/internal/config"
+	"go-crm/internal/core/audit"
+	"go-crm/internal/core/organization"
+	"go-crm/internal/core/permission"
+	"go-crm/internal/core/role"
+	"go-crm/internal/core/user"
 	"go-crm/internal/database"
-	"go-crm/internal/features/audit"
+	"go-crm/internal/features/app"
 	"go-crm/internal/features/group"
 	"go-crm/internal/features/module"
-	"go-crm/internal/features/organization"
-	"go-crm/internal/features/permission"
 	"go-crm/internal/features/resource"
-	"go-crm/internal/features/role"
-	"go-crm/internal/features/user"
 	"go-crm/internal/logger"
-	"go-crm/pkg/utils"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/fx"
@@ -30,13 +30,9 @@ import (
 // Seed runs the database seeding
 func Seed(
 	lc fx.Lifecycle,
-	roleRepo role.RoleRepository,
-	userRepo user.UserRepository,
-	groupRepo group.GroupRepository,
 	moduleRepo module.ModuleRepository,
-	orgRepo organization.OrganizationRepository,
 	resourceService resource.ResourceService,
-	permissionRepo permission.PermissionRepository,
+	appService app.AppService,
 	logger *zap.Logger,
 	shutdowner fx.Shutdowner,
 ) {
@@ -61,11 +57,21 @@ func Seed(
 				}
 
 				// Data Paths (Assuming running from backend root)
-				rolesPath := "cmd/seed/data/roles.json"
-				usersPath := "cmd/seed/data/users.json"
 				modulesPath := "cmd/seed/data/modules.json"
 				resourcesPath := "cmd/seed/data/resources.json"
-				permissionsPath := "cmd/seed/data/permissions.json"
+				appsPath := "cmd/seed/data/apps.json"
+
+				// 0. Seed Apps (Global)
+				var apps []common_models.Application
+				if err := readJSON(appsPath, &apps); err != nil {
+					logger.Warn("Failed to read apps.json, skipping app seeding", zap.Error(err))
+				} else {
+					if err := appService.SyncApps(ctx, apps); err != nil {
+						logger.Error("Failed to sync global apps", zap.Error(err))
+					} else {
+						logger.Info("Global Apps synced successfully", zap.Int("count", len(apps)))
+					}
+				}
 
 				// 1. Seed Resources (Global)
 				var resources []resource.Resource
@@ -118,307 +124,40 @@ func Seed(
 					"purchase_invoice_items": true,
 				}
 
-				for _, module := range modules {
-					// Set Product
-					if module.Product == "" {
-						if crmModules[module.Name] {
-							module.Product = common_models.ProductCRM
-						} else if erpModules[module.Name] {
-							module.Product = common_models.ProductERP
+				for i := range modules {
+					// Set App
+					if modules[i].App == "" {
+						if crmModules[modules[i].Name] {
+							modules[i].App = common_models.AppCRM
+						} else if erpModules[modules[i].Name] {
+							modules[i].App = common_models.AppERP
 						} else {
-							module.Product = common_models.ProductCRM // Default
+							modules[i].App = common_models.AppCRM // Default
 						}
 					}
 
 					// Enforce Global Scope
-					module.Scope = "global"
-					module.CanOverride = true
-					module.IsSystem = true // Seeded modules are system modules
+					modules[i].Scope = "global"
+					modules[i].CanOverride = true
+					modules[i].IsSystem = true // Seeded modules are system modules
 
-					// For global modules, we check blindly by name (since we don't have tenant context yet)
-					// But FindByName enforces tenant check unless we update it too?
-					// FindByName in repo CHECKS TENANT ID.
-					// We need to use a find method that doesn't check tenant, OR rely on Create failing?
-					// But Create fails if exists (duplicate key).
-					// Let's rely on Create and ignore duplicate error, OR add FindGlobalByName to repo?
-					// Adding FindByNameGlobal to repo is cleaner, but modifying repo just for seed is annoying.
-					// The existing seed logic used FindByName to UPDATE.
-					// We should probably just try to Create, and if error is dup, we are fine (or update if needed).
-					// But we want to UPDATE global modules if they exist (schema changes).
-					// Current Repo.FindByName needs tenant.
-					// Let's use `Create` and swallow duplicate error for now, as updating global definition requires specialized method or bypassing tenant check.
-					// OR, better: We can update `FindByName` to fallback to global if not found?
-					// I already updated `FindByName` to fallback to global!
-					// BUT `FindByName` REQURIES Tenant Context to start with.
-					// If I pass empty context, it errors "organization context missing".
-					// So I cannot use `FindByName` here easily without a "dummy" tenant context?
-					// No, Global modules have NO tenant context.
+					modules[i].ID = primitive.NewObjectID()
+					modules[i].CreatedAt = time.Now()
+					modules[i].UpdatedAt = time.Now()
 
-					// I will try to Create. If it fails, I skip update for now (simplify).
-					// Making seed strictly idempotent for global updates is checking existence.
-					// I'll skip the "Update" logic for now and just Create.
-
-					module.ID = primitive.NewObjectID()
-					module.CreatedAt = time.Now()
-					module.UpdatedAt = time.Now()
-
-					if err := moduleRepo.Create(ctx, &module); err != nil {
-						// Ignor duplicate key error
-						logger.Warn("Failed to create module (might already exist)", zap.String("module", module.Name))
+					if err := moduleRepo.Create(ctx, &modules[i]); err != nil {
+						// If it exists, try to update it to ensure app field is populated
+						if errUpdate := moduleRepo.Update(ctx, &modules[i]); errUpdate != nil {
+							logger.Warn("Failed to update module (might be missing context)", zap.String("module", modules[i].Name))
+						} else {
+							logger.Info("Global Module updated", zap.String("module", modules[i].Name), zap.String("app", string(modules[i].App)))
+						}
 					} else {
-						logger.Info("Global Module created", zap.String("module", module.Name), zap.String("product", string(module.Product)))
+						logger.Info("Global Module created", zap.String("module", modules[i].Name), zap.String("app", string(modules[i].App)))
 					}
 				}
 
-				// 3. Seed Organization
-				orgName := "Default Organization"
-				var orgID primitive.ObjectID
-
-				existingOrg, err := orgRepo.FindByName(ctx, orgName)
-				if err == nil {
-					logger.Info("Organization exists, skipping", zap.String("organization", orgName))
-					orgID = existingOrg.ID
-				} else {
-					// Use a fixed ObjectID for Default Organization for development consistency
-					fixedOrgID, _ := primitive.ObjectIDFromHex("678e9a1b2c3d4e5f6a7b8c9e")
-					newOrg := common_models.Organization{
-						ID:        fixedOrgID,
-						Name:      orgName,
-						Slug:      utils.Slugify(orgName),
-						OwnerID:   primitive.NilObjectID,
-						CreatedAt: time.Now(),
-						UpdatedAt: time.Now(),
-					}
-					if err := orgRepo.Create(ctx, &newOrg); err != nil {
-						logger.Fatal("Failed to create organization", zap.Error(err))
-					}
-					logger.Info("Organization created", zap.String("organization", orgName))
-					orgID = newOrg.ID
-				}
-
-				// Enforce Organization Context for subsequent repos (Roles, etc.)
-				ctx = context.WithValue(ctx, common_models.TenantIDKey, orgID.Hex())
-
-				// 2. Seed Roles
-				var roles []role.Role
-				if err := readJSON(rolesPath, &roles); err != nil {
-					logger.Fatal("Failed to read roles.json", zap.Error(err))
-				}
-
-				createdRoles := make(map[string]primitive.ObjectID)
-
-				for _, role := range roles {
-					role.TenantID = orgID
-					existing, err := roleRepo.FindByName(ctx, role.Name)
-					if err == nil {
-						logger.Info("Role exists, updating permissions", zap.String("role", role.Name))
-						existing.Permissions = role.Permissions
-						existing.UpdatedAt = time.Now()
-						if err := roleRepo.Update(ctx, existing.ID.Hex(), existing); err != nil {
-							logger.Error("Failed to update role", zap.Error(err))
-						}
-						createdRoles[role.Name] = existing.ID
-						continue
-					}
-
-					role.ID = primitive.NewObjectID()
-					role.CreatedAt = time.Now()
-					role.UpdatedAt = time.Now()
-					// Role create needs OrgID which is set above
-
-					if err := roleRepo.Create(ctx, &role); err != nil {
-						logger.Error("Failed to create role", zap.String("role", role.Name), zap.Error(err))
-						continue
-					}
-					logger.Info("Role created", zap.String("role", role.Name))
-					createdRoles[role.Name] = role.ID
-				}
-
-				// 2.5. Seed Permissions
-				var permissionsData []struct {
-					RoleName   string                                    `json:"role_name"`
-					Resource   permission.ResourceRef                    `json:"resource"`
-					Actions    map[string]common_models.ActionPermission `json:"actions"`
-					FieldRules map[string]string                         `json:"field_rules"`
-				}
-				if err := readJSON(permissionsPath, &permissionsData); err != nil {
-					logger.Warn("Failed to read permissions.json, skipping permission seeding", zap.Error(err))
-				} else {
-					permissionCount := 0
-					for _, pData := range permissionsData {
-						// Find role ID
-						roleID, ok := createdRoles[pData.RoleName]
-						if !ok {
-							// Try to find in DB
-							r, err := roleRepo.FindByName(ctx, pData.RoleName)
-							if err != nil {
-								logger.Warn("Role not found for permission", zap.String("role", pData.RoleName))
-								continue
-							}
-							roleID = r.ID
-						}
-
-						// Check if permission already exists
-						existing, err := permissionRepo.FindByRoleAndResource(ctx, roleID.Hex(), pData.Resource.ID)
-						if err == nil && existing != nil {
-							// Update existing permission
-							existing.Actions = pData.Actions
-							existing.FieldRules = pData.FieldRules
-							existing.UpdatedAt = time.Now()
-							if err := permissionRepo.Update(ctx, existing.ID.Hex(), existing); err != nil {
-								logger.Error("Failed to update permission", zap.String("role", pData.RoleName), zap.String("resource", pData.Resource.ID), zap.Error(err))
-							} else {
-								logger.Info("Permission updated", zap.String("role", pData.RoleName), zap.String("resource", pData.Resource.ID))
-								permissionCount++
-							}
-							continue
-						}
-
-						// Create new permission
-						newPerm := permission.Permission{
-							ID:         primitive.NewObjectID(),
-							TenantID:   orgID,
-							RoleID:     roleID,
-							Resource:   pData.Resource,
-							Actions:    pData.Actions,
-							FieldRules: pData.FieldRules,
-							CreatedAt:  time.Now(),
-							UpdatedAt:  time.Now(),
-						}
-
-						if err := permissionRepo.Create(ctx, &newPerm); err != nil {
-							logger.Error("Failed to create permission", zap.String("role", pData.RoleName), zap.String("resource", pData.Resource.ID), zap.Error(err))
-						} else {
-							logger.Info("Permission created", zap.String("role", pData.RoleName), zap.String("resource", pData.Resource.ID))
-							permissionCount++
-						}
-					}
-					logger.Info("Permissions synced successfully", zap.Int("count", permissionCount))
-				}
-
-				// 3. Seed Users
-				var usersData []struct {
-					Username  string   `json:"username"`
-					Password  string   `json:"password"`
-					Email     string   `json:"email"`
-					FirstName string   `json:"first_name"`
-					LastName  string   `json:"last_name"`
-					Status    string   `json:"status"`
-					RoleNames []string `json:"roles"`
-					Groups    []string `json:"groups"`
-				}
-				if err := readJSON(usersPath, &usersData); err != nil {
-					logger.Error("Failed to read users.json", zap.Error(err))
-				} else {
-					// Pre-seed Groups from User Data
-					groupCache := make(map[string]primitive.ObjectID)
-
-					for _, uData := range usersData {
-						for _, gName := range uData.Groups {
-							if _, exists := groupCache[gName]; exists {
-								continue
-							}
-
-							// Check DB
-							g, err := groupRepo.FindByName(ctx, gName)
-							if err == nil {
-								groupCache[gName] = g.ID
-								continue
-							}
-
-							// Create Group
-							newGroup := group.Group{
-								ID:          primitive.NewObjectID(),
-								Name:        gName,
-								Description: "Auto-generated from seed",
-								IsSystem:    false,
-								CreatedAt:   time.Now(),
-								UpdatedAt:   time.Now(),
-							}
-							if err := groupRepo.Create(ctx, &newGroup); err == nil {
-								groupCache[gName] = newGroup.ID
-								logger.Info("Group created", zap.String("group", gName))
-							} else {
-								logger.Error("Failed to create group", zap.String("group", gName), zap.Error(err))
-							}
-						}
-					}
-
-					for _, uData := range usersData {
-						var roleIDs []primitive.ObjectID
-						for _, rName := range uData.RoleNames {
-							if rID, ok := createdRoles[rName]; ok {
-								roleIDs = append(roleIDs, rID)
-							} else {
-								r, err := roleRepo.FindByName(ctx, rName)
-								if err == nil {
-									roleIDs = append(roleIDs, r.ID)
-								} else {
-									logger.Warn("Role found in user definition but not in DB", zap.String("role", rName))
-								}
-							}
-						}
-
-						var userGroupIDs []primitive.ObjectID
-						for _, gName := range uData.Groups {
-							if gid, ok := groupCache[gName]; ok {
-								userGroupIDs = append(userGroupIDs, gid)
-							}
-						}
-
-						// Use FindByUsernameGlobal because existing user check might not have tenant context yet if not passed
-						// But here we are creating for a specific org.
-
-						/* ... existing check logic ... */
-						existingUser, err := userRepo.FindByUsername(ctx, uData.Username)
-						if err == nil {
-							logger.Info("User exists, updating roles/groups", zap.String("username", uData.Username))
-							existingUser.Roles = roleIDs
-							existingUser.Groups = userGroupIDs
-							existingUser.TenantID = orgID
-							existingUser.UpdatedAt = time.Now()
-							if err := userRepo.Update(ctx, existingUser.ID.Hex(), existingUser); err != nil {
-								logger.Error("Failed to update user", zap.String("username", uData.Username), zap.Error(err))
-							}
-							continue
-						}
-
-						newUser := common_models.User{
-							ID:        primitive.NewObjectID(),
-							Username:  uData.Username,
-							Password:  uData.Password,
-							Email:     uData.Email,
-							FirstName: uData.FirstName,
-							LastName:  uData.LastName,
-							Status:    uData.Status,
-							Roles:     roleIDs,
-							Groups:    userGroupIDs,
-							TenantID:  orgID,
-							CreatedAt: time.Now(),
-							UpdatedAt: time.Now(),
-						}
-
-						if err := userRepo.Create(ctx, &newUser); err != nil {
-							logger.Error("Failed to create user", zap.String("username", uData.Username), zap.Error(err))
-						} else {
-							logger.Info("User created", zap.String("username", uData.Username))
-
-							if uData.Username == "root" {
-								currentOrg, err := orgRepo.FindByID(ctx, orgID.Hex())
-								if err == nil && (currentOrg.OwnerID == primitive.NilObjectID || currentOrg.OwnerID.IsZero()) {
-									currentOrg.OwnerID = newUser.ID
-									if err := orgRepo.Update(ctx, currentOrg); err != nil {
-										logger.Error("Failed to update organization owner", zap.Error(err))
-									} else {
-										logger.Info("Assigned root user as organization owner", zap.String("org", currentOrg.Name), zap.String("user", newUser.Username))
-									}
-								}
-							}
-						}
-					}
-				}
-
-				logger.Info("✅ Seeding Complete!")
+				logger.Info("✅ Seeding Complete! (Global Resources & Modules Only)")
 			}()
 			return nil
 		},
@@ -443,6 +182,8 @@ func main() {
 			organization.NewOrganizationRepository,
 			resource.NewResourceRepository,
 			resource.NewResourceService,
+			app.NewAppRepository,
+			app.NewAppService,
 			permission.NewPermissionRepository,
 			audit.NewAuditRepository,
 			audit.NewAuditService,

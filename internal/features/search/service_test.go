@@ -7,7 +7,7 @@ import (
 	"go-crm/internal/common/models"
 	"go-crm/internal/features/module"
 	"go-crm/internal/features/resource"
-	"go-crm/internal/features/role"
+	"go-crm/internal/core/role"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )

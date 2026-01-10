@@ -11,12 +11,12 @@ import (
 
 	"go-crm/internal/common/models"
 	common_models "go-crm/internal/common/models"
-	"go-crm/internal/features/audit"
+	"go-crm/internal/core/audit"
+	"go-crm/internal/core/permission"
+	"go-crm/internal/core/role"
+	"go-crm/internal/core/user"
 	"go-crm/internal/features/file"
 	"go-crm/internal/features/module"
-	"go-crm/internal/features/permission"
-	"go-crm/internal/features/role"
-	"go-crm/internal/features/user"
 	"go-crm/internal/features/webhook"
 	"go-crm/pkg/condition"
 
@@ -162,7 +162,7 @@ func (s *RecordServiceImpl) CreateRecord(ctx context.Context, moduleName string,
 	}
 
 	// 4. Insert
-	res, err := s.RecordRepo.Create(ctx, moduleName, m.Product, validatedData)
+	res, err := s.RecordRepo.Create(ctx, moduleName, m.App, validatedData)
 	if err != nil {
 		return nil, err
 	}
@@ -361,7 +361,7 @@ func (s *RecordServiceImpl) QueryRecords(ctx context.Context, moduleName string,
 	// Construct full resource key (e.g., "crm.leads")
 	// If Product is empty, it might just be the name (e.g. system modules?)
 	// But perms are usually keyed by "product.module".
-	resourceKey := fmt.Sprintf("%s.%s", m.Product, m.Name)
+	resourceKey := fmt.Sprintf("%s.%s", m.App, m.Name)
 
 	// Check specific resource permission
 	var actionPerm *common_models.ActionPermission
@@ -953,7 +953,7 @@ func (s *RecordServiceImpl) populateUsers(ctx context.Context, fields []models.M
 					user, err := s.UserRepo.FindByID(ctx, idStr)
 					if err == nil {
 						// Format user name
-						displayName := user.Username
+						displayName := user.Email
 						if user.FirstName != "" || user.LastName != "" {
 							displayName = fmt.Sprintf("%s %s", user.FirstName, user.LastName)
 							displayName = strings.TrimSpace(displayName)

@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"go-crm/internal/common/models"
-	"go-crm/internal/features/audit"
+	"go-crm/internal/core/audit"
 )
 
 type WebhookService interface {

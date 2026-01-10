@@ -1,7 +1,10 @@
 package automation
 
 import (
+	common_models "go-crm/internal/common/models"
+
 	"github.com/gofiber/fiber/v2"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type AutomationController struct {
@@ -30,6 +33,17 @@ func (ctrl *AutomationController) CreateRule(c *fiber.Ctx) error {
 	if err := c.BodyParser(&rule); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request body"})
 	}
+
+	// Enforce TenantID from context
+	tenantID, ok := c.UserContext().Value(common_models.TenantIDKey).(string)
+	if !ok || tenantID == "" {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized: Missing tenant ID"})
+	}
+	oid, err := primitive.ObjectIDFromHex(tenantID)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid tenant ID"})
+	}
+	rule.TenantID = oid
 
 	if err := ctrl.Service.CreateRule(c.UserContext(), &rule); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
@@ -93,7 +107,24 @@ func (ctrl *AutomationController) UpdateRule(c *fiber.Ctx) error {
 	}
 
 	// Ensure ID is set from path
-	// (Assuming ID is string or ObjectID)
+	id := c.Params("id")
+	oid, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid ID format"})
+	}
+	rule.ID = oid
+
+	// Enforce TenantID from context
+	tenantID, ok := c.UserContext().Value(common_models.TenantIDKey).(string)
+	if !ok || tenantID == "" {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized: Missing tenant ID"})
+	}
+	tenantOID, err := primitive.ObjectIDFromHex(tenantID)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid tenant ID"})
+	}
+	rule.TenantID = tenantOID
+
 	if err := ctrl.Service.UpdateRule(c.UserContext(), &rule); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}

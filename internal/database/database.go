@@ -39,5 +39,9 @@ func NewDatabase(lc fx.Lifecycle, cfg *config.Config) (*MongodbDB, error) {
 		},
 	})
 
-	return &MongodbDB{DB: db}, nil
+	return &MongodbDB{
+		Client: client,
+		Config: cfg,
+		DB:     db,
+	}, nil
 }

@@ -5,7 +5,7 @@ import (
 	"time"
 
 	common_models "go-crm/internal/common/models"
-	"go-crm/internal/features/audit"
+	"go-crm/internal/core/audit"
 )
 
 type SettingsService interface {

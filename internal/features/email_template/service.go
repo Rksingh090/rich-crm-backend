@@ -6,10 +6,12 @@ import (
 	"fmt"
 	"go-crm/internal/common/models"
 	common_models "go-crm/internal/common/models"
-	"go-crm/internal/features/audit"
+	"go-crm/internal/core/audit"
 	"go-crm/internal/features/email"
 	"go-crm/internal/features/module"
 	"strings"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type EmailTemplateService interface {
@@ -57,6 +59,10 @@ func (s *EmailTemplateServiceImpl) CreateTemplate(ctx context.Context, template 
 		if err != nil {
 			return errors.New("invalid module name specified")
 		}
+	}
+
+	if tenantID, ok := ctx.Value(common_models.TenantIDKey).(primitive.ObjectID); ok {
+		template.TenantID = tenantID
 	}
 
 	err := s.Repo.Create(ctx, template)

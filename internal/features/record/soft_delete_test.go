@@ -30,7 +30,7 @@ type MockRecordRepo struct {
 	CapturedFilter   map[string]any
 }
 
-func (m *MockRecordRepo) Create(ctx context.Context, moduleName string, product common_models.Product, data map[string]any) (any, error) {
+func (m *MockRecordRepo) Create(ctx context.Context, moduleName string, product common_models.App, data map[string]any) (any, error) {
 	return primitive.NewObjectID(), nil
 }
 func (m *MockRecordRepo) Get(ctx context.Context, moduleName, id string) (map[string]any, error) {

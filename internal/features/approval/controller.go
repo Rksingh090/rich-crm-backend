@@ -1,7 +1,7 @@
 package approval
 
 import (
-	"go-crm/internal/features/auth"
+	"go-crm/internal/core/auth"
 	"go-crm/pkg/utils"
 
 	"github.com/gofiber/fiber/v2"

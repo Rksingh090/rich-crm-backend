@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 	common_models "go-crm/internal/common/models"
+	"go-crm/internal/core/permission"
+	"go-crm/internal/core/role"
 	"go-crm/internal/features/module"
-	"go-crm/internal/features/permission"
-	"go-crm/internal/features/role"
 	"strings"
 	"time"
 
@@ -15,7 +15,7 @@ import (
 
 type ResourceService interface {
 	ListResources(ctx context.Context) ([]Resource, error)
-	ListSidebarResources(ctx context.Context, product string, location string) ([]Resource, error)
+	ListSidebarResources(ctx context.Context, app string, location string) ([]Resource, error)
 	GetSidebar(ctx context.Context, userID string) ([]Resource, error)
 	SyncResources(ctx context.Context, resources []Resource) error
 	CreateResource(ctx context.Context, resource *Resource) error
@@ -50,7 +50,7 @@ func (s *ResourceServiceImpl) SyncResources(ctx context.Context, resources []Res
 	for _, res := range resources {
 		// Populate ResourceID if missing (legacy support or new convention)
 		if res.ResourceID == "" {
-			res.ResourceID = res.Product + "." + res.Key
+			res.ResourceID = string(res.App) + "." + res.Key
 		}
 
 		// Try to find existing resource by ResourceID (unique string identifier)
@@ -169,8 +169,8 @@ func (s *ResourceServiceImpl) GetSidebar(ctx context.Context, userID string) ([]
 	return sidebarResources, nil
 }
 
-func (s *ResourceServiceImpl) ListSidebarResources(ctx context.Context, product string, location string) ([]Resource, error) {
-	return s.repo.FindSidebarResources(ctx, product, location)
+func (s *ResourceServiceImpl) ListSidebarResources(ctx context.Context, app string, location string) ([]Resource, error) {
+	return s.repo.FindSidebarResources(ctx, app, location)
 }
 
 func (s *ResourceServiceImpl) CreateResource(ctx context.Context, resource *Resource) error {
@@ -247,7 +247,7 @@ func (s *ResourceServiceImpl) GetResourceMetadata(ctx context.Context, resourceN
 	// Construct full resource key (e.g., "crm.leads")
 	// If Product is empty, it might just be the name (e.g. system modules?)
 	// But perms are usually keyed by "product.module".
-	resourceKey := fmt.Sprintf("%s.%s", moduleEntity.Product, moduleEntity.Name)
+	resourceKey := fmt.Sprintf("%s.%s", string(moduleEntity.App), moduleEntity.Name)
 
 	// Check specific resource permission
 	if p, ok := perms[resourceKey]; ok {

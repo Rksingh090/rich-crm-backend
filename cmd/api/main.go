@@ -4,14 +4,20 @@ import (
 	"context"
 	"fmt"
 	common_api "go-crm/internal/common/api"
+	"go-crm/internal/common/models"
 	"go-crm/internal/config"
+	"go-crm/internal/core/audit"
+	"go-crm/internal/core/auth"
+	"go-crm/internal/core/organization"
+	"go-crm/internal/core/permission"
+	"go-crm/internal/core/role"
+	"go-crm/internal/core/user"
 	"go-crm/internal/database"
 	"go-crm/internal/features/activity"
 	"go-crm/internal/features/admin"
 	"go-crm/internal/features/analytics"
+	"go-crm/internal/features/app"
 	"go-crm/internal/features/approval"
-	"go-crm/internal/features/audit"
-	"go-crm/internal/features/auth"
 	"go-crm/internal/features/automation"
 	"go-crm/internal/features/bulk_operation"
 	"go-crm/internal/features/chart"
@@ -26,19 +32,15 @@ import (
 	"go-crm/internal/features/inventory"
 	"go-crm/internal/features/module"
 	"go-crm/internal/features/notification"
-	"go-crm/internal/features/organization"
-	"go-crm/internal/features/permission"
 	"go-crm/internal/features/record"
 	"go-crm/internal/features/report"
 	"go-crm/internal/features/resource"
-	"go-crm/internal/features/role"
 	"go-crm/internal/features/saved_filter"
 	"go-crm/internal/features/search"
 	"go-crm/internal/features/settings"
 	"go-crm/internal/features/sync"
 	"go-crm/internal/features/system"
 	"go-crm/internal/features/ticket"
-	"go-crm/internal/features/user"
 	"go-crm/internal/features/webhook"
 	"go-crm/internal/logger"
 	"go-crm/internal/middleware"
@@ -71,8 +73,8 @@ func NewFiberServer() *fiber.App {
 	// Use custom CORS middleware
 	app.Use(middleware.CORSMiddleware())
 
-	// Add Product middleware to extract X-Rich-Product header
-	app.Use(middleware.ProductMiddleware())
+	// Add App middleware to extract X-Rich-App header
+	app.Use(middleware.AppMiddleware())
 
 	return app
 }
@@ -125,7 +127,15 @@ func StartServer(lc fx.Lifecycle, app *fiber.App, cfg *config.Config) {
 }
 
 // InitializeIndexes ensures that necessary database indexes are created
-func InitializeIndexes(lc fx.Lifecycle, moduleRepo module.ModuleRepository, resourceRepo resource.ResourceRepository) {
+func InitializeIndexes(
+	lc fx.Lifecycle,
+	orgRepo organization.OrganizationRepository,
+	userRepo user.UserRepository,
+	moduleRepo module.ModuleRepository,
+	resourceRepo resource.ResourceRepository,
+	roleRepo role.RoleRepository,
+	permissionRepo permission.PermissionRepository,
+) {
 	lc.Append(fx.Hook{
 		OnStart: func(ctx context.Context) error {
 			go func() {
@@ -133,11 +143,25 @@ func InitializeIndexes(lc fx.Lifecycle, moduleRepo module.ModuleRepository, reso
 				ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 				defer cancel()
 
-				if err := moduleRepo.EnsureIndexes(ctx); err != nil {
-					log.Printf("Failed to ensure module indexes: %v", err)
+				if err := orgRepo.EnsureIndexes(ctx); err != nil {
+					log.Printf("Failed to ensure organization indexes: %v", err)
 				}
-				if err := resourceRepo.EnsureIndexes(ctx); err != nil {
-					log.Printf("Failed to ensure resource indexes: %v", err)
+				if err := userRepo.EnsureIndexes(ctx); err != nil {
+					log.Printf("Failed to ensure user indexes: %v", err)
+				}
+
+				// Templates (Global)
+				if err := moduleRepo.EnsureGlobalIndexes(ctx); err != nil {
+					log.Printf("Failed to ensure global module indexes: %v", err)
+				}
+				if err := resourceRepo.EnsureGlobalIndexes(ctx); err != nil {
+					log.Printf("Failed to ensure global resource indexes: %v", err)
+				}
+				if err := roleRepo.EnsureGlobalIndexes(ctx); err != nil {
+					log.Printf("Failed to ensure global role indexes: %v", err)
+				}
+				if err := permissionRepo.EnsureGlobalIndexes(ctx); err != nil {
+					log.Printf("Failed to ensure global permission indexes: %v", err)
 				}
 			}()
 			return nil
@@ -161,8 +185,8 @@ func (a *resourceServiceAdapter) CreateResource(ctx context.Context, res interfa
 	if v, ok := resMap["resource"].(string); ok {
 		r.ResourceID = v
 	}
-	if v, ok := resMap["product"].(string); ok {
-		r.Product = v
+	if v, ok := resMap["app"].(string); ok {
+		r.App = models.App(v)
 	}
 	if v, ok := resMap["type"].(string); ok {
 		r.Type = v
@@ -251,6 +275,7 @@ func main() {
 			database.NewDatabase,
 
 			// Initialize Repository
+			app.NewAppRepository,
 			file.NewFileRepository,
 			audit.NewAuditRepository,
 			module.NewModuleRepository,
@@ -287,6 +312,7 @@ func main() {
 			permission.NewPermissionRepository,
 
 			audit.NewAuditService,
+			app.NewAppService,
 			auth.NewAuthService,
 			role.NewRoleService,
 			module.NewModuleService,
@@ -321,6 +347,7 @@ func main() {
 			resource.NewResourceService,
 			permission.NewPermissionService,
 			inventory.NewInventoryService,
+			organization.NewOrganizationService,
 
 			// Interface Adapters to break circular dependencies and satisfy Fx
 			func(r record.RecordRepository) inventory.RecordRepository { return r },
@@ -328,6 +355,7 @@ func main() {
 			func(s automation.AutomationService) record.AutomationTrigger { return s },
 			func(s role.RoleService) middleware.RoleService { return s },
 			func(r user.UserRepository) audit.UserFinder { return r },
+			func(s auth.AuthService) organization.TenantAuthService { return s },
 			func(s resource.ResourceService) interface {
 				CreateResource(ctx context.Context, resource interface{}) error
 				DeleteResource(ctx context.Context, resourceID string, userID string) error
@@ -337,6 +365,7 @@ func main() {
 
 			// Initialize Controller
 			admin.NewAdminController,
+			app.NewAppController,
 			auth.NewAuthController,
 			role.NewRoleController,
 			module.NewModuleController,
@@ -370,9 +399,11 @@ func main() {
 			analytics.NewDataSourceController,
 			resource.NewResourceController,
 			permission.NewPermissionController,
+			organization.NewOrganizationController,
 
 			// Initialize API Routes
 			AsRoute(admin.NewAdminApi),
+			AsRoute(app.NewAppApi),
 			AsRoute(auth.NewAuthApi),
 			AsRoute(role.NewRoleApi),
 			AsRoute(module.NewModuleApi),
@@ -407,6 +438,7 @@ func main() {
 			AsRoute(resource.NewResourceApi),
 			AsRoute(permission.NewPermissionApi),
 			AsRoute(system.NewWebSocketApi),
+			AsRoute(organization.NewOrganizationApi),
 		),
 		fx.WithLogger(func(log *zap.Logger) fxevent.Logger {
 			return &fxevent.ZapLogger{Logger: log}

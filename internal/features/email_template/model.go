@@ -8,6 +8,7 @@ import (
 
 type EmailTemplate struct {
 	ID          primitive.ObjectID `json:"id" bson:"_id,omitempty"`
+	TenantID    primitive.ObjectID `json:"tenant_id" bson:"tenant_id"`
 	Name        string             `json:"name" bson:"name"`
 	Subject     string             `json:"subject" bson:"subject"`
 	Body        string             `json:"body" bson:"body"`
