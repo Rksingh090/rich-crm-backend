@@ -24,28 +24,28 @@ func NewUserController(userService UserService, roleService middleware.RoleServi
 }
 
 type UpdateUserRequest struct {
-	Email     string   `json:"email,omitempty"`
-	FirstName string   `json:"first_name,omitempty"`
-	LastName  string   `json:"last_name,omitempty"`
-	Phone     string   `json:"phone,omitempty"`
-	Status    string   `json:"status,omitempty"`
-	ReportsTo string   `json:"reports_to,omitempty"`
-	RoleIDs   []string `json:"role_ids,omitempty"`
+	Email     string               `json:"email,omitempty"`
+	FirstName string               `json:"first_name,omitempty"`
+	LastName  string               `json:"last_name,omitempty"`
+	Phone     string               `json:"phone,omitempty"`
+	Status    string               `json:"status,omitempty"`
+	ReportsTo string               `json:"reports_to,omitempty"`
+	AppRoles  []models.UserAppRole `json:"app_roles,omitempty"`
 }
 
 type CreateUserRequest struct {
-	Email     string   `json:"email"`
-	Password  string   `json:"password"`
-	FirstName string   `json:"first_name,omitempty"`
-	LastName  string   `json:"last_name,omitempty"`
-	Phone     string   `json:"phone,omitempty"`
-	Status    string   `json:"status,omitempty"`
-	ReportsTo string   `json:"reports_to,omitempty"`
-	RoleIDs   []string `json:"role_ids,omitempty"`
+	Email     string               `json:"email"`
+	Password  string               `json:"password"`
+	FirstName string               `json:"first_name,omitempty"`
+	LastName  string               `json:"last_name,omitempty"`
+	Phone     string               `json:"phone,omitempty"`
+	Status    string               `json:"status,omitempty"`
+	ReportsTo string               `json:"reports_to,omitempty"`
+	AppRoles  []models.UserAppRole `json:"app_roles,omitempty"`
 }
 
 type UpdateUserRolesRequest struct {
-	RoleIDs []string `json:"role_ids"`
+	AppRoles []models.UserAppRole `json:"app_roles"`
 }
 
 type UpdateUserStatusRequest struct {
@@ -190,14 +190,8 @@ func (ctrl *UserController) CreateUser(c *fiber.Ctx) error {
 		}
 	}
 
-	if len(req.RoleIDs) > 0 {
-		var roleOIDs []primitive.ObjectID
-		for _, id := range req.RoleIDs {
-			if oid, err := primitive.ObjectIDFromHex(id); err == nil {
-				roleOIDs = append(roleOIDs, oid)
-			}
-		}
-		user.Roles = roleOIDs
+	if len(req.AppRoles) > 0 {
+		user.AppRoles = req.AppRoles
 	}
 
 	if err := ctrl.UserService.CreateUser(c.UserContext(), user); err != nil {
@@ -257,14 +251,8 @@ func (ctrl *UserController) UpdateUser(c *fiber.Ctx) error {
 			updates["reports_to"] = oid
 		}
 	}
-	if req.RoleIDs != nil {
-		var roleOIDs []primitive.ObjectID
-		for _, id := range req.RoleIDs {
-			if oid, err := primitive.ObjectIDFromHex(id); err == nil {
-				roleOIDs = append(roleOIDs, oid)
-			}
-		}
-		updates["roles"] = roleOIDs
+	if req.AppRoles != nil {
+		updates["app_roles"] = req.AppRoles
 	}
 
 	if err := ctrl.UserService.UpdateUser(c.UserContext(), id, updates); err != nil {
@@ -300,7 +288,7 @@ func (ctrl *UserController) UpdateUserRoles(c *fiber.Ctx) error {
 		})
 	}
 
-	if err := ctrl.UserService.UpdateUserRoles(c.UserContext(), id, req.RoleIDs); err != nil {
+	if err := ctrl.UserService.UpdateUserRoles(c.UserContext(), id, req.AppRoles); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to update user roles: " + err.Error(),
 		})

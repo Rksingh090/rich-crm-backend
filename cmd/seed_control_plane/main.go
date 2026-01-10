@@ -10,7 +10,6 @@ import (
 
 	"go-crm/internal/common/models"
 	"go-crm/internal/config"
-	"go-crm/internal/core/permission"
 	"go-crm/internal/core/role"
 	"go-crm/internal/database"
 	"go-crm/internal/features/resource"
@@ -191,7 +190,7 @@ func seedDefaultResources(ctx context.Context, db *mongo.Database) {
 type DefaultPermission struct {
 	RoleName   string                 `json:"role_name" bson:"role_name"`
 	App        models.App             `json:"app" bson:"app"`
-	Resource   permission.ResourceRef `json:"resource" bson:"resource"`
+	ResourceID string                 `json:"resource_id" bson:"resource_id"` // Changed from ResourceRef to string
 	Actions    map[string]interface{} `json:"actions" bson:"actions"`
 	FieldRules map[string]string      `json:"field_rules,omitempty" bson:"field_rules,omitempty"`
 }

@@ -1,10 +1,7 @@
 [
     {
-        "app": "crm", "role_name": "Super Admin",
-        "resource": {
-            "type": "*",
-            "id": "*"
-        },
+        "app": "crm",
+        "role_name": "Super Admin",
         "actions": {
             "read": {
                 "allowed": true
@@ -18,14 +15,12 @@
             "delete": {
                 "allowed": true
             }
-        }
+        },
+        "resource_id": "*"
     },
     {
-        "app": "crm", "role_name": "Sales Manager",
-        "resource": {
-            "type": "module",
-            "id": "crm.leads"
-        },
+        "app": "crm",
+        "role_name": "Sales Manager",
         "actions": {
             "read": {
                 "allowed": true
@@ -39,14 +34,12 @@
             "delete": {
                 "allowed": true
             }
-        }
+        },
+        "resource_id": "crm.leads"
     },
     {
-        "app": "crm", "role_name": "Sales Rep",
-        "resource": {
-            "type": "module",
-            "id": "crm.leads"
-        },
+        "app": "crm",
+        "role_name": "Sales Rep",
         "actions": {
             "read": {
                 "allowed": true,
@@ -103,14 +96,12 @@
             "status": "read_write",
             "value": "read_only",
             "internal_notes": "none"
-        }
+        },
+        "resource_id": "crm.leads"
     },
     {
-        "app": "crm", "role_name": "Sales Rep",
-        "resource": {
-            "type": "module",
-            "id": "crm.contacts"
-        },
+        "app": "crm",
+        "role_name": "Sales Rep",
         "actions": {
             "read": {
                 "allowed": true
@@ -135,14 +126,12 @@
             "delete": {
                 "allowed": false
             }
-        }
+        },
+        "resource_id": "crm.contacts"
     },
     {
-        "app": "crm", "role_name": "Support Agent",
-        "resource": {
-            "type": "page",
-            "id": "crm.tickets"
-        },
+        "app": "crm",
+        "role_name": "Support Agent",
         "actions": {
             "read": {
                 "allowed": true
@@ -167,14 +156,12 @@
             "delete": {
                 "allowed": false
             }
-        }
+        },
+        "resource_id": "crm.tickets"
     },
     {
-        "app": "crm", "role_name": "Support Agent",
-        "resource": {
-            "type": "module",
-            "id": "crm.leads"
-        },
+        "app": "crm",
+        "role_name": "Support Agent",
         "actions": {
             "read": {
                 "allowed": true
@@ -195,14 +182,12 @@
             "phone": "read_only",
             "value": "none",
             "internal_notes": "none"
-        }
+        },
+        "resource_id": "crm.leads"
     },
     {
-        "app": "crm", "role_name": "Viewer",
-        "resource": {
-            "type": "module",
-            "id": "crm.leads"
-        },
+        "app": "crm",
+        "role_name": "Viewer",
         "actions": {
             "read": {
                 "allowed": true
@@ -216,14 +201,12 @@
             "delete": {
                 "allowed": false
             }
-        }
+        },
+        "resource_id": "crm.leads"
     },
     {
-        "app": "crm", "role_name": "Viewer",
-        "resource": {
-            "type": "module",
-            "id": "crm.contacts"
-        },
+        "app": "crm",
+        "role_name": "Viewer",
         "actions": {
             "read": {
                 "allowed": true
@@ -237,14 +220,12 @@
             "delete": {
                 "allowed": false
             }
-        }
+        },
+        "resource_id": "crm.contacts"
     },
     {
-        "app": "crm", "role_name": "Viewer",
-        "resource": {
-            "type": "system",
-            "id": "modules"
-        },
+        "app": "crm",
+        "role_name": "Viewer",
         "actions": {
             "read": {
                 "allowed": true
@@ -258,26 +239,22 @@
             "delete": {
                 "allowed": false
             }
-        }
+        },
+        "resource_id": "modules"
     },
     {
-        "app": "crm", "role_name": "Viewer",
-        "resource": {
-            "type": "setting",
-            "id": "crm.settings_audit_logs"
-        },
+        "app": "crm",
+        "role_name": "Viewer",
         "actions": {
             "read": {
                 "allowed": true
             }
-        }
+        },
+        "resource_id": "crm.settings_audit_logs"
     },
     {
-        "app": "crm", "role_name": "Sales Rep",
-        "resource": {
-            "type": "system",
-            "id": "modules"
-        },
+        "app": "crm",
+        "role_name": "Sales Rep",
         "actions": {
             "read": {
                 "allowed": true
@@ -291,14 +268,12 @@
             "delete": {
                 "allowed": false
             }
-        }
+        },
+        "resource_id": "modules"
     },
     {
-        "app": "crm", "role_name": "Sales Manager",
-        "resource": {
-            "type": "system",
-            "id": "modules"
-        },
+        "app": "crm",
+        "role_name": "Sales Manager",
         "actions": {
             "read": {
                 "allowed": true
@@ -312,14 +287,12 @@
             "delete": {
                 "allowed": false
             }
-        }
+        },
+        "resource_id": "modules"
     },
     {
-        "app": "crm", "role_name": "Support Agent",
-        "resource": {
-            "type": "system",
-            "id": "modules"
-        },
+        "app": "crm",
+        "role_name": "Support Agent",
         "actions": {
             "read": {
                 "allowed": true
@@ -333,6 +306,7 @@
             "delete": {
                 "allowed": false
             }
-        }
+        },
+        "resource_id": "modules"
     }
 ]

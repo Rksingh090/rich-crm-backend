@@ -220,7 +220,7 @@ func (r *UserRepositoryImpl) Update(ctx context.Context, id string, user *models
 			"last_name":  user.LastName,
 			"phone":      user.Phone,
 			"status":     user.Status,
-			"roles":      user.Roles,
+			"app_roles":  user.AppRoles,
 			"updated_at": user.UpdatedAt,
 		},
 	}

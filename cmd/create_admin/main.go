@@ -45,11 +45,11 @@ func CreateAdmin(
 
 				// Create User with Zero TenantID
 				newUser := models.User{
-					ID:              primitive.NewObjectID(),
-					Password:        password,
-					Email:           email,
-					Status:          "active",
-					Roles:           []primitive.ObjectID{}, // Add super_admin role ID here if needed, or handle via code
+					ID:       primitive.NewObjectID(),
+					Password: password,
+					Email:    email,
+					Status:   "active",
+					// Roles removed in favor of AppRoles
 					IsPlatformAdmin: true,
 					TenantID:        primitive.NilObjectID, // explicit nil/zero
 					CreatedAt:       time.Now(),

@@ -229,13 +229,13 @@ type User struct {
 	ID       primitive.ObjectID `bson:"_id,omitempty" json:"id"`
 	TenantID primitive.ObjectID `bson:"tenant_id,omitempty" json:"tenant_id,omitempty"`
 
-	Password         string                                 `bson:"password" json:"-"`
-	Email            string                                 `bson:"email" json:"email"`
-	FirstName        string                                 `bson:"first_name,omitempty" json:"first_name,omitempty"`
-	LastName         string                                 `bson:"last_name,omitempty" json:"last_name,omitempty"`
-	Phone            string                                 `bson:"phone,omitempty" json:"phone,omitempty"`
-	Status           string                                 `bson:"status" json:"status"` // active, inactive, suspended, invited
-	Roles            []primitive.ObjectID                   `bson:"roles" json:"roles"`   // References to Role IDs
+	Password  string `bson:"password" json:"-"`
+	Email     string `bson:"email" json:"email"`
+	FirstName string `bson:"first_name,omitempty" json:"first_name,omitempty"`
+	LastName  string `bson:"last_name,omitempty" json:"last_name,omitempty"`
+	Phone     string `bson:"phone,omitempty" json:"phone,omitempty"`
+	Status    string `bson:"status" json:"status"` // active, inactive, suspended, invited
+
 	AppRoles         []UserAppRole                          `bson:"app_roles,omitempty" json:"app_roles,omitempty"`
 	Groups           []primitive.ObjectID                   `bson:"groups,omitempty" json:"groups,omitempty"`                       // References to Group IDs
 	Permissions      map[string]map[string]ActionPermission `bson:"permissions,omitempty" json:"permissions,omitempty"`             // Direct user overrides

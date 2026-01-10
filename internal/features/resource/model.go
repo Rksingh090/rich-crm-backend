@@ -18,7 +18,7 @@ type ResourceUI struct {
 
 type Resource struct {
 	ID             primitive.ObjectID   `bson:"_id,omitempty" json:"id"`
-	ResourceID     string               `bson:"resource" json:"resource_id"`
+	ResourceID     string               `bson:"resource_id" json:"resource_id"`
 	TenantID       primitive.ObjectID   `bson:"tenant_id,omitempty" json:"tenant_id,omitempty"` // Empty for global resources
 	App            models.App           `bson:"app" json:"app"`
 	Type           string               `bson:"type" json:"type"`
