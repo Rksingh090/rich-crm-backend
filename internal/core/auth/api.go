@@ -24,9 +24,7 @@ func (h *AuthApi) Setup(app *fiber.App) {
 	// Public routes
 	app.Post("/api/register", h.controller.Register)
 	app.Post("/api/login", h.controller.Login)
-
-	// Admin route - Create Tenant Admin
-	app.Post("/api/auth/tenant-admin", middleware.AuthMiddleware(h.config.SkipAuth), middleware.SuperAdminMiddleware(), h.controller.CreateTenantAdmin)
+	app.Post("/api/auth/control-plane-login", h.controller.LoginControlPlane)
 
 	// Protected route example
 	app.Get("/api/protected", middleware.AuthMiddleware(h.config.SkipAuth), h.protectedRoute)

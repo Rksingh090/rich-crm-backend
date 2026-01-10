@@ -16,7 +16,7 @@ type UserService interface {
 	GetUserByID(ctx context.Context, id string) (*models.User, error)
 	CreateUser(ctx context.Context, user *models.User) error
 	UpdateUser(ctx context.Context, id string, updates map[string]interface{}) error
-	UpdateUserRoles(ctx context.Context, id string, roleIDs []string) error
+	UpdateUserRoles(ctx context.Context, id string, appRoles []models.UserAppRole) error
 	UpdateUserStatus(ctx context.Context, id string, status string) error
 	DeleteUser(ctx context.Context, id string) error
 	InviteUser(ctx context.Context, email string, roleIDs []string, appRoles []models.UserAppRole) (*models.User, error)
@@ -127,9 +127,9 @@ func (s *UserServiceImpl) UpdateUser(ctx context.Context, id string, updates map
 		changes["groups"] = models.Change{Old: user.Groups, New: newGroups}
 		user.Groups = newGroups
 	}
-	if roles, ok := updates["roles"].([]primitive.ObjectID); ok {
-		changes["roles"] = models.Change{Old: user.Roles, New: roles}
-		user.Roles = roles
+	if appRoles, ok := updates["app_roles"].([]models.UserAppRole); ok {
+		changes["app_roles"] = models.Change{Old: user.AppRoles, New: appRoles}
+		user.AppRoles = appRoles
 	}
 
 	user.UpdatedAt = time.Now()
@@ -147,28 +147,18 @@ func (s *UserServiceImpl) UpdateUser(ctx context.Context, id string, updates map
 	return nil
 }
 
-func (s *UserServiceImpl) UpdateUserRoles(ctx context.Context, id string, roleIDs []string) error {
+func (s *UserServiceImpl) UpdateUserRoles(ctx context.Context, id string, appRoles []models.UserAppRole) error {
 	user, err := s.UserRepo.FindByID(ctx, id)
 	if err != nil {
 		return err
 	}
 
-	// Convert string IDs to ObjectIDs
-	var objectIDs []primitive.ObjectID
-	for _, roleID := range roleIDs {
-		oid, err := primitive.ObjectIDFromHex(roleID)
-		if err != nil {
-			return errors.New("invalid role ID: " + roleID)
-		}
-		objectIDs = append(objectIDs, oid)
-	}
-
 	// Track change
 	changes := map[string]models.Change{
-		"roles": {Old: user.Roles, New: objectIDs},
+		"app_roles": {Old: user.AppRoles, New: appRoles},
 	}
 
-	user.Roles = objectIDs
+	user.AppRoles = appRoles
 	user.UpdatedAt = time.Now()
 
 	if err := s.UserRepo.Update(ctx, id, user); err != nil {
@@ -267,7 +257,6 @@ func (s *UserServiceImpl) InviteUser(ctx context.Context, email string, roleIDs 
 		ID:              primitive.NewObjectID(),
 		Email:           email,
 		Status:          models.StatusInvited,
-		Roles:           roles,
 		AppRoles:        appRoles,
 		InviteToken:     token,
 		InviteExpiresAt: &expiresAt,

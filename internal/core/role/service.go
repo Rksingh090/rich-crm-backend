@@ -164,7 +164,7 @@ func (s *RoleServiceImpl) CheckModulePermission(ctx context.Context, roleNames [
 		}
 
 		for _, p := range perms {
-			if p.Resource.ID == resourceID || p.Resource.ID == "*" {
+			if p.ResourceID == resourceID || p.ResourceID == "*" {
 				if actionPerm, ok := p.Actions[permission]; ok && actionPerm.Allowed {
 					return true, nil
 				}
@@ -200,10 +200,10 @@ func (s *RoleServiceImpl) GetFieldPermissions(ctx context.Context, userID primit
 	}
 
 	// 2. Check Role-based Admin Bypass
-	for _, roleID := range user.Roles {
-		role, err := s.RoleRepo.FindByID(ctx, roleID.Hex())
+	for _, appRole := range user.AppRoles {
+		role, err := s.RoleRepo.FindByID(ctx, appRole.RoleID.Hex())
 		if err != nil {
-			return nil, fmt.Errorf("failed to fetch role %s: %v", roleID.Hex(), err)
+			return nil, fmt.Errorf("failed to fetch role %s: %v", appRole.RoleID.Hex(), err)
 		}
 		if role == nil {
 			continue
@@ -299,7 +299,8 @@ func (s *RoleServiceImpl) GetAccessFilter(ctx context.Context, userID primitive.
 
 	contextData := PrepareContextData(userID, tenantID, userGroupStrings)
 
-	for _, roleID := range user.Roles {
+	for _, appRole := range user.AppRoles {
+		roleID := appRole.RoleID
 		// Check Admin Bypass (Optional, but safe)
 		role, err := s.RoleRepo.FindByID(ctx, roleID.Hex())
 		if err == nil && (role.Name == "admin" || role.Name == "Super Admin") {
@@ -314,7 +315,7 @@ func (s *RoleServiceImpl) GetAccessFilter(ctx context.Context, userID primitive.
 
 		for _, p := range perms {
 			// Check Wildcard or Specific Resource
-			if p.Resource.ID == "*" || p.Resource.ID == moduleName {
+			if p.ResourceID == "*" || p.ResourceID == moduleName {
 				if actionPerm, ok := p.Actions[action]; ok && actionPerm.Allowed {
 					if actionPerm.Conditions == nil {
 						hasFullAccess = true

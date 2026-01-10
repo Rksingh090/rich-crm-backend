@@ -76,8 +76,8 @@ func (s *PermissionServiceImpl) CreatePermission(ctx context.Context, permission
 	}
 
 	_ = s.AuditService.LogChange(ctx, common_models.AuditActionCreate, "permission", permission.ID.Hex(), map[string]common_models.Change{
-		"role_id":  {New: permission.RoleID.Hex()},
-		"resource": {New: permission.Resource},
+		"role_id":     {New: permission.RoleID.Hex()},
+		"resource_id": {New: permission.ResourceID},
 	})
 
 	return permission, nil
@@ -120,7 +120,7 @@ func (s *PermissionServiceImpl) DeletePermission(ctx context.Context, id string)
 	}
 
 	_ = s.AuditService.LogChange(ctx, common_models.AuditActionDelete, "permission", id, map[string]common_models.Change{
-		"resource": {Old: perm.Resource},
+		"resource_id": {Old: perm.ResourceID},
 	})
 
 	return nil
@@ -158,13 +158,10 @@ func (s *PermissionServiceImpl) AssignResourceToRole(ctx context.Context, req As
 
 	// Create new permission
 	permission := &Permission{
-		ID:       primitive.NewObjectID(),
-		TenantID: tenantID,
-		RoleID:   roleID,
-		Resource: ResourceRef{
-			Type: "module", // Default, should be determined from resource registry
-			ID:   req.ResourceID,
-		},
+		ID:         primitive.NewObjectID(),
+		TenantID:   tenantID,
+		RoleID:     roleID,
+		ResourceID: req.ResourceID, // Reference to Resource Registry
 		Actions:    req.Actions,
 		FieldRules: req.FieldRules,
 		CreatedAt:  time.Now(),
@@ -209,7 +206,7 @@ func (s *PermissionServiceImpl) GetUserEffectivePermissions(ctx context.Context,
 		existing, ok := effectivePerms[resourceID]
 		if !ok {
 			existing = &Permission{
-				Resource:   ResourceRef{ID: resourceID, Type: "module"}, // Default type
+				ResourceID: resourceID,
 				Actions:    make(map[string]common_models.ActionPermission),
 				FieldRules: make(map[string]string),
 			}
@@ -238,8 +235,8 @@ func (s *PermissionServiceImpl) GetUserEffectivePermissions(ctx context.Context,
 
 	// Helper helper for union merging (within same level)
 	mergeUnion := func(target *Permission, resourceID string, actions map[string]common_models.ActionPermission, fieldRules map[string]string) {
-		if target.Resource.ID == "" {
-			target.Resource = ResourceRef{ID: resourceID, Type: "module"}
+		if target.ResourceID == "" {
+			target.ResourceID = resourceID
 			target.Actions = make(map[string]common_models.ActionPermission)
 			target.FieldRules = make(map[string]string)
 		}
@@ -284,19 +281,20 @@ func (s *PermissionServiceImpl) GetUserEffectivePermissions(ctx context.Context,
 
 	// Layer 3: Roles (Union of all roles)
 	rolePermsMap := make(map[string]*Permission)
-	for _, roleID := range user.Roles {
-		perms, err := s.PermissionRepo.FindByRoleID(ctx, roleID.Hex())
+	for _, appRole := range user.AppRoles {
+		perms, err := s.PermissionRepo.FindByRoleID(ctx, appRole.RoleID.Hex())
 		if err != nil {
 			continue
 		}
 		for _, p := range perms {
-			resID := p.Resource.ID
+			resID := p.ResourceID
 			if _, ok := rolePermsMap[resID]; !ok {
 				rolePermsMap[resID] = &Permission{}
 			}
 			mergeUnion(rolePermsMap[resID], resID, p.Actions, p.FieldRules)
 		}
 	}
+
 	// Apply Role Perms (Overwrite Org Defaults)
 	for resID, p := range rolePermsMap {
 		merge(resID, p.Actions, p.FieldRules)
@@ -360,7 +358,7 @@ func (s *PermissionServiceImpl) InspectPermissions(ctx context.Context, userID p
 
 	// Helper to snapshot
 	currentPerm := &Permission{
-		Resource:   ResourceRef{ID: targetResourceID, Type: "module"},
+		ResourceID: targetResourceID,
 		Actions:    make(map[string]common_models.ActionPermission),
 		FieldRules: make(map[string]string),
 	}
@@ -386,16 +384,17 @@ func (s *PermissionServiceImpl) InspectPermissions(ctx context.Context, userID p
 	}
 
 	// Layer 3: Roles
-	for _, roleID := range user.Roles {
+	for _, appRole := range user.AppRoles {
+		roleID := appRole.RoleID
 		perms, err := s.PermissionRepo.FindByRoleID(ctx, roleID.Hex())
 		if err == nil {
 			for _, p := range perms {
-				if p.Resource.ID == targetResourceID || p.Resource.ID == "*" {
+				if p.ResourceID == targetResourceID || p.ResourceID == "*" {
 					// Union logic simplified for trace
 					for k, v := range p.Actions {
 						currentPerm.Actions[k] = v
 					}
-					logStep("Role", roleID.Hex(), fmt.Sprintf("Merged role permissions for %s", p.Resource.ID))
+					logStep("Role", roleID.Hex(), fmt.Sprintf("Merged role permissions for %s", p.ResourceID))
 				}
 			}
 		}

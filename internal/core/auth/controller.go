@@ -91,37 +91,31 @@ func (ctrl *AuthController) Login(c *fiber.Ctx) error {
 	return c.JSON(AuthResponse{Token: token})
 }
 
-type CreateTenantAdminRequest struct {
-	TenantID  string `json:"tenant_id"`
-	Email     string `json:"email"`
-	Password  string `json:"password"`
-	FirstName string `json:"first_name"`
-	LastName  string `json:"last_name"`
-}
-
-func (ctrl *AuthController) CreateTenantAdmin(c *fiber.Ctx) error {
-	var req CreateTenantAdminRequest
+// LoginControlPlane godoc
+// @Summary      Control Plane Login
+// @Description  Login for control plane admins
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        input body LoginRequest true "Login Input"
+// @Success      200  {object} AuthResponse
+// @Failure      401  {string} string "Unauthorized"
+// @Router       /api/auth/control-plane-login [post]
+func (ctrl *AuthController) LoginControlPlane(c *fiber.Ctx) error {
+	var req LoginRequest
 	if err := c.BodyParser(&req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Invalid request body",
 		})
 	}
 
-	if req.TenantID == "" || req.Email == "" || req.Password == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "tenant_id, email, and password are required",
-		})
-	}
-
-	user, err := ctrl.AuthService.CreateTenantAdmin(c.Context(), req.TenantID, req.Email, req.Password, req.FirstName, req.LastName)
+	token, err := ctrl.AuthService.LoginControlPlane(c.Context(), req.Email, req.Password)
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+		// Differentiate errors if needed, but 401 is safe
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"error": err.Error(),
 		})
 	}
 
-	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
-		"message": "Tenant Admin created successfully",
-		"user_id": user.ID,
-	})
+	return c.JSON(AuthResponse{Token: token})
 }

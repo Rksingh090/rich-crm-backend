@@ -23,7 +23,7 @@ import (
 type AuthService interface {
 	Register(ctx context.Context, password, email, orgName, plan string, apps []string) (*models.User, error)
 	Login(ctx context.Context, email, password string) (string, error)
-	CreateTenantAdmin(ctx context.Context, tenantID, email, password, firstName, lastName string) (*models.User, error)
+	LoginControlPlane(ctx context.Context, email, password string) (string, error)
 	CreateTenantWithAdmin(ctx context.Context, org *models.Organization, adminEmail, adminPassword, adminFirstName, adminLastName, roleName string) (*models.User, error)
 }
 
@@ -125,7 +125,6 @@ func (s *AuthServiceImpl) Register(ctx context.Context, password, email, orgName
 		Password:  hashedPassword,
 		Email:     email,
 		Status:    "active",
-		Roles:     []primitive.ObjectID{adminRoleID},
 		AppRoles:  userAppRoles,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
@@ -175,11 +174,12 @@ func (s *AuthServiceImpl) Login(ctx context.Context, email, password string) (st
 	var roleNames []string
 	var roleIDs []string
 
-	for _, roleID := range usr.Roles {
-		r, err := s.RoleRepo.FindByID(ctx, roleID.Hex())
+	// Populate global role lists from App Roles for backward compatibility in JWT
+	for _, appRole := range usr.AppRoles {
+		r, err := s.RoleRepo.FindByID(ctx, appRole.RoleID.Hex())
 		if err == nil {
 			roleNames = append(roleNames, r.Name)
-			roleIDs = append(roleIDs, roleID.Hex())
+			roleIDs = append(roleIDs, appRole.RoleID.Hex())
 		}
 	}
 
@@ -244,53 +244,51 @@ func (s *AuthServiceImpl) Login(ctx context.Context, email, password string) (st
 	return token, nil
 }
 
-func (s *AuthServiceImpl) CreateTenantAdmin(ctx context.Context, tenantID, email, password, firstName, lastName string) (*models.User, error) {
-	// 1. Verify Tenant Exists
-	org, err := s.OrganizationRepo.FindByID(ctx, tenantID)
+func (s *AuthServiceImpl) LoginControlPlane(ctx context.Context, email, password string) (string, error) {
+	// 1. Find User by Email Global
+	usr, err := s.UserRepo.FindByEmailGlobal(ctx, email)
 	if err != nil {
-		return nil, fmt.Errorf("invalid tenant id")
+		return "", errors.New("invalid credentials")
 	}
 
-	// 2. Check if user exists global
-	existing, _ := s.UserRepo.FindByEmailGlobal(ctx, email)
-	if existing != nil {
-		return nil, fmt.Errorf("user already exists")
+	// 2. Check Password
+	if usr.Password != password {
+		return "", errors.New("invalid credentials")
 	}
 
-	// 3. Seed Tenant (Copy Defaults)
-	adminRoleID, err := s.seedTenant(ctx, org.ID)
+	// 3. Verify Platform Admin Status
+	if !usr.IsPlatformAdmin {
+		return "", errors.New("unauthorized access")
+	}
+
+	// 4. Check Status
+	if usr.Status != "active" {
+		return "", errors.New("account is not active")
+	}
+
+	// 5. Generate Token (with nil TenantID and IsPlatformAdmin=true)
+	// We don't need tenant-specific checks here because this is for the control plane.
+	// Platform admins might have a tenant (if they are also a user), but for CP login we want a CP token?
+	// OR we just give them a token that reflects who they are.
+	// Current GenerateToken takes TenantID. For CP, we might want to pass nil/empty if the session is not bound to a tenant.
+	// However, the user model HAS a TenantID.
+	// If we want a "Tenant-less" or "All-Tenant" token, maybe pass NilObjectID or handle in claims.
+	// For now, let's pass their Home Tenant ID if exists, but IsPlatformAdmin flag is key.
+
+	// Use empty/nil tenant for CP context?
+	// If they are managing ANY tenant, having a specific tenant ID in token might restrict them in middleware if middleware checks tenant.
+	// But `GenerateToken` signature requires TenantID.
+	// Let's use the user's tenant ID but rely on IsPlatformAdmin for permissions.
+	// Actually, if they are "Control Plane" users, they might NOT belong to a tenant?
+	// The request says "users who are not belongs to tenant".
+	// So usr.TenantID might be Nil.
+
+	token, err := utils.GenerateToken(usr.ID, usr.TenantID, []string{"Super Admin"}, nil, nil, nil, true)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	// 4. Create Context for Tenant
-	tenantCtx := context.WithValue(ctx, models.TenantIDKey, org.ID.Hex())
-
-	// 5. Create User
-	// hash password placeholder (TODO: use bcrypt)
-	hashedPassword := password
-
-	newUser := models.User{
-		ID:        primitive.NewObjectID(),
-		TenantID:  org.ID,
-		Email:     email,
-		Password:  hashedPassword,
-		FirstName: firstName,
-		LastName:  lastName,
-		Status:    "active",
-		Roles:     []primitive.ObjectID{adminRoleID},
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
-	}
-
-	if err := s.UserRepo.Create(tenantCtx, &newUser); err != nil {
-		return nil, err
-	}
-
-	// Audit
-	_ = s.AuditService.LogChange(ctx, models.AuditActionCreate, "user_tenant_admin", newUser.ID.Hex(), nil)
-
-	return &newUser, nil
+	return token, nil
 }
 
 func (s *AuthServiceImpl) CreateTenantWithAdmin(ctx context.Context, org *models.Organization, adminEmail, adminPassword, adminFirstName, adminLastName, roleName string) (*models.User, error) {
@@ -349,7 +347,6 @@ func (s *AuthServiceImpl) CreateTenantWithAdmin(ctx context.Context, org *models
 		FirstName: adminFirstName,
 		LastName:  adminLastName,
 		Status:    "active",
-		Roles:     []primitive.ObjectID{targetRoleID},
 		AppRoles:  userAppRoles,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
@@ -412,9 +409,14 @@ func (s *AuthServiceImpl) seedTenant(ctx context.Context, tenantID primitive.Obj
 			res.ID = primitive.NewObjectID()
 			res.TenantID = tenantID
 			res.Scope = "tenant"
-			_ = s.ResourceRepo.Create(tenantCtx, &res)
-			fmt.Printf("Seeded Resource: %s\n", res.ResourceID)
+			if err := s.ResourceRepo.Create(tenantCtx, &res); err != nil {
+				fmt.Printf("Error seeding resource %s: %v\n", res.ResourceID, err)
+			} else {
+				fmt.Printf("Seeded Resource: %s\n", res.ResourceID)
+			}
 		}
+	} else if err != nil {
+		fmt.Printf("Error getting default resources: %v\n", err)
 	}
 
 	// 4. Copy Permissions (Map to new Role IDs)
@@ -427,7 +429,7 @@ func (s *AuthServiceImpl) seedTenant(ctx context.Context, tenantID primitive.Obj
 				p.TenantID = tenantID
 				p.RoleID = newRoleID
 				_ = s.PermissionRepo.Create(tenantCtx, &p)
-				fmt.Printf("Seeded Permission for Role: %s, Resource: %s\n", p.RoleName, p.Resource.ID)
+				fmt.Printf("Seeded Permission for Role: %s, Resource: %s\n", p.RoleName, p.ResourceID)
 			}
 		}
 	}

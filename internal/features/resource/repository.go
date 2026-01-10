@@ -171,9 +171,9 @@ func (r *ResourceRepositoryImpl) FindByResourceID(ctx context.Context, resourceI
 	// 1. Try to find tenant-specific or override
 	if !oid.IsZero() {
 		filter := bson.M{
-			"resource":   resourceID,
-			"tenant_id":  oid,
-			"deleted_at": bson.M{"$exists": false},
+			"resource_id": resourceID,
+			"tenant_id":   oid,
+			"deleted_at":  bson.M{"$exists": false},
 		}
 		coll := r.getCollection(ctx)
 		var res Resource
@@ -185,9 +185,9 @@ func (r *ResourceRepositoryImpl) FindByResourceID(ctx context.Context, resourceI
 
 	// 2. Fallback to global
 	filter := bson.M{
-		"resource":   resourceID,
-		"scope":      "global",
-		"deleted_at": bson.M{"$exists": false},
+		"resource_id": resourceID,
+		"scope":       "global",
+		"deleted_at":  bson.M{"$exists": false},
 	}
 	coll := r.getCollection(ctx)
 	var res Resource
@@ -513,7 +513,7 @@ func (r *ResourceRepositoryImpl) EnsureIndexes(ctx context.Context) error {
 		},
 		{
 			Keys: bson.D{
-				{Key: "resource", Value: 1},
+				{Key: "resource_id", Value: 1},
 				{Key: "tenant_id", Value: 1},
 			},
 			Options: options.Index().SetName("idx_resource_tenant").SetUnique(true),
