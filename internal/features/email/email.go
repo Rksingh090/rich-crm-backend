@@ -16,7 +16,7 @@ const (
 
 type Email struct {
 	ID         primitive.ObjectID `bson:"_id,omitempty" json:"id"`
-	OrgID      primitive.ObjectID `bson:"orgId" json:"orgId"`
+	TenantID   primitive.ObjectID `bson:"tenant_id" json:"tenant_id"`
 	From       string             `bson:"from" json:"from"`
 	To         []string           `bson:"to" json:"to"`
 	Cc         []string           `bson:"cc,omitempty" json:"cc,omitempty"`
@@ -30,4 +30,14 @@ type Email struct {
 	ErrorMsg   string             `bson:"errorMessage,omitempty" json:"errorMessage,omitempty"`
 	CreatedAt  time.Time          `bson:"createdAt" json:"createdAt"`
 	SentAt     *time.Time         `bson:"sentAt,omitempty" json:"sentAt,omitempty"`
+}
+
+// EmailOptions provides configurable options for sending emails
+type EmailOptions struct {
+	To      []string
+	Cc      []string
+	Bcc     []string
+	From    string
+	Subject string
+	Body    string
 }

@@ -13,7 +13,7 @@ import (
 
 // Local interface to avoid import cycle with record package
 type RecordRepository interface {
-	Create(ctx context.Context, moduleName string, product models.Product, data map[string]any) (any, error)
+	Create(ctx context.Context, moduleName string, app models.App, data map[string]any) (any, error)
 	Get(ctx context.Context, moduleName, id string) (map[string]any, error)
 	List(ctx context.Context, moduleName string, filter map[string]any, accessFilter map[string]any, limit, offset int64, sortBy string, sortOrder int) ([]map[string]any, error)
 	Update(ctx context.Context, moduleName, id string, data map[string]any) error
@@ -113,10 +113,10 @@ func (s *InventoryServiceImpl) HandleStockUpdate(ctx context.Context, moduleName
 		}
 
 		// Product struct assumption: Empty product struct as we are creating raw record
-		// The RecordRepository.Create signature requires a models.Product
+		// The RecordRepository.Create signature requires a models.App
 		// We can pass an empty one or look it up.
 		// Since we are inside the service, we might just pass empty.
-		_, err := s.RecordRepo.Create(ctx, "stock_movements", models.ProductCRM, movement)
+		_, err := s.RecordRepo.Create(ctx, "stock_movements", models.AppCRM, movement)
 		// Need to know the Product Name of the module?
 		// "stock_movements" is a system module. Is it under "crm" product?
 		// modules.json doesn't specify product. It defaults to "crm"?
@@ -162,7 +162,7 @@ func (s *InventoryServiceImpl) HandleStockUpdate(ctx context.Context, moduleName
 				"created_at":       time.Now(),
 				"updated_at":       time.Now(),
 			}
-			_, err = s.RecordRepo.Create(ctx, "inventory", models.ProductCRM, newInv)
+			_, err = s.RecordRepo.Create(ctx, "inventory", models.AppCRM, newInv)
 			if err != nil {
 				fmt.Printf("Failed to create inventory record: %v\n", err)
 			}

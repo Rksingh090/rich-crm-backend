@@ -14,22 +14,39 @@ func SetSecret(secret string) {
 	jwtSecret = []byte(secret)
 }
 
+// AppClaim represents role info per app
+type AppClaim struct {
+	Name string `json:"name"`
+	Role string `json:"role"`
+}
+
 type UserClaims struct {
-	UserID   string   `json:"user_id"`
-	TenantID string   `json:"tenant_id"`
-	Roles    []string `json:"roles"`            // Role Names
-	Groups   []string `json:"groups,omitempty"` // User groups for ABAC
-	RoleIDs  []string `json:"role_ids"`         // Role IDs
+	UserID          string     `json:"user_id"`
+	TenantID        string     `json:"tenant_id"`
+	Roles           []string   `json:"roles"`            // Role Names
+	Role            string     `json:"role"`             // Primary Role
+	Apps            []AppClaim `json:"apps"`             // Enabled Apps with Roles
+	Groups          []string   `json:"groups,omitempty"` // User groups for ABAC
+	RoleIDs         []string   `json:"role_ids"`         // Role IDs
+	IsPlatformAdmin bool       `json:"is_platform_admin"`
 	jwt.RegisteredClaims
 }
 
-func GenerateToken(userID primitive.ObjectID, tenantID primitive.ObjectID, roleNames []string, roleIDs []string, groups []string) (string, error) {
+func GenerateToken(userID primitive.ObjectID, tenantID primitive.ObjectID, roleNames []string, roleIDs []string, groups []string, apps []AppClaim, isPlatformAdmin bool) (string, error) {
+	primaryRole := ""
+	if len(roleNames) > 0 {
+		primaryRole = roleNames[0]
+	}
+
 	claims := UserClaims{
-		UserID:   userID.Hex(),
-		TenantID: tenantID.Hex(),
-		Roles:    roleNames,
-		RoleIDs:  roleIDs,
-		Groups:   groups,
+		UserID:          userID.Hex(),
+		TenantID:        tenantID.Hex(),
+		Roles:           roleNames,
+		Role:            primaryRole,
+		Apps:            apps,
+		RoleIDs:         roleIDs,
+		Groups:          groups,
+		IsPlatformAdmin: isPlatformAdmin,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour * 72)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),

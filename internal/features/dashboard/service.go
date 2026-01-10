@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	common_models "go-crm/internal/common/models"
-	"go-crm/internal/features/audit"
+	"go-crm/internal/core/audit"
 	"go-crm/internal/features/chart"
 	"go-crm/internal/features/module"
 	"go-crm/internal/features/record"

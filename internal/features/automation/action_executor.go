@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	common_models "go-crm/internal/common/models"
-	"go-crm/internal/features/audit"
+	"go-crm/internal/core/audit"
 	"go-crm/internal/features/email"
 	"go-crm/internal/features/email_template"
 	"go-crm/internal/features/module"
@@ -13,6 +13,7 @@ import (
 	"go-crm/internal/features/sync"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/d5/tengo/v2"
@@ -98,9 +99,11 @@ func (e *ActionExecutorImpl) ExecuteAction(ctx context.Context, action RuleActio
 
 func (e *ActionExecutorImpl) executeSendEmail(ctx context.Context, config map[string]interface{}, rec map[string]interface{}) error {
 	to, _ := config["to"].(string)
+	cc, _ := config["cc"].(string)
+	bcc, _ := config["bcc"].(string)
+	from, _ := config["from"].(string)
 	subject, _ := config["subject"].(string)
 	body, _ := config["body"].(string)
-
 	templateID, _ := config["template_id"].(string)
 
 	if templateID != "" {
@@ -115,12 +118,41 @@ func (e *ActionExecutorImpl) executeSendEmail(ctx context.Context, config map[st
 		body = e.replacePlaceholders(body, rec)
 	}
 
+	to = e.replacePlaceholders(to, rec)
+	cc = e.replacePlaceholders(cc, rec)
+	bcc = e.replacePlaceholders(bcc, rec)
+	from = e.replacePlaceholders(from, rec)
+
 	if to == "" {
 		return fmt.Errorf("email recipient (to) is required")
 	}
 
-	log.Printf("Sending email to: %s, subject: %s", to, subject)
-	if err := e.emailService.SendEmail(ctx, []string{to}, subject, body); err != nil {
+	parseEmails := func(s string) []string {
+		if s == "" {
+			return nil
+		}
+		parts := strings.Split(s, ",")
+		var result []string
+		for _, p := range parts {
+			trimmed := strings.TrimSpace(p)
+			if trimmed != "" {
+				result = append(result, trimmed)
+			}
+		}
+		return result
+	}
+
+	opts := email.EmailOptions{
+		To:      parseEmails(to),
+		Cc:      parseEmails(cc),
+		Bcc:     parseEmails(bcc),
+		From:    from,
+		Subject: subject,
+		Body:    body,
+	}
+
+	log.Printf("Sending email to: %v, CC: %v, BCC: %v, subject: %s", opts.To, opts.Cc, opts.Bcc, opts.Subject)
+	if err := e.emailService.SendEmailWithOptions(ctx, opts); err != nil {
 		return fmt.Errorf("failed to send email: %w", err)
 	}
 
@@ -235,9 +267,9 @@ func (e *ActionExecutorImpl) executeCreateTask(ctx context.Context, config map[s
 
 	// Lookup tasks module to get product
 	taskModule, err := e.moduleRepo.FindByName(ctx, "tasks")
-	var product common_models.Product = common_models.ProductCRM // Default
+	var product common_models.App = common_models.AppCRM // Default
 	if err == nil {
-		product = taskModule.Product
+		product = taskModule.App
 	}
 
 	_, err = e.recordRepo.Create(ctx, "tasks", product, taskData)
@@ -300,9 +332,9 @@ func (e *ActionExecutorImpl) executeSendNotification(ctx context.Context, config
 
 	// Lookup notifications module to get product
 	notifModule, err := e.moduleRepo.FindByName(ctx, "notifications")
-	var product common_models.Product = common_models.ProductCRM // Default or Platform?
+	var product common_models.App = common_models.AppCRM // Default or Platform?
 	if err == nil {
-		product = notifModule.Product
+		product = notifModule.App
 	}
 
 	_, err = e.recordRepo.Create(ctx, "notifications", product, notificationData)

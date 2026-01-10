@@ -10,6 +10,7 @@ type ContextKey string
 
 const (
 	TenantIDKey ContextKey = "tenant_id"
+	AppIDKey    ContextKey = "app"
 )
 
 type AuditAction string
@@ -49,14 +50,34 @@ type AuditLog struct {
 	Timestamp time.Time          `bson:"timestamp" json:"timestamp"`
 }
 
-// Product Types
-type Product string
+// App Types
+type App string
 
 const (
-	ProductCRM       Product = "crm"
-	ProductERP       Product = "erp"
-	ProductAnalytics Product = "analytics"
+	AppCRM       App = "crm"
+	AppERP       App = "erp"
+	AppAnalytics App = "analytics"
 )
+
+type AppStatus string
+
+const (
+	AppStatusActive      AppStatus = "active"
+	AppStatusInactive    AppStatus = "inactive"
+	AppStatusMaintenance AppStatus = "maintenance"
+)
+
+type Application struct {
+	ID          primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	Name        string             `bson:"name" json:"name"` // crm, erp, analytics
+	Label       string             `bson:"label" json:"label"`
+	Description string             `bson:"description" json:"description"`
+	Icon        string             `bson:"icon" json:"icon"`
+	Status      AppStatus          `bson:"status" json:"status"`
+	Version     string             `bson:"version" json:"version"`
+	CreatedAt   time.Time          `bson:"created_at" json:"created_at"`
+	UpdatedAt   time.Time          `bson:"updated_at" json:"updated_at"`
+}
 
 // Field Definitions (Moved from Module)
 type FieldType string
@@ -123,7 +144,7 @@ type Section struct {
 type Entity struct {
 	ID           primitive.ObjectID `json:"id" bson:"_id,omitempty"`
 	TenantID     primitive.ObjectID `json:"tenant_id" bson:"tenant_id"`
-	Product      Product            `json:"product" bson:"product"`
+	App          App                `json:"app" bson:"app"`
 	Name         string             `json:"name" bson:"name"` // Slug/Internal Name
 	Label        string             `json:"label" bson:"label"`
 	Sections     []Section          `json:"sections" bson:"sections"` // New: Sections
@@ -145,7 +166,7 @@ type Entity struct {
 type EntityRecord struct {
 	ID        primitive.ObjectID     `json:"id" bson:"_id,omitempty"`
 	TenantID  primitive.ObjectID     `json:"tenant_id" bson:"tenant_id"`
-	Product   Product                `json:"product" bson:"product"`
+	App       App                    `json:"app" bson:"app"`
 	Entity    string                 `json:"entity" bson:"entity"` // Name of the Entity
 	Data      map[string]interface{} `json:"data" bson:"data"`
 	CreatedBy string                 `json:"created_by" bson:"created_by"` // User ID
@@ -157,30 +178,65 @@ type EntityRecord struct {
 	DeletedBy string                 `json:"deleted_by,omitempty" bson:"deleted_by,omitempty"` // User ID
 }
 
+type SubscriptionStatus string
+
+const (
+	SubscriptionStatusActive    SubscriptionStatus = "active"
+	SubscriptionStatusPastDue   SubscriptionStatus = "past_due"
+	SubscriptionStatusCancelled SubscriptionStatus = "cancelled"
+	SubscriptionStatusTrial     SubscriptionStatus = "trial"
+	SubscriptionStatusFree      SubscriptionStatus = "free"
+)
+
+type ValidationStatus string
+
+const (
+	ValidationStatusVerified   ValidationStatus = "verified"
+	ValidationStatusUnverified ValidationStatus = "unverified"
+	ValidationStatusPending    ValidationStatus = "pending"
+)
+
 type Organization struct {
 	ID                      primitive.ObjectID                     `bson:"_id,omitempty" json:"id"`
 	Name                    string                                 `bson:"name" json:"name"`
 	Slug                    string                                 `bson:"slug" json:"slug"`
-	Plan                    string                                 `bson:"plan" json:"plan"` // e.g. "enterprise"
-	EnabledProducts         []Product                              `bson:"enabled_products" json:"enabled_products"`
+	Plan                    string                                 `bson:"plan" json:"plan"` // e.g. "enterprise", "pro", "free"
+	SubscriptionStatus      SubscriptionStatus                     `bson:"subscription_status" json:"subscription_status"`
+	BillingCycle            string                                 `bson:"billing_cycle" json:"billing_cycle"` // "monthly", "yearly"
+	Currency                string                                 `bson:"currency" json:"currency"`           // "USD", "EUR"
+	Price                   float64                                `bson:"price" json:"price"`
+	TrialEndsAt             *time.Time                             `bson:"trial_ends_at,omitempty" json:"trial_ends_at,omitempty"`
+	NextBillingDate         *time.Time                             `bson:"next_billing_date,omitempty" json:"next_billing_date,omitempty"`
+	PaymentMethodID         string                                 `bson:"payment_method_id,omitempty" json:"payment_method_id,omitempty"`
+	ValidationStatus        ValidationStatus                       `bson:"validation_status" json:"validation_status"`
+	EnabledApps             []App                                  `bson:"enabled_apps" json:"enabled_apps"`
 	OwnerID                 primitive.ObjectID                     `bson:"owner_id" json:"owner_id"`
+	CreatedBy               primitive.ObjectID                     `bson:"created_by,omitempty" json:"created_by,omitempty"`
 	DefaultPermissions      map[string]map[string]ActionPermission `bson:"default_permissions,omitempty" json:"default_permissions,omitempty"`             // Default actions for any user in org
 	DefaultFieldPermissions map[string]map[string]string           `bson:"default_field_permissions,omitempty" json:"default_field_permissions,omitempty"` // Default field access
 	CreatedAt               time.Time                              `bson:"created_at" json:"created_at"`
 	UpdatedAt               time.Time                              `bson:"updated_at" json:"updated_at"`
 }
 
+const StatusInvited = "invited"
+
+type UserAppRole struct {
+	AppID  App                `bson:"app_id" json:"app_id"`
+	RoleID primitive.ObjectID `bson:"role_id" json:"role_id"`
+}
+
 type User struct {
-	ID               primitive.ObjectID                     `bson:"_id,omitempty" json:"id"`
-	TenantID         primitive.ObjectID                     `bson:"tenant_id,omitempty" json:"tenant_id,omitempty"`
-	Username         string                                 `bson:"username" json:"username"`
+	ID       primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	TenantID primitive.ObjectID `bson:"tenant_id,omitempty" json:"tenant_id,omitempty"`
+
 	Password         string                                 `bson:"password" json:"-"`
 	Email            string                                 `bson:"email" json:"email"`
 	FirstName        string                                 `bson:"first_name,omitempty" json:"first_name,omitempty"`
 	LastName         string                                 `bson:"last_name,omitempty" json:"last_name,omitempty"`
 	Phone            string                                 `bson:"phone,omitempty" json:"phone,omitempty"`
-	Status           string                                 `bson:"status" json:"status"`                                           // active, inactive, suspended
-	Roles            []primitive.ObjectID                   `bson:"roles" json:"roles"`                                             // References to Role IDs
+	Status           string                                 `bson:"status" json:"status"` // active, inactive, suspended, invited
+	Roles            []primitive.ObjectID                   `bson:"roles" json:"roles"`   // References to Role IDs
+	AppRoles         []UserAppRole                          `bson:"app_roles,omitempty" json:"app_roles,omitempty"`
 	Groups           []primitive.ObjectID                   `bson:"groups,omitempty" json:"groups,omitempty"`                       // References to Group IDs
 	Permissions      map[string]map[string]ActionPermission `bson:"permissions,omitempty" json:"permissions,omitempty"`             // Direct user overrides
 	FieldPermissions map[string]map[string]string           `bson:"field_permissions,omitempty" json:"field_permissions,omitempty"` // Direct user field overrides
@@ -188,6 +244,11 @@ type User struct {
 	LastLogin        *time.Time                             `bson:"last_login,omitempty" json:"last_login,omitempty"`
 	CreatedAt        time.Time                              `bson:"created_at" json:"created_at"`
 	UpdatedAt        time.Time                              `bson:"updated_at" json:"updated_at"`
+
+	// New fields for invite flow
+	InviteToken     string     `bson:"invite_token,omitempty" json:"-"`
+	InviteExpiresAt *time.Time `bson:"invite_expires_at,omitempty" json:"-"`
+	IsPlatformAdmin bool       `bson:"is_platform_admin" json:"is_platform_admin"`
 }
 
 type Log struct {

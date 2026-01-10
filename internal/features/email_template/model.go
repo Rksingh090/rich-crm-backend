@@ -8,9 +8,11 @@ import (
 
 type EmailTemplate struct {
 	ID          primitive.ObjectID `json:"id" bson:"_id,omitempty"`
+	TenantID    primitive.ObjectID `json:"tenant_id" bson:"tenant_id"`
 	Name        string             `json:"name" bson:"name"`
 	Subject     string             `json:"subject" bson:"subject"`
 	Body        string             `json:"body" bson:"body"`
+	Design      []interface{}      `json:"design" bson:"design"`
 	ModuleName  string             `json:"module_name" bson:"module_name"`
 	Description string             `json:"description" bson:"description"`
 	IsActive    bool               `json:"is_active" bson:"is_active"`

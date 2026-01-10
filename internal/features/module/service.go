@@ -8,8 +8,8 @@ import (
 	"time"
 
 	common_models "go-crm/internal/common/models"
-	"go-crm/internal/features/audit"
-	"go-crm/internal/features/role"
+	"go-crm/internal/core/audit"
+	"go-crm/internal/core/role"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -73,10 +73,10 @@ func (s *ModuleServiceImpl) CreateModule(ctx context.Context, m *common_models.E
 	}
 
 	// Create corresponding Resource
-	resourceID := fmt.Sprintf("%s.%s", m.Product, m.Name)
+	resourceID := fmt.Sprintf("%s.%s", string(m.App), m.Name)
 	resource := map[string]interface{}{
 		"resource":     resourceID,
-		"product":      string(m.Product),
+		"app":          string(m.App),
 		"type":         "module",
 		"key":          m.Name,
 		"label":        m.Label,
@@ -127,7 +127,7 @@ func (s *ModuleServiceImpl) GetModuleByName(ctx context.Context, name string, us
 		allowedGlobal, err := s.RoleService.CheckPermission(ctx, userID, "modules", "read")
 		if err != nil || !allowedGlobal {
 			// 2. Specific Read
-			resourceID := fmt.Sprintf("%s.%s", m.Product, m.Name)
+			resourceID := fmt.Sprintf("%s.%s", string(m.App), m.Name)
 			allowedSpecific, errSpec := s.RoleService.CheckPermission(ctx, userID, resourceID, "read")
 			if errSpec != nil || !allowedSpecific {
 				return nil, errors.New("access denied")
@@ -172,7 +172,7 @@ func (s *ModuleServiceImpl) ListModules(ctx context.Context, userID primitive.Ob
 		// Module Level Permission Check
 		if !userID.IsZero() && !canReadAll {
 			// Construct resource ID: e.g. "crm.leads"
-			resourceID := fmt.Sprintf("%s.%s", modules[i].Product, modules[i].Name)
+			resourceID := fmt.Sprintf("%s.%s", string(modules[i].App), modules[i].Name)
 			allowed, err := s.RoleService.CheckPermission(ctx, userID, resourceID, "read")
 			if err != nil || !allowed {
 				continue // Skip module if no permission
@@ -234,7 +234,7 @@ func (s *ModuleServiceImpl) UpdateModule(ctx context.Context, m *common_models.E
 	if !userID.IsZero() {
 		allowedGlobal, err := s.RoleService.CheckPermission(ctx, userID, "modules", "update")
 		if err != nil || !allowedGlobal {
-			resourceID := fmt.Sprintf("%s.%s", existingModule.Product, existingModule.Name)
+			resourceID := fmt.Sprintf("%s.%s", string(existingModule.App), existingModule.Name)
 			allowedSpecific, errSpec := s.RoleService.CheckPermission(ctx, userID, resourceID, "update")
 			if errSpec != nil || !allowedSpecific {
 				return errors.New("access denied")
@@ -279,10 +279,10 @@ func (s *ModuleServiceImpl) UpdateModule(ctx context.Context, m *common_models.E
 		// Handle Resource Override creation as well?
 		// Logic handles resource creation in CreateModule.
 		// Since we are effectively "creating" a new override module, we should sync resource.
-		resourceID := fmt.Sprintf("%s.%s", m.Product, m.Name)
+		resourceID := fmt.Sprintf("%s.%s", string(m.App), m.Name)
 		resource := map[string]interface{}{
 			"resource":         resourceID,
-			"product":          string(m.Product),
+			"app":              string(m.App),
 			"type":             "module",
 			"key":              m.Name,
 			"label":            m.Label,
@@ -362,7 +362,7 @@ func (s *ModuleServiceImpl) UpdateModule(ctx context.Context, m *common_models.E
 	}
 	m.ID = existingModule.ID
 	m.TenantID = existingModule.TenantID
-	m.Product = existingModule.Product
+	m.App = existingModule.App
 	m.Indexes = existingModule.Indexes
 	m.IsSystem = existingModule.IsSystem
 	m.CreatedAt = existingModule.CreatedAt
@@ -387,7 +387,7 @@ func (s *ModuleServiceImpl) DeleteModule(ctx context.Context, name string, userI
 	if !userID.IsZero() {
 		allowedGlobal, err := s.RoleService.CheckPermission(ctx, userID, "modules", "delete")
 		if err != nil || !allowedGlobal {
-			resourceID := fmt.Sprintf("%s.%s", m.Product, m.Name)
+			resourceID := fmt.Sprintf("%s.%s", string(m.App), m.Name)
 			allowedSpecific, errSpec := s.RoleService.CheckPermission(ctx, userID, resourceID, "delete")
 			if errSpec != nil || !allowedSpecific {
 				return errors.New("access denied")
@@ -426,7 +426,7 @@ func (s *ModuleServiceImpl) DeleteModule(ctx context.Context, name string, userI
 	}
 
 	// 4. Soft Delete corresponding Resource
-	resourceID := fmt.Sprintf("%s.%s", m.Product, m.Name)
+	resourceID := fmt.Sprintf("%s.%s", string(m.App), m.Name)
 	if err := s.ResourceService.DeleteResource(ctx, resourceID, userIDStr); err != nil {
 		// Log error but don't fail module deletion
 		_ = s.AuditService.LogChange(ctx, common_models.AuditActionDelete, "module", name, map[string]common_models.Change{

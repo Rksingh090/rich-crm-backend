@@ -1,7 +1,190 @@
 [
   {
+    "resource_id": "crm.settings_general",
+    "app": "crm",
+    "type": "setting",
+    "key": "general",
+    "label": "General",
+    "icon": "Settings",
+    "route": "/settings/general",
+    "actions": [
+      "read"
+    ],
+    "configurable": false,
+    "ui": {
+      "sidebar": true,
+      "location": "settings",
+      "group": "General",
+      "order": 0,
+      "group_order": 0
+    },
+    "scope": "global",
+    "is_system": true,
+    "is_override": false
+  },
+  {
+    "resource_id": "crm.settings_modules",
+    "app": "crm",
+    "type": "setting",
+    "key": "module_builder",
+    "label": "Module Builder",
+    "icon": "Layers",
+    "route": "/settings/modules",
+    "actions": [
+      "read"
+    ],
+    "configurable": false,
+    "ui": {
+      "sidebar": true,
+      "location": "settings",
+      "group": "General",
+      "order": 1,
+      "group_order": 0
+    },
+    "scope": "global",
+    "is_system": true,
+    "is_override": false
+  },
+  {
+    "resource_id": "crm.settings_developer",
+    "app": "crm",
+    "type": "setting",
+    "key": "developer",
+    "label": "Developer Reference",
+    "icon": "Code",
+    "route": "/settings/developer",
+    "actions": [
+      "read"
+    ],
+    "configurable": false,
+    "ui": {
+      "sidebar": true,
+      "location": "settings",
+      "group": "General",
+      "order": 2,
+      "group_order": 0
+    },
+    "scope": "global",
+    "is_system": true,
+    "is_override": false
+  },
+  {
+    "resource_id": "crm.settings_file_sharing",
+    "app": "crm",
+    "type": "setting",
+    "key": "file_sharing",
+    "label": "File Sharing",
+    "icon": "Files",
+    "route": "/settings/file-sharing",
+    "actions": [
+      "read"
+    ],
+    "configurable": false,
+    "ui": {
+      "sidebar": true,
+      "location": "settings",
+      "group": "General",
+      "order": 3,
+      "group_order": 0
+    },
+    "scope": "global",
+    "is_system": true,
+    "is_override": false
+  },
+  {
+    "resource_id": "crm.settings_audit_logs",
+    "app": "crm",
+    "type": "setting",
+    "key": "audit_logs",
+    "label": "Audit Logs",
+    "icon": "History",
+    "route": "/settings/audit-logs",
+    "actions": [
+      "read"
+    ],
+    "configurable": false,
+    "ui": {
+      "sidebar": true,
+      "location": "settings",
+      "group": "General",
+      "order": 4,
+      "group_order": 0
+    },
+    "scope": "global",
+    "is_system": true,
+    "is_override": false
+  },
+  {
+    "resource_id": "crm.settings_email",
+    "app": "crm",
+    "type": "setting",
+    "key": "smtp",
+    "label": "SMTP Settings",
+    "icon": "Mail",
+    "route": "/settings/email",
+    "actions": [
+      "read",
+      "update"
+    ],
+    "configurable": false,
+    "ui": {
+      "sidebar": true,
+      "order": 0,
+      "group_order": 1,
+      "location": "settings",
+      "group": "Email"
+    },
+    "scope": "global",
+    "is_system": true,
+    "is_override": false
+  },
+  {
+    "resource_id": "crm.settings_email_templates",
+    "app": "crm",
+    "type": "setting",
+    "key": "email_templates",
+    "label": "Email Templates",
+    "icon": "LayoutTemplate",
+    "route": "/settings/email-templates",
+    "actions": [
+      "read"
+    ],
+    "configurable": false,
+    "ui": {
+      "sidebar": true,
+      "location": "settings",
+      "group": "Email",
+      "order": 0,
+      "group_order": 1
+    },
+    "scope": "global",
+    "is_system": true,
+    "is_override": false
+  },
+  {
+    "resource_id": "crm.dashboard",
+    "app": "crm",
+    "type": "page",
+    "key": "dashboard",
+    "label": "Dashboard",
+    "icon": "LayoutDashboard",
+    "route": "/dashboard",
+    "actions": [
+      "read"
+    ],
+    "configurable": false,
+    "ui": {
+      "sidebar": true,
+      "order": 2,
+      "location": "main"
+    },
+    "scope": "global",
+    "is_system": true,
+    "is_override": false
+  },
+  {
     "resource_id": "crm.settings",
-    "product": "crm",
+    "app": "crm",
     "type": "page",
     "key": "settings",
     "label": "Settings",
@@ -22,29 +205,8 @@
     "is_override": false
   },
   {
-    "resource_id": "crm.dashboard",
-    "product": "crm",
-    "type": "page",
-    "key": "dashboard",
-    "label": "Dashboard",
-    "icon": "LayoutDashboard",
-    "route": "/dashboard",
-    "actions": [
-      "read"
-    ],
-    "configurable": false,
-    "ui": {
-      "sidebar": true,
-      "order": 2,
-      "location": "main"
-    },
-    "scope": "global",
-    "is_system": true,
-    "is_override": false
-  },
-  {
     "resource_id": "crm.tickets",
-    "product": "crm",
+    "app": "crm",
     "type": "system",
     "key": "tickets",
     "label": "Tickets",
@@ -70,7 +232,7 @@
   },
   {
     "resource_id": "crm.sla_tracking",
-    "product": "crm",
+    "app": "crm",
     "type": "system",
     "key": "sla_tracking",
     "label": "SLA Tracking",
@@ -92,7 +254,7 @@
   },
   {
     "resource_id": "crm.calendar",
-    "product": "crm",
+    "app": "crm",
     "type": "system",
     "key": "calendar",
     "label": "Calendar",
@@ -116,162 +278,8 @@
     "is_override": false
   },
   {
-    "resource_id": "crm.settings_email",
-    "product": "crm",
-    "type": "setting",
-    "key": "smtp",
-    "label": "SMTP Settings",
-    "icon": "Mail",
-    "route": "/settings/email",
-    "actions": [
-      "read",
-      "update"
-    ],
-    "configurable": false,
-    "ui": {
-      "sidebar": true,
-      "order": 1,
-      "location": "settings"
-    },
-    "scope": "global",
-    "is_system": true,
-    "is_override": false
-  },
-  {
-    "resource_id": "crm.settings_general",
-    "product": "crm",
-    "type": "setting",
-    "key": "general",
-    "label": "General",
-    "icon": "Settings",
-    "route": "/settings/general",
-    "actions": [
-      "read"
-    ],
-    "configurable": false,
-    "ui": {
-      "sidebar": true,
-      "location": "settings",
-      "group": "General",
-      "order": 0
-    },
-    "scope": "global",
-    "is_system": true,
-    "is_override": false
-  },
-  {
-    "resource_id": "crm.settings_email_templates",
-    "product": "crm",
-    "type": "setting",
-    "key": "email_templates",
-    "label": "Email Templates",
-    "icon": "LayoutTemplate",
-    "route": "/settings/email-templates",
-    "actions": [
-      "read"
-    ],
-    "configurable": false,
-    "ui": {
-      "sidebar": true,
-      "location": "settings",
-      "group": "General",
-      "order": 2
-    },
-    "scope": "global",
-    "is_system": true,
-    "is_override": false
-  },
-  {
-    "resource_id": "crm.settings_modules",
-    "product": "crm",
-    "type": "setting",
-    "key": "module_builder",
-    "label": "Module Builder",
-    "icon": "Layers",
-    "route": "/settings/modules",
-    "actions": [
-      "read"
-    ],
-    "configurable": false,
-    "ui": {
-      "sidebar": true,
-      "location": "settings",
-      "group": "General",
-      "order": 3
-    },
-    "scope": "global",
-    "is_system": true,
-    "is_override": false
-  },
-  {
-    "resource_id": "crm.settings_audit_logs",
-    "product": "crm",
-    "type": "setting",
-    "key": "audit_logs",
-    "label": "Audit Logs",
-    "icon": "History",
-    "route": "/settings/audit-logs",
-    "actions": [
-      "read"
-    ],
-    "configurable": false,
-    "ui": {
-      "sidebar": true,
-      "location": "settings",
-      "group": "General",
-      "order": 4
-    },
-    "scope": "global",
-    "is_system": true,
-    "is_override": false
-  },
-  {
-    "resource_id": "crm.settings_developer",
-    "product": "crm",
-    "type": "setting",
-    "key": "developer",
-    "label": "Developer Reference",
-    "icon": "Code",
-    "route": "/settings/developer",
-    "actions": [
-      "read"
-    ],
-    "configurable": false,
-    "ui": {
-      "sidebar": true,
-      "location": "settings",
-      "group": "General",
-      "order": 5
-    },
-    "scope": "global",
-    "is_system": true,
-    "is_override": false
-  },
-  {
-    "resource_id": "crm.settings_file_sharing",
-    "product": "crm",
-    "type": "setting",
-    "key": "file_sharing",
-    "label": "File Sharing",
-    "icon": "Files",
-    "route": "/settings/file-sharing",
-    "actions": [
-      "read"
-    ],
-    "configurable": false,
-    "ui": {
-      "sidebar": true,
-      "location": "settings",
-      "group": "General",
-      "order": 6
-    },
-    "scope": "global",
-    "is_system": true,
-    "is_override": false
-  },
-  {
     "resource_id": "crm.settings_users",
-    "product": "crm",
+    "app": "crm",
     "type": "setting",
     "key": "users",
     "label": "Users",
@@ -296,7 +304,7 @@
   },
   {
     "resource_id": "crm.settings_roles",
-    "product": "crm",
+    "app": "crm",
     "type": "setting",
     "key": "roles",
     "label": "Roles & Permissions",
@@ -321,7 +329,7 @@
   },
   {
     "resource_id": "crm.settings_groups",
-    "product": "crm",
+    "app": "crm",
     "type": "setting",
     "key": "groups",
     "label": "Groups",
@@ -346,7 +354,7 @@
   },
   {
     "resource_id": "crm.settings_workflows",
-    "product": "crm",
+    "app": "crm",
     "type": "setting",
     "key": "workflows",
     "label": "Workflows",
@@ -371,7 +379,7 @@
   },
   {
     "resource_id": "crm.settings_automation_rules",
-    "product": "crm",
+    "app": "crm",
     "type": "setting",
     "key": "automation_rules",
     "label": "Automation Rules",
@@ -396,7 +404,7 @@
   },
   {
     "resource_id": "crm.settings_cron_jobs",
-    "product": "crm",
+    "app": "crm",
     "type": "setting",
     "key": "cron_jobs",
     "label": "Cron Jobs",
@@ -421,7 +429,7 @@
   },
   {
     "resource_id": "crm.settings_sla_policies",
-    "product": "crm",
+    "app": "crm",
     "type": "setting",
     "key": "sla_policies",
     "label": "SLA Policies",
@@ -446,7 +454,7 @@
   },
   {
     "resource_id": "crm.settings_escalation_rules",
-    "product": "crm",
+    "app": "crm",
     "type": "setting",
     "key": "escalation_rules",
     "label": "Escalation Rules",
@@ -471,7 +479,7 @@
   },
   {
     "resource_id": "crm.settings_webhooks",
-    "product": "crm",
+    "app": "crm",
     "type": "setting",
     "key": "webhooks",
     "label": "Webhooks",
@@ -496,7 +504,7 @@
   },
   {
     "resource_id": "crm.settings_extensions",
-    "product": "crm",
+    "app": "crm",
     "type": "setting",
     "key": "extensions",
     "label": "Marketplace",
@@ -518,7 +526,7 @@
   },
   {
     "resource_id": "crm.settings_sync",
-    "product": "crm",
+    "app": "crm",
     "type": "setting",
     "key": "sync",
     "label": "Data Sync",
@@ -543,7 +551,7 @@
   },
   {
     "resource_id": "crm.settings_import",
-    "product": "crm",
+    "app": "crm",
     "type": "setting",
     "key": "import",
     "label": "Data Import",
@@ -568,7 +576,7 @@
   },
   {
     "resource_id": "crm.settings_reports",
-    "product": "crm",
+    "app": "crm",
     "type": "setting",
     "key": "reports",
     "label": "Reports",
@@ -590,7 +598,7 @@
   },
   {
     "resource_id": "crm.settings_reports_pivot",
-    "product": "crm",
+    "app": "crm",
     "type": "setting",
     "key": "pivot_reports",
     "label": "Pivot Reports",
@@ -612,7 +620,7 @@
   },
   {
     "resource_id": "crm.settings_scheduled_reports",
-    "product": "crm",
+    "app": "crm",
     "type": "setting",
     "key": "scheduled_reports",
     "label": "Scheduled Reports",
@@ -637,7 +645,7 @@
   },
   {
     "resource_id": "crm.leads",
-    "product": "crm",
+    "app": "crm",
     "type": "module",
     "key": "leads",
     "label": "Leads",
@@ -663,7 +671,7 @@
   },
   {
     "resource_id": "crm.contacts",
-    "product": "crm",
+    "app": "crm",
     "type": "module",
     "key": "contacts",
     "label": "Contacts",
@@ -688,7 +696,7 @@
   },
   {
     "resource_id": "crm.accounts",
-    "product": "crm",
+    "app": "crm",
     "type": "module",
     "key": "accounts",
     "label": "Accounts",
@@ -713,7 +721,7 @@
   },
   {
     "resource_id": "crm.opportunities",
-    "product": "crm",
+    "app": "crm",
     "type": "module",
     "key": "opportunities",
     "label": "Opportunities",
@@ -738,7 +746,7 @@
   },
   {
     "resource_id": "crm.tasks",
-    "product": "crm",
+    "app": "crm",
     "type": "module",
     "key": "tasks",
     "label": "Tasks",
@@ -763,7 +771,7 @@
   },
   {
     "resource_id": "crm.meetings",
-    "product": "crm",
+    "app": "crm",
     "type": "module",
     "key": "meetings",
     "label": "Meetings",
@@ -788,7 +796,7 @@
   },
   {
     "resource_id": "crm.calls",
-    "product": "crm",
+    "app": "crm",
     "type": "module",
     "key": "calls",
     "label": "Calls",

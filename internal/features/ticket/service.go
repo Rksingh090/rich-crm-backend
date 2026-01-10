@@ -7,7 +7,7 @@ import (
 	"time"
 
 	common_models "go-crm/internal/common/models"
-	"go-crm/internal/features/audit"
+	"go-crm/internal/core/audit"
 	"go-crm/internal/features/notification"
 
 	"go.mongodb.org/mongo-driver/bson"

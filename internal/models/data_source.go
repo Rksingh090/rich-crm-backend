@@ -27,13 +27,3 @@ const (
 	DataSourceTypeMySQL      = "mysql"
 	DataSourceTypeMongoDB    = "mongodb"
 )
-
-// Config structure examples:
-// PostgreSQL/MySQL: {
-//   "host": "localhost",
-//   "port": 5432,
-//   "database": "mydb",
-//   "username": "user",
-//   "password": "pass"
-// }
-// CRM/ERP: {} (uses internal connection)

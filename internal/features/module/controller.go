@@ -42,9 +42,9 @@ func (ctrl *ModuleController) CreateModule(c *fiber.Ctx) error {
 	}
 
 	// Set Product from Header
-	product := c.Get("X-Rich-Product")
+	product := c.Get("X-Rich-App")
 	if product != "" {
-		m.Product = models.Product(product)
+		m.App = models.App(product)
 	} else {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Product not found in header",
@@ -64,11 +64,11 @@ func (ctrl *ModuleController) CreateModule(c *fiber.Ctx) error {
 
 // ListModules godoc
 // @Summary List all modules
-// @Description List all available modules, filtered by product via X-Rich-Product header
+// @Description List all available modules, filtered by product via X-Rich-App header
 // @Tags modules
 // @Accept json
 // @Produce json
-// @Param X-Rich-Product header string true "Product filter (e.g., crm, erp, analytics)"
+// @Param X-Rich-App header string true "Product filter (e.g., crm, erp, analytics)"
 // @Success 200 {array} Module "List of modules"
 // @Failure 500 {object} map[string]string "Failed to fetch modules"
 // @Router /api/modules [get]
@@ -80,9 +80,9 @@ func (ctrl *ModuleController) ListModules(c *fiber.Ctx) error {
 
 	// Get product from header and add to context
 	ctx := c.UserContext()
-	product := c.Get("X-Rich-Product", "")
+	product := c.Get("X-Rich-App", "")
 	if product != "" {
-		ctx = context.WithValue(ctx, "product", product)
+		ctx = context.WithValue(ctx, "app", product)
 	}
 
 	modules, err := ctrl.Service.ListModules(ctx, userID)

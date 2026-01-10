@@ -29,17 +29,39 @@ type ResourceRepository interface {
 	FindTenantResources(ctx context.Context) ([]Resource, error)
 	FindTenantOverrides(ctx context.Context) ([]Resource, error)
 	FindMergedResources(ctx context.Context) ([]Resource, error)
+	GetDefaults(ctx context.Context) ([]Resource, error)
 	EnsureIndexes(ctx context.Context) error
+	EnsureGlobalIndexes(ctx context.Context) error
 }
 
 type ResourceRepositoryImpl struct {
-	collection *mongo.Collection
+	DB *database.MongodbDB
 }
 
 func NewResourceRepository(db *database.MongodbDB) ResourceRepository {
 	return &ResourceRepositoryImpl{
-		collection: db.DB.Collection("resources"),
+		DB: db,
 	}
+}
+
+func (r *ResourceRepositoryImpl) getCollection(ctx context.Context) *mongo.Collection {
+	tenantID, _ := ctx.Value(models.TenantIDKey).(string)
+	return r.DB.GetTenantDB(tenantID).Collection("resources")
+}
+
+func (r *ResourceRepositoryImpl) GetDefaults(ctx context.Context) ([]Resource, error) {
+	db := r.DB.GetControlPlaneDB()
+	coll := db.Collection("default_resources")
+	cursor, err := coll.Find(ctx, bson.M{})
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+	var resources []Resource
+	if err := cursor.All(ctx, &resources); err != nil {
+		return nil, err
+	}
+	return resources, nil
 }
 
 func (r *ResourceRepositoryImpl) FindAll(ctx context.Context) ([]Resource, error) {
@@ -62,12 +84,13 @@ func (r *ResourceRepositoryImpl) FindAll(ctx context.Context) ([]Resource, error
 		"deleted_at": bson.M{"$exists": false},
 	}
 
-	// Read product from context (set by middleware/controller)
-	if product, ok := ctx.Value("product").(string); ok && product != "" {
-		filter["product"] = product
+	// Read app from context (set by middleware/controller)
+	if app, ok := ctx.Value(models.AppIDKey).(string); ok && app != "" {
+		filter["app"] = app
 	}
 
-	cursor, err := r.collection.Find(ctx, filter)
+	coll := r.getCollection(ctx)
+	cursor, err := coll.Find(ctx, filter)
 	if err != nil {
 		return nil, err
 	}
@@ -130,7 +153,8 @@ func (r *ResourceRepositoryImpl) FindByID(ctx context.Context, id string) (*Reso
 		"deleted_at": bson.M{"$exists": false},
 	}
 	var resource Resource
-	err = r.collection.FindOne(ctx, filter).Decode(&resource)
+	coll := r.getCollection(ctx)
+	err = coll.FindOne(ctx, filter).Decode(&resource)
 	if err != nil {
 		return nil, err
 	}
@@ -151,8 +175,9 @@ func (r *ResourceRepositoryImpl) FindByResourceID(ctx context.Context, resourceI
 			"tenant_id":  oid,
 			"deleted_at": bson.M{"$exists": false},
 		}
+		coll := r.getCollection(ctx)
 		var res Resource
-		err := r.collection.FindOne(ctx, filter).Decode(&res)
+		err := coll.FindOne(ctx, filter).Decode(&res)
 		if err == nil {
 			return &res, nil
 		}
@@ -164,8 +189,9 @@ func (r *ResourceRepositoryImpl) FindByResourceID(ctx context.Context, resourceI
 		"scope":      "global",
 		"deleted_at": bson.M{"$exists": false},
 	}
+	coll := r.getCollection(ctx)
 	var res Resource
-	err := r.collection.FindOne(ctx, filter).Decode(&res)
+	err := coll.FindOne(ctx, filter).Decode(&res)
 	if err != nil {
 		return nil, err
 	}
@@ -177,8 +203,9 @@ func (r *ResourceRepositoryImpl) FindByKey(ctx context.Context, key string) (*Re
 		"key":        key,
 		"deleted_at": bson.M{"$exists": false},
 	}
+	coll := r.getCollection(ctx)
 	var resource Resource
-	err := r.collection.FindOne(ctx, filter).Decode(&resource)
+	err := coll.FindOne(ctx, filter).Decode(&resource)
 	if err != nil {
 		return nil, err
 	}
@@ -201,7 +228,8 @@ func (r *ResourceRepositoryImpl) Create(ctx context.Context, resource *Resource)
 	// For global resources, TenantID should be empty
 	// For overrides, TenantID is already set
 
-	_, err := r.collection.InsertOne(ctx, resource)
+	coll := r.getCollection(ctx)
+	_, err := coll.InsertOne(ctx, resource)
 	return err
 }
 
@@ -218,7 +246,8 @@ func (r *ResourceRepositoryImpl) Update(ctx context.Context, resource *Resource)
 		filter["tenant_id"] = oid
 	}
 
-	_, err := r.collection.ReplaceOne(ctx, filter, resource)
+	coll := r.getCollection(ctx)
+	_, err := coll.ReplaceOne(ctx, filter, resource)
 	return err
 }
 
@@ -245,11 +274,12 @@ func (r *ResourceRepositoryImpl) Delete(ctx context.Context, id string, userID s
 		},
 	}
 	filter := bson.M{"_id": rid, "tenant_id": oid}
-	_, err = r.collection.UpdateOne(ctx, filter, update)
+	coll := r.getCollection(ctx)
+	_, err = coll.UpdateOne(ctx, filter, update)
 	return err
 }
 
-func (r *ResourceRepositoryImpl) FindSidebarResources(ctx context.Context, product string, location string) ([]Resource, error) {
+func (r *ResourceRepositoryImpl) FindSidebarResources(ctx context.Context, app string, location string) ([]Resource, error) {
 	tenantID, ok := ctx.Value(models.TenantIDKey).(string)
 	if !ok || tenantID == "" {
 		return nil, fmt.Errorf("tenant context missing")
@@ -270,8 +300,8 @@ func (r *ResourceRepositoryImpl) FindSidebarResources(ctx context.Context, produ
 		"deleted_at": bson.M{"$exists": false},
 	}
 
-	if product != "" {
-		filter["product"] = product
+	if app != "" {
+		filter["app"] = app
 	}
 
 	if location != "" {
@@ -285,7 +315,8 @@ func (r *ResourceRepositoryImpl) FindSidebarResources(ctx context.Context, produ
 		{Key: "ui.order", Value: 1},
 	})
 
-	cursor, err := r.collection.Find(ctx, filter, opts)
+	coll := r.getCollection(ctx)
+	cursor, err := coll.Find(ctx, filter, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -346,7 +377,8 @@ func (r *ResourceRepositoryImpl) FindGlobalResources(ctx context.Context) ([]Res
 		"deleted_at": bson.M{"$exists": false},
 	}
 
-	cursor, err := r.collection.Find(ctx, filter)
+	coll := r.getCollection(ctx)
+	cursor, err := coll.Find(ctx, filter)
 	if err != nil {
 		return nil, err
 	}
@@ -377,7 +409,8 @@ func (r *ResourceRepositoryImpl) FindTenantResources(ctx context.Context) ([]Res
 		"deleted_at":  bson.M{"$exists": false},
 	}
 
-	cursor, err := r.collection.Find(ctx, filter)
+	coll := r.getCollection(ctx)
+	cursor, err := coll.Find(ctx, filter)
 	if err != nil {
 		return nil, err
 	}
@@ -407,7 +440,8 @@ func (r *ResourceRepositoryImpl) FindTenantOverrides(ctx context.Context) ([]Res
 		"deleted_at":  bson.M{"$exists": false},
 	}
 
-	cursor, err := r.collection.Find(ctx, filter)
+	coll := r.getCollection(ctx)
+	cursor, err := coll.Find(ctx, filter)
 	if err != nil {
 		return nil, err
 	}
@@ -493,6 +527,23 @@ func (r *ResourceRepositoryImpl) EnsureIndexes(ctx context.Context) error {
 		},
 	}
 
-	_, err := r.collection.Indexes().CreateMany(ctx, indexes)
+	coll := r.getCollection(ctx)
+	_, err := coll.Indexes().CreateMany(ctx, indexes)
+	return err
+}
+
+func (r *ResourceRepositoryImpl) EnsureGlobalIndexes(ctx context.Context) error {
+	db := r.DB.GetControlPlaneDB()
+	coll := db.Collection("default_resources")
+
+	indexes := []mongo.IndexModel{
+		{
+			Keys: bson.D{
+				{Key: "resource_id", Value: 1},
+			},
+			Options: options.Index().SetName("idx_template_resource_id").SetUnique(true),
+		},
+	}
+	_, err := coll.Indexes().CreateMany(ctx, indexes)
 	return err
 }

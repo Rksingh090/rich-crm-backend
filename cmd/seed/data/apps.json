@@ -1,0 +1,26 @@
+[
+    {
+        "name": "crm",
+        "label": "CRM",
+        "description": "Customer Relationship Management",
+        "icon": "Users",
+        "status": "active",
+        "version": "1.0.0"
+    },
+    {
+        "name": "erp",
+        "label": "ERP",
+        "description": "Enterprise Resource Planning",
+        "icon": "Package",
+        "status": "active",
+        "version": "1.0.0"
+    },
+    {
+        "name": "analytics",
+        "label": "Analytics",
+        "description": "Business Intelligence & Analytics",
+        "icon": "BarChart3",
+        "status": "active",
+        "version": "1.0.0"
+    }
+]

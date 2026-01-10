@@ -2,6 +2,7 @@ package resource
 
 import (
 	"context"
+	"go-crm/internal/common/models"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -18,21 +19,21 @@ func NewResourceController(service ResourceService) *ResourceController {
 
 // GetSidebarResources godoc
 // @Summary Get sidebar resources
-// @Description Get resources filtered for sidebar display, filtered by product from X-Rich-Product header
+// @Description Get resources filtered for sidebar display, filtered by app from X-Rich-App header
 // @Tags Resources
 // @Accept json
 // @Produce json
 // @Param location query string false "Location filter (e.g., main, settings)"
-// @Param X-Rich-Product header string true "Product filter (e.g., crm, erp, analytics)"
+// @Param X-Rich-App header string true "App filter (e.g., crm, erp, analytics)"
 // @Success 200 {array} Resource "List of sidebar resources grouped by category"
 // @Failure 500 {object} map[string]string "Internal server error"
 // @Security BearerAuth
 // @Router /api/resources/sidebar [get]
 func (c *ResourceController) GetSidebarResources(ctx *fiber.Ctx) error {
-	product := ctx.Get("X-Rich-Product", "")
+	app := ctx.Get("X-Rich-App", "")
 	location := ctx.Query("location", "")
 
-	resources, err := c.service.ListSidebarResources(ctx.UserContext(), product, location)
+	resources, err := c.service.ListSidebarResources(ctx.UserContext(), app, location)
 	if err != nil {
 		return ctx.Status(500).JSON(fiber.Map{"error": err.Error()})
 	}
@@ -42,21 +43,21 @@ func (c *ResourceController) GetSidebarResources(ctx *fiber.Ctx) error {
 
 // ListResources godoc
 // @Summary List all resources
-// @Description Get all resources for the current tenant, filtered by product via X-Rich-Product header
+// @Description Get all resources for the current tenant, filtered by app via X-Rich-App header
 // @Tags Resources
 // @Accept json
 // @Produce json
-// @Param X-Rich-Product header string true "Product filter (e.g., crm, erp, analytics)"
+// @Param X-Rich-App header string true "App filter (e.g., crm, erp, analytics)"
 // @Success 200 {array} Resource "List of all resources"
 // @Failure 500 {object} map[string]string "Internal server error"
 // @Security BearerAuth
 // @Router /api/resources [get]
 func (c *ResourceController) ListResources(ctx *fiber.Ctx) error {
-	// Get product from header and add to context
+	// Get app from header and add to context
 	userCtx := ctx.UserContext()
-	product := ctx.Get("X-Rich-Product", "")
-	if product != "" {
-		userCtx = context.WithValue(userCtx, "product", product)
+	app := ctx.Get("X-Rich-App", "")
+	if app != "" {
+		userCtx = context.WithValue(userCtx, models.AppIDKey, app)
 	}
 
 	resources, err := c.service.ListResources(userCtx)

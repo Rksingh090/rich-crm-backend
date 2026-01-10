@@ -22,83 +22,80 @@ type ModuleRepository interface {
 	Delete(ctx context.Context, name string, userID string) error
 	FindUsingLookup(ctx context.Context, targetModule string) ([]models.Entity, error)
 	EnsureIndexes(ctx context.Context) error
+	EnsureGlobalIndexes(ctx context.Context) error
+	GetDefaults(ctx context.Context) ([]models.Entity, error)
 }
 
 type ModuleRepositoryImpl struct {
-	Collection *mongo.Collection
-	DB         *mongo.Database
+	DB *database.MongodbDB
 }
 
 func NewModuleRepository(mongodb *database.MongodbDB) ModuleRepository {
 	return &ModuleRepositoryImpl{
-		Collection: mongodb.DB.Collection("entities"),
-		DB:         mongodb.DB,
+		DB: mongodb,
 	}
 }
 
-func (r *ModuleRepositoryImpl) Create(ctx context.Context, module *models.Entity) error {
-	tenantID, ok := ctx.Value(models.TenantIDKey).(string)
-	if !ok || tenantID == "" {
-		// Allow creation of global modules without tenant context
-		if module.Scope == "global" {
-			module.TenantID = primitive.NilObjectID
-			_, err := r.Collection.InsertOne(ctx, module)
-			return err
-		}
-		return fmt.Errorf("organization context missing")
-	}
-	oid, err := primitive.ObjectIDFromHex(tenantID)
-	if err != nil {
-		return err
-	}
-	module.TenantID = oid
-
-	// Default to tenant scope if not set (which is standard for this path)
-	if module.Scope == "" {
-		module.Scope = "tenant"
-	}
-
-	_, err = r.Collection.InsertOne(ctx, module)
-	return err
-}
-
-func (r *ModuleRepositoryImpl) FindByName(ctx context.Context, name string) (*models.Entity, error) {
+// helper
+func (r *ModuleRepositoryImpl) getCollection(ctx context.Context) (*mongo.Collection, error) {
 	tenantID, ok := ctx.Value(models.TenantIDKey).(string)
 	if !ok || tenantID == "" {
 		return nil, fmt.Errorf("organization context missing")
 	}
-	oid, err := primitive.ObjectIDFromHex(tenantID)
+	db := r.DB.GetTenantDB(tenantID)
+	return db.Collection("modules"), nil // Renaming 'entities' to 'modules' to be consistent or stick to 'entities'?
+	// Previous code used "entities". Let's stick to "entities" for consistency unless user asked.
+	// User said "default resources will be copied".
+	// Let's use "modules" as collection name in Tenant DB to match feature name?
+	// Or stay with "entities". Current codebase uses "entities". I'll stick to "entities".
+}
+
+func (r *ModuleRepositoryImpl) GetDefaults(ctx context.Context) ([]models.Entity, error) {
+	// Read from Control Plane
+	db := r.DB.GetControlPlaneDB()
+	coll := db.Collection("default_modules") // Explicit separate collection for templates
+
+	// If default_modules is empty, maybe fallback to "entities" with scope=global?
+	// User said "control_plane_db where ... default resources ... will live".
+	// I'll assume a new collection "default_modules".
+
+	cursor, err := coll.Find(ctx, bson.M{})
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var modules []models.Entity
+	if err = cursor.All(ctx, &modules); err != nil {
+		return nil, err
+	}
+	return modules, nil
+}
+
+func (r *ModuleRepositoryImpl) Create(ctx context.Context, module *models.Entity) error {
+	coll, err := r.getCollection(ctx)
+	if err != nil {
+		return err
+	}
+
+	oid, _ := primitive.ObjectIDFromHex(ctx.Value(models.TenantIDKey).(string))
+	module.TenantID = oid
+
+	// Scope is always tenant in Tenant DB
+	module.Scope = "tenant"
+
+	_, err = coll.InsertOne(ctx, module)
+	return err
+}
+
+func (r *ModuleRepositoryImpl) FindByName(ctx context.Context, name string) (*models.Entity, error) {
+	coll, err := r.getCollection(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	// 1. Try to find tenant-specific or override
-	filter := bson.M{
-		"name":       name,
-		"tenant_id":  oid,
-		"deleted_at": bson.M{"$exists": false},
-	}
 	var module models.Entity
-	err = r.Collection.FindOne(ctx, filter).Decode(&module)
-	if err == nil {
-		return &module, nil
-	}
-
-	// 2. Fallback to global
-	// Note: Global entities must implement "tenant isolation" by not being in tenant_id query
-	// but we must explicitly look for scope=global and NO tenant_id (or ignore tenant_id for global?)
-	// Common model: Global entities have empty tenant_id or special tenant_id.
-	// We'll assume empty/null tenant_id means global OR scope="global" is sufficient differentiator.
-	// But `tenant_id` index is unique?
-	// Existing unique index is {name, tenant_id}.
-	// If global entity has null tenant_id, then uniqueness works for globals.
-	// So we search for {name: name, scope: "global"}
-	globalFilter := bson.M{
-		"name":       name,
-		"scope":      "global",
-		"deleted_at": bson.M{"$exists": false},
-	}
-	err = r.Collection.FindOne(ctx, globalFilter).Decode(&module)
+	err = coll.FindOne(ctx, bson.M{"name": name, "deleted_at": bson.M{"$exists": false}}).Decode(&module)
 	if err != nil {
 		return nil, err
 	}
@@ -106,103 +103,48 @@ func (r *ModuleRepositoryImpl) FindByName(ctx context.Context, name string) (*mo
 }
 
 func (r *ModuleRepositoryImpl) List(ctx context.Context) ([]models.Entity, error) {
-	tenantID, ok := ctx.Value(models.TenantIDKey).(string)
-	if !ok || tenantID == "" {
-		return nil, fmt.Errorf("organization context missing")
-	}
-	oid, err := primitive.ObjectIDFromHex(tenantID)
+	coll, err := r.getCollection(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	// Fetch Global Entities
-	globalFilter := bson.M{
-		"scope":      "global",
-		"deleted_at": bson.M{"$exists": false},
-	}
-	// Filter by product if set
-	if product, ok := ctx.Value("product").(string); ok && product != "" {
-		globalFilter["product"] = product
+	// Simple List in Tenant DB
+	filter := bson.M{"deleted_at": bson.M{"$exists": false}}
+	if product, ok := ctx.Value(models.AppIDKey).(string); ok && product != "" {
+		filter["app"] = product
 	}
 
-	globalCursor, err := r.Collection.Find(ctx, globalFilter)
+	cursor, err := coll.Find(ctx, filter)
 	if err != nil {
 		return nil, err
 	}
-	defer globalCursor.Close(ctx)
-	var globalModules []models.Entity
-	if err = globalCursor.All(ctx, &globalModules); err != nil {
+	defer cursor.Close(ctx)
+
+	var modules []models.Entity
+	if err = cursor.All(ctx, &modules); err != nil {
 		return nil, err
 	}
-
-	// Fetch Tenant Entities (and Overrides)
-	tenantFilter := bson.M{
-		"tenant_id":  oid,
-		"deleted_at": bson.M{"$exists": false},
-	}
-	if product, ok := ctx.Value("product").(string); ok && product != "" {
-		tenantFilter["product"] = product
-	}
-
-	tenantCursor, err := r.Collection.Find(ctx, tenantFilter)
-	if err != nil {
-		return nil, err
-	}
-	defer tenantCursor.Close(ctx)
-	var tenantModules []models.Entity
-	if err = tenantCursor.All(ctx, &tenantModules); err != nil {
-		return nil, err
-	}
-
-	// Merge: map by Name
-	moduleMap := make(map[string]models.Entity)
-
-	// Add globals first
-	for _, m := range globalModules {
-		moduleMap[m.Name] = m
-	}
-
-	// Override with tenant modules
-	for _, m := range tenantModules {
-		moduleMap[m.Name] = m
-	}
-
-	// Convert back to slice
-	modules := make([]models.Entity, 0, len(moduleMap))
-	for _, m := range moduleMap {
-		modules = append(modules, m)
-	}
-
 	return modules, nil
 }
 
 func (r *ModuleRepositoryImpl) Update(ctx context.Context, module *models.Entity) error {
-	tenantID, ok := ctx.Value(models.TenantIDKey).(string)
-	if !ok || tenantID == "" {
-		return fmt.Errorf("organization context missing")
-	}
-	oid, err := primitive.ObjectIDFromHex(tenantID)
+	coll, err := r.getCollection(ctx)
 	if err != nil {
 		return err
 	}
 
-	filter := bson.M{"name": module.Name, "tenant_id": oid}
+	filter := bson.M{"name": module.Name}
 	update := bson.M{"$set": module}
-	_, err = r.Collection.UpdateOne(ctx, filter, update)
+	_, err = coll.UpdateOne(ctx, filter, update)
 	return err
 }
 
 func (r *ModuleRepositoryImpl) Delete(ctx context.Context, name string, userID string) error {
-	tenantID, ok := ctx.Value(models.TenantIDKey).(string)
-	if !ok || tenantID == "" {
-		return fmt.Errorf("organization context missing")
-	}
-	oid, err := primitive.ObjectIDFromHex(tenantID)
+	coll, err := r.getCollection(ctx)
 	if err != nil {
 		return err
 	}
 
-	// Soft delete: set deleted_at and deleted_by
 	now := time.Now()
 	update := bson.M{
 		"$set": bson.M{
@@ -210,24 +152,18 @@ func (r *ModuleRepositoryImpl) Delete(ctx context.Context, name string, userID s
 			"deleted_by": userID,
 		},
 	}
-	filter := bson.M{"name": name, "tenant_id": oid}
-	_, err = r.Collection.UpdateOne(ctx, filter, update)
+	filter := bson.M{"name": name}
+	_, err = coll.UpdateOne(ctx, filter, update)
 	return err
 }
 
 func (r *ModuleRepositoryImpl) FindUsingLookup(ctx context.Context, targetModule string) ([]models.Entity, error) {
-	tenantID, ok := ctx.Value(models.TenantIDKey).(string)
-	if !ok || tenantID == "" {
-		return nil, fmt.Errorf("organization context missing")
-	}
-	oid, err := primitive.ObjectIDFromHex(tenantID)
+	coll, err := r.getCollection(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	// Find Tenant modules
-	tenantFilter := bson.M{
-		"tenant_id":  oid,
+	filter := bson.M{
 		"deleted_at": bson.M{"$exists": false},
 		"fields": bson.M{
 			"$elemMatch": bson.M{
@@ -237,77 +173,56 @@ func (r *ModuleRepositoryImpl) FindUsingLookup(ctx context.Context, targetModule
 		},
 	}
 
-	tenantCursor, err := r.Collection.Find(ctx, tenantFilter)
+	cursor, err := coll.Find(ctx, filter)
 	if err != nil {
 		return nil, err
 	}
-	defer tenantCursor.Close(ctx)
-	var tenantModules []models.Entity
-	if err = tenantCursor.All(ctx, &tenantModules); err != nil {
-		return nil, err
-	}
-
-	// Find Global modules
-	globalFilter := bson.M{
-		"scope":      "global",
-		"deleted_at": bson.M{"$exists": false},
-		"fields": bson.M{
-			"$elemMatch": bson.M{
-				"type":          "lookup",
-				"lookup.module": targetModule,
-			},
-		},
-	}
-	globalCursor, err := r.Collection.Find(ctx, globalFilter)
-	if err != nil {
-		return nil, err
-	}
-	defer globalCursor.Close(ctx)
-	var globalModules []models.Entity
-	if err = globalCursor.All(ctx, &globalModules); err != nil {
-		return nil, err
-	}
-
-	// Merge
-	moduleMap := make(map[string]models.Entity)
-	for _, m := range globalModules {
-		moduleMap[m.Name] = m
-	}
-	for _, m := range tenantModules {
-		moduleMap[m.Name] = m
-	}
+	defer cursor.Close(ctx)
 
 	var modules []models.Entity
-	for _, m := range moduleMap {
-		modules = append(modules, m)
+	if err = cursor.All(ctx, &modules); err != nil {
+		return nil, err
 	}
 	return modules, nil
 }
 
 func (r *ModuleRepositoryImpl) EnsureIndexes(ctx context.Context) error {
+	// Note: We need to run this on the Tenant DB collection when initializing.
+	// This method might need to be called explicitly for each new tenant DB or we lazily assume?
+	// For now, keeping it here.
+
+	// Since we can't get collection without context, this method as "EnsureIndexes(ctx)" assumes ctx has TenantID.
+	// Helper will fail if no tenantID.
+
+	coll, err := r.getCollection(ctx)
+	if err != nil {
+		return err // Or nil if likely no context
+	}
+
 	indexes := []mongo.IndexModel{
 		{
 			Keys: bson.D{
 				{Key: "name", Value: 1},
-				{Key: "tenant_id", Value: 1},
 			},
-			Options: options.Index().SetName("idx_name_tenant").SetUnique(true),
-		},
-		{
-			Keys: bson.D{
-				{Key: "fields.lookup.module", Value: 1},
-				{Key: "tenant_id", Value: 1},
-			},
-			Options: options.Index().SetName("idx_lookup_refs"),
-		},
-		{
-			Keys: bson.D{
-				{Key: "scope", Value: 1},
-			},
-			Options: options.Index().SetName("idx_scope"),
+			Options: options.Index().SetName("idx_name").SetUnique(true),
 		},
 	}
-	// Note: sparse or partial index could be used for lookup refs, but standard is fine
-	_, err := r.Collection.Indexes().CreateMany(ctx, indexes)
+	_, err = coll.Indexes().CreateMany(ctx, indexes)
+	return err
+}
+
+func (r *ModuleRepositoryImpl) EnsureGlobalIndexes(ctx context.Context) error {
+	db := r.DB.GetControlPlaneDB()
+	coll := db.Collection("default_modules")
+
+	indexes := []mongo.IndexModel{
+		{
+			Keys: bson.D{
+				{Key: "name", Value: 1},
+			},
+			Options: options.Index().SetName("idx_template_name").SetUnique(true),
+		},
+	}
+	_, err := coll.Indexes().CreateMany(ctx, indexes)
 	return err
 }

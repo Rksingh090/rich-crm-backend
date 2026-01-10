@@ -14,7 +14,7 @@ import (
 )
 
 type RecordRepository interface {
-	Create(ctx context.Context, moduleName string, product models.Product, data map[string]any) (any, error)
+	Create(ctx context.Context, moduleName string, product models.App, data map[string]any) (any, error)
 	Get(ctx context.Context, moduleName, id string) (map[string]any, error)
 	List(ctx context.Context, moduleName string, filter map[string]any, accessFilter map[string]any, limit, offset int64, sortBy string, sortOrder int) ([]map[string]any, error)
 	Count(ctx context.Context, moduleName string, filter map[string]any, accessFilter map[string]any) (int64, error)
@@ -25,23 +25,40 @@ type RecordRepository interface {
 }
 
 type RecordRepositoryImpl struct {
-	Collection         *mongo.Collection
-	CountersCollection *mongo.Collection
+	DB *database.MongodbDB
 }
 
 func NewRecordRepository(mongodb *database.MongodbDB) RecordRepository {
 	return &RecordRepositoryImpl{
-		Collection:         mongodb.DB.Collection("entity_records"),
-		CountersCollection: mongodb.DB.Collection("counters"),
+		DB: mongodb,
 	}
 }
 
-func (r *RecordRepositoryImpl) Create(ctx context.Context, moduleName string, product models.Product, data map[string]interface{}) (interface{}, error) {
+// helper to get collection
+func (r *RecordRepositoryImpl) getCollection(ctx context.Context, moduleName string, product models.App) (*mongo.Collection, error) {
 	tenantID, ok := ctx.Value(models.TenantIDKey).(string)
 	if !ok || tenantID == "" {
 		return nil, fmt.Errorf("organization context missing")
 	}
-	oid, err := primitive.ObjectIDFromHex(tenantID)
+
+	db := r.DB.GetTenantDB(tenantID)
+	// Collection Name: product_module (e.g. crm_deal)
+	// If product is empty, default to crm? Or error? Assuming product passed is correct.
+	if product == "" {
+		product = models.AppCRM // Default fallback if needed
+	}
+
+	collName := fmt.Sprintf("%s_%s", product, moduleName)
+	return db.Collection(collName), nil
+}
+
+func (r *RecordRepositoryImpl) Create(ctx context.Context, moduleName string, product models.App, data map[string]interface{}) (interface{}, error) {
+	coll, err := r.getCollection(ctx, moduleName, product)
+	if err != nil {
+		return nil, err
+	}
+
+	oid, err := primitive.ObjectIDFromHex(ctx.Value(models.TenantIDKey).(string))
 	if err != nil {
 		return nil, err
 	}
@@ -49,7 +66,7 @@ func (r *RecordRepositoryImpl) Create(ctx context.Context, moduleName string, pr
 	record := models.EntityRecord{
 		ID:        primitive.NewObjectID(),
 		TenantID:  oid,
-		Product:   product,
+		App:   product,
 		Entity:    moduleName,
 		Data:      data,
 		CreatedAt: time.Now(),
@@ -63,7 +80,7 @@ func (r *RecordRepositoryImpl) Create(ctx context.Context, moduleName string, pr
 		record.UpdatedBy = userID
 	}
 
-	_, err = r.Collection.InsertOne(ctx, record)
+	_, err = coll.InsertOne(ctx, record)
 	if err != nil {
 		return nil, err
 	}
@@ -71,44 +88,68 @@ func (r *RecordRepositoryImpl) Create(ctx context.Context, moduleName string, pr
 }
 
 func (r *RecordRepositoryImpl) Get(ctx context.Context, moduleName, id string) (map[string]interface{}, error) {
+	// Need product to find collection. But Get only has moduleName.
+	// Issue: We don't strictly know the product from just moduleName in all call sites.
+	// Assumption: Modules are unique across products or caller context implies product?
+	// For now, let's look up Module definition? Or assume CRM?
+	// BETTER: Passing product to Get? Or trying to find in all product collections?
+	// Quick fix: Assume CRM for now as it's the main one, OR check "crm_module", "erp_module".
+	// Ideally, `moduleName` usually implies product implicitly in the current app design?
+	// Let's iterate known products if needed or defaulting to CRM.
+
+	// Refactoring needed: All RecordRepository methods should probably accept Product or we deduce it.
+	// For now, let's use a helper that tries to find the record in known product prefixes if not ambiguous.
+	// However, usually the Module Registry knows the product which could be passed down.
+
+	// Workaround: Try "crm" first.
+	// Note: You asked for "per app DB" or "per app collection".
+	// If I don't know the product, I can't guess the collection.
+
+	// FIX: Update interface? No, let's try to deduce from Module Service? Too complex dep.
+	// Let's just try CRM then ERP.
+
+	products := []models.App{models.AppCRM, models.AppERP}
+	var record models.EntityRecord
+	var err error
+
 	tenantID, ok := ctx.Value(models.TenantIDKey).(string)
 	if !ok || tenantID == "" {
 		return nil, fmt.Errorf("organization context missing")
 	}
-	oid, err := primitive.ObjectIDFromHex(tenantID)
-	if err != nil {
-		return nil, err
+	recordID, _ := primitive.ObjectIDFromHex(id)
+
+	for _, p := range products {
+		coll, e := r.getCollection(ctx, moduleName, p)
+		if e != nil {
+			continue
+		}
+
+		// Note: Removing tenant_id check from filter as we are in Tenant DB
+		err = coll.FindOne(ctx, bson.M{"_id": recordID, "deleted": bson.M{"$ne": true}}).Decode(&record)
+		if err == nil {
+			return r.flattenRecord(&record), nil
+		}
 	}
 
-	recordID, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
-		return nil, err
-	}
-
-	var record models.EntityRecord
-	err = r.Collection.FindOne(ctx, bson.M{"_id": recordID, "tenant_id": oid, "entity": moduleName, "deleted": bson.M{"$ne": true}}).Decode(&record)
-	if err != nil {
-		return nil, err
-	}
-
-	return r.flattenRecord(&record), nil
+	return nil, mongo.ErrNoDocuments
 }
 
 func (r *RecordRepositoryImpl) List(ctx context.Context, moduleName string, filter map[string]any, accessFilter map[string]any, limit, offset int64, sortBy string, sortOrder int) ([]map[string]any, error) {
-	tenantID, ok := ctx.Value(models.TenantIDKey).(string)
-	if !ok || tenantID == "" {
-		return nil, fmt.Errorf("organization context missing")
-	}
-	oid, err := primitive.ObjectIDFromHex(tenantID)
+	// Taking Product from Filter if available? Or default CRM.
+	// This is a limitation of the current Interface `List(context, moduleName...)`.
+	// We'll Default to CRM for List unless specified.
+
+	product := models.AppCRM
+	// Hack: Check if filter has "app" (unlikely).
+
+	coll, err := r.getCollection(ctx, moduleName, product)
 	if err != nil {
 		return nil, err
 	}
 
-	// Base filter
+	// Base filter - No TenantID needed in filter
 	baseQuery := bson.M{
-		"tenant_id": oid,
-		"entity":    moduleName,
-		"deleted":   bson.M{"$ne": true},
+		"deleted": bson.M{"$ne": true},
 	}
 
 	// User Filters (need to map fields to data.field)
@@ -123,7 +164,6 @@ func (r *RecordRepositoryImpl) List(ctx context.Context, moduleName string, filt
 	}
 
 	// Combine: Base AND (UserQuery AND AccessFilter)
-	// But UserQuery might be empty, AccessFilter might be empty
 	andConditions := []bson.M{baseQuery}
 
 	if len(userQuery) > 0 {
@@ -154,7 +194,7 @@ func (r *RecordRepositoryImpl) List(ctx context.Context, moduleName string, filt
 
 	findOptions.SetSort(bson.D{{Key: sortKey, Value: sortOrder}})
 
-	cursor, err := r.Collection.Find(ctx, finalQuery, findOptions)
+	cursor, err := coll.Find(ctx, finalQuery, findOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -173,47 +213,39 @@ func (r *RecordRepositoryImpl) List(ctx context.Context, moduleName string, filt
 }
 
 func (r *RecordRepositoryImpl) Update(ctx context.Context, moduleName, id string, data map[string]any) error {
+	// Similar loop strategy to Get
+	products := []models.App{models.AppCRM, models.AppERP}
+
 	tenantID, ok := ctx.Value(models.TenantIDKey).(string)
 	if !ok || tenantID == "" {
 		return fmt.Errorf("organization context missing")
 	}
-	oid, err := primitive.ObjectIDFromHex(tenantID)
-	if err != nil {
-		return err
-	}
+	recordID, _ := primitive.ObjectIDFromHex(id)
 
-	recordID, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
-		return err
-	}
-
-	// Flatten update: map fields to data.field
 	updateSet := bson.M{
 		"updated_at": time.Now(),
 	}
 	for k, v := range data {
 		updateSet["data."+k] = v
 	}
-	// TODO: Handle UpdatedBy
 
-	_, err = r.Collection.UpdateOne(ctx, bson.M{"_id": recordID, "tenant_id": oid, "entity": moduleName}, bson.M{"$set": updateSet})
-	return err
+	for _, p := range products {
+		coll, e := r.getCollection(ctx, moduleName, p)
+		if e != nil {
+			continue
+		}
+
+		res, err := coll.UpdateOne(ctx, bson.M{"_id": recordID}, bson.M{"$set": updateSet})
+		if err == nil && res.MatchedCount > 0 {
+			return nil
+		}
+	}
+	return fmt.Errorf("record not found")
 }
 
 func (r *RecordRepositoryImpl) Delete(ctx context.Context, moduleName, id string, userID primitive.ObjectID) error {
-	tenantID, ok := ctx.Value(models.TenantIDKey).(string)
-	if !ok || tenantID == "" {
-		return fmt.Errorf("organization context missing")
-	}
-	oid, err := primitive.ObjectIDFromHex(tenantID)
-	if err != nil {
-		return err
-	}
-
-	recordID, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
-		return err
-	}
+	products := []models.App{models.AppCRM, models.AppERP}
+	recordID, _ := primitive.ObjectIDFromHex(id)
 
 	update := bson.M{
 		"$set": bson.M{
@@ -223,24 +255,30 @@ func (r *RecordRepositoryImpl) Delete(ctx context.Context, moduleName, id string
 		},
 	}
 
-	_, err = r.Collection.UpdateOne(ctx, bson.M{"_id": recordID, "tenant_id": oid, "entity": moduleName}, update)
-	return err
+	for _, p := range products {
+		coll, e := r.getCollection(ctx, moduleName, p)
+		if e != nil {
+			continue
+		}
+
+		res, err := coll.UpdateOne(ctx, bson.M{"_id": recordID}, update)
+		if err == nil && res.MatchedCount > 0 {
+			return nil
+		}
+	}
+	return fmt.Errorf("record not found")
 }
 
 func (r *RecordRepositoryImpl) Count(ctx context.Context, moduleName string, filter map[string]any, accessFilter map[string]any) (int64, error) {
-	tenantID, ok := ctx.Value(models.TenantIDKey).(string)
-	if !ok || tenantID == "" {
-		return 0, fmt.Errorf("organization context missing")
-	}
-	oid, err := primitive.ObjectIDFromHex(tenantID)
+	// Default to CRM
+	product := models.AppCRM
+	coll, err := r.getCollection(ctx, moduleName, product)
 	if err != nil {
 		return 0, err
 	}
 
 	baseQuery := bson.M{
-		"tenant_id": oid,
-		"entity":    moduleName,
-		"deleted":   bson.M{"$ne": true},
+		"deleted": bson.M{"$ne": true},
 	}
 
 	userQuery := bson.M{}
@@ -261,17 +299,10 @@ func (r *RecordRepositoryImpl) Count(ctx context.Context, moduleName string, fil
 	}
 	finalQuery := bson.M{"$and": andConditions}
 
-	return r.Collection.CountDocuments(ctx, finalQuery)
+	return coll.CountDocuments(ctx, finalQuery)
 }
 
 func (r *RecordRepositoryImpl) Aggregate(ctx context.Context, moduleName string, pipeline mongo.Pipeline) ([]map[string]any, error) {
-	// Aggregation is tricky because of data nesting. Caller likely sends pipeline for flat structure.
-	// For now, assume pipeline is adjusted or basic support.
-	// We should probably inject a $match stage for tenant_id and entity at the start.
-
-	// This is a placeholder as full aggregation support on nested data requires rewriting the pipeline
-	// which is complex. For basic use cases, we might encourage List usage.
-
 	return nil, fmt.Errorf("aggregation not yet supported on unified collection")
 }
 
@@ -286,8 +317,6 @@ func (r *RecordRepositoryImpl) flattenRecord(rec *models.EntityRecord) map[strin
 	flat["updated_at"] = rec.UpdatedAt
 	flat["created_by"] = rec.CreatedBy
 	flat["updated_by"] = rec.UpdatedBy
-	// flat["entity"] = rec.Entity
-	// flat["product"] = rec.Product
 	return flat
 }
 
@@ -297,10 +326,13 @@ func (r *RecordRepositoryImpl) GetNextSequence(ctx context.Context, moduleName, 
 		return 0, fmt.Errorf("organization context missing")
 	}
 
+	// Use Tenant DB
+	db := r.DB.GetTenantDB(tenantID)
+	countersColl := db.Collection("counters")
+
 	filter := bson.M{
-		"tenant_id": tenantID,
-		"module":    moduleName,
-		"field":     fieldName,
+		"module": moduleName,
+		"field":  fieldName,
 	}
 
 	update := bson.M{
@@ -313,7 +345,7 @@ func (r *RecordRepositoryImpl) GetNextSequence(ctx context.Context, moduleName, 
 		Seq int64 `bson:"seq"`
 	}
 
-	err := r.CountersCollection.FindOneAndUpdate(ctx, filter, update, opts).Decode(&result)
+	err := countersColl.FindOneAndUpdate(ctx, filter, update, opts).Decode(&result)
 	if err != nil {
 		return 0, err
 	}

@@ -1,0 +1,32 @@
+package audit
+
+import (
+	"go-crm/internal/config"
+	"go-crm/internal/middleware"
+
+	"github.com/gofiber/fiber/v2"
+)
+
+type AuditApi struct {
+	controller  *AuditController
+	config      *config.Config
+	roleService middleware.RoleService
+}
+
+func NewAuditApi(controller *AuditController, config *config.Config, roleService middleware.RoleService) *AuditApi {
+	return &AuditApi{
+		controller:  controller,
+		config:      config,
+		roleService: roleService,
+	}
+}
+
+func (h *AuditApi) Setup(app *fiber.App) {
+	audit := app.Group("/api/audit-logs", middleware.AuthMiddleware(h.config.SkipAuth))
+
+	// Remove rigid middleware check; controller now handles it dynamically
+	audit.Get("/", h.controller.ListLogs)
+
+	// Global Audit Log (Super Admin)
+	app.Get("/api/audit-logs/global", middleware.AuthMiddleware(h.config.SkipAuth), middleware.RequirePermission(h.roleService, "admin.global_activity", "read"), h.controller.GetGlobalActivity)
+}

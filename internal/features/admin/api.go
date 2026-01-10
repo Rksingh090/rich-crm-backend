@@ -2,7 +2,7 @@ package admin
 
 import (
 	"go-crm/internal/config"
-	"go-crm/internal/features/role"
+	"go-crm/internal/core/role"
 
 	"github.com/gofiber/fiber/v2"
 )

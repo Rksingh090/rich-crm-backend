@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	common_models "go-crm/internal/common/models"
-	"go-crm/internal/features/audit"
+	"go-crm/internal/core/audit"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )

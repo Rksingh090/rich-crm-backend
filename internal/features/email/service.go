@@ -6,11 +6,13 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	common_models "go-crm/internal/common/models"
 	"go-crm/internal/features/settings"
 	"log"
 	"mime"
 	"net/smtp"
 	"path/filepath"
+	"strings"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -18,6 +20,7 @@ import (
 type EmailService interface {
 	SendEmail(ctx context.Context, to []string, subject, body string) error
 	SendEmailWithAttachment(ctx context.Context, to []string, subject, body string, attachmentName string, attachmentData []byte) error
+	SendEmailWithOptions(ctx context.Context, options EmailOptions) error
 }
 
 type EmailServiceImpl struct {
@@ -53,15 +56,12 @@ func (s *EmailServiceImpl) SendEmail(ctx context.Context, to []string, subject, 
 		from = config.SMTPUser
 	}
 
-	// Try to get OrgID from context
-	var orgID primitive.ObjectID
-	if val := ctx.Value("orgId"); val != nil {
-		if id, ok := val.(primitive.ObjectID); ok {
-			orgID = id
-		} else if idStr, ok := val.(string); ok {
-			// Try parsing string
-			if oid, err := primitive.ObjectIDFromHex(idStr); err == nil {
-				orgID = oid
+	// Try to get TenantID from context
+	var tenantID primitive.ObjectID
+	if val := ctx.Value(common_models.TenantIDKey); val != nil {
+		if id, ok := val.(string); ok {
+			if oid, err := primitive.ObjectIDFromHex(id); err == nil {
+				tenantID = oid
 			}
 		}
 	}
@@ -69,7 +69,7 @@ func (s *EmailServiceImpl) SendEmail(ctx context.Context, to []string, subject, 
 	// Create email record
 	emailRecord := &Email{
 		ID:       primitive.NewObjectID(),
-		OrgID:    orgID,
+		TenantID: tenantID,
 		From:     from,
 		To:       to,
 		Subject:  subject,
@@ -81,13 +81,111 @@ func (s *EmailServiceImpl) SendEmail(ctx context.Context, to []string, subject, 
 		_ = s.Repo.Create(ctx, emailRecord)
 	}
 
-	msg := []byte(fmt.Sprintf("To: %s\r\n"+
-		"Subject: %s\r\n"+
-		"\r\n"+
-		"%s\r\n", to[0], subject, body))
+	// Build email with proper MIME headers for HTML
+	var msg bytes.Buffer
+	msg.WriteString(fmt.Sprintf("From: %s\r\n", from))
+	msg.WriteString(fmt.Sprintf("To: %s\r\n", to[0]))
+	msg.WriteString(fmt.Sprintf("Subject: %s\r\n", subject))
+	msg.WriteString("MIME-Version: 1.0\r\n")
+	msg.WriteString("Content-Type: text/html; charset=utf-8\r\n")
+	msg.WriteString("\r\n")
+	msg.WriteString(body)
 
 	log.Printf("Sending email to %v via %s...", to, addr)
-	err = smtp.SendMail(addr, auth, from, to, msg)
+	err = smtp.SendMail(addr, auth, from, to, msg.Bytes())
+
+	status := EmailSent
+	errMsg := ""
+	if err != nil {
+		status = EmailFailed
+		errMsg = err.Error()
+	}
+
+	if s.Repo != nil {
+		_ = s.Repo.UpdateStatus(ctx, emailRecord.ID, status, errMsg)
+	}
+
+	if err != nil {
+		return fmt.Errorf("failed to send email: %v", err)
+	}
+
+	log.Println("Email sent successfully")
+	return nil
+}
+
+func (s *EmailServiceImpl) SendEmailWithOptions(ctx context.Context, opts EmailOptions) error {
+	config, err := s.SettingsService.GetEmailConfig(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to fetch email config: %v", err)
+	}
+	if config == nil {
+		return errors.New("email configuration not found")
+	}
+
+	if config.SMTPHost == "" || config.SMTPPort == 0 {
+		return errors.New("invalid email configuration: missing host or port")
+	}
+
+	auth := smtp.PlainAuth("", config.SMTPUser, config.SMTPPassword, config.SMTPHost)
+	addr := fmt.Sprintf("%s:%d", config.SMTPHost, config.SMTPPort)
+
+	from := opts.From
+	if from == "" {
+		from = config.FromEmail
+		if from == "" {
+			from = config.SMTPUser
+		}
+	}
+
+	// Try to get TenantID from context
+	var tenantID primitive.ObjectID
+	if val := ctx.Value(common_models.TenantIDKey); val != nil {
+		if id, ok := val.(string); ok {
+			if oid, err := primitive.ObjectIDFromHex(id); err == nil {
+				tenantID = oid
+			}
+		}
+	}
+
+	// Create email record
+	emailRecord := &Email{
+		ID:       primitive.NewObjectID(),
+		TenantID: tenantID,
+		From:     from,
+		To:       opts.To,
+		Cc:       opts.Cc,
+		Bcc:      opts.Bcc,
+		Subject:  opts.Subject,
+		HtmlBody: opts.Body,
+		Status:   EmailQueued,
+	}
+
+	if s.Repo != nil {
+		_ = s.Repo.Create(ctx, emailRecord)
+	}
+
+	// Build email with proper MIME headers
+	var msg bytes.Buffer
+	msg.WriteString(fmt.Sprintf("From: %s\r\n", from))
+	if len(opts.To) > 0 {
+		msg.WriteString(fmt.Sprintf("To: %s\r\n", strings.Join(opts.To, ", ")))
+	}
+	if len(opts.Cc) > 0 {
+		msg.WriteString(fmt.Sprintf("Cc: %s\r\n", strings.Join(opts.Cc, ", ")))
+	}
+	msg.WriteString(fmt.Sprintf("Subject: %s\r\n", opts.Subject))
+	msg.WriteString("MIME-Version: 1.0\r\n")
+	msg.WriteString("Content-Type: text/html; charset=utf-8\r\n")
+	msg.WriteString("\r\n")
+	msg.WriteString(opts.Body)
+
+	// Combine all recipients for SendMail but don't include BCC in headers
+	allRecipients := append([]string{}, opts.To...)
+	allRecipients = append(allRecipients, opts.Cc...)
+	allRecipients = append(allRecipients, opts.Bcc...)
+
+	log.Printf("Sending email to %v (CC: %v, BCC: %v) via %s...", opts.To, opts.Cc, opts.Bcc, addr)
+	err = smtp.SendMail(addr, auth, from, allRecipients, msg.Bytes())
 
 	status := EmailSent
 	errMsg := ""
