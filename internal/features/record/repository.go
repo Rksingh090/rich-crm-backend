@@ -22,6 +22,7 @@ type RecordRepository interface {
 	Delete(ctx context.Context, moduleName, id string, userID primitive.ObjectID) error
 	Aggregate(ctx context.Context, moduleName string, pipeline mongo.Pipeline) ([]map[string]any, error)
 	GetNextSequence(ctx context.Context, moduleName, fieldName string) (int64, error)
+	EnsureIndexes(ctx context.Context, module *models.Entity) error
 }
 
 type RecordRepositoryImpl struct {
@@ -66,7 +67,7 @@ func (r *RecordRepositoryImpl) Create(ctx context.Context, moduleName string, pr
 	record := models.EntityRecord{
 		ID:        primitive.NewObjectID(),
 		TenantID:  oid,
-		App:   product,
+		App:       product,
 		Entity:    moduleName,
 		Data:      data,
 		CreatedAt: time.Now(),
@@ -351,4 +352,38 @@ func (r *RecordRepositoryImpl) GetNextSequence(ctx context.Context, moduleName, 
 	}
 
 	return result.Seq, nil
+}
+
+func (r *RecordRepositoryImpl) EnsureIndexes(ctx context.Context, module *models.Entity) error {
+	product := models.AppCRM
+	if module.App != "" {
+		product = models.App(module.App)
+	}
+
+	coll, err := r.getCollection(ctx, module.Name, product)
+	if err != nil {
+		return err
+	}
+
+	var indexModels []mongo.IndexModel
+
+	for _, field := range module.Fields {
+		if field.Unique {
+			// Field path in DB is "data.fieldName"
+			key := "data." + field.Name
+			name := fmt.Sprintf("idx_%s_%s_unique", module.Name, field.Name)
+
+			model := mongo.IndexModel{
+				Keys:    bson.D{{Key: key, Value: 1}},
+				Options: options.Index().SetName(name).SetUnique(true).SetBackground(true).SetSparse(true),
+			}
+			indexModels = append(indexModels, model)
+		}
+	}
+
+	if len(indexModels) > 0 {
+		_, err := coll.Indexes().CreateMany(ctx, indexModels)
+		return err
+	}
+	return nil
 }

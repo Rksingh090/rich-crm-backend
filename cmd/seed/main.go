@@ -87,7 +87,8 @@ func Seed(
 				}
 
 				// Data Paths
-				modulesPath := "cmd/seed/data/modules.json"
+				crmModulesPath := "cmd/seed/data/crm_modules.json"
+				erpModulesPath := "cmd/seed/data/erp_modules.json"
 				resourcesPath := "cmd/seed/data/resources.json"
 				appsPath := "cmd/seed/data/apps.json"
 
@@ -123,9 +124,18 @@ func Seed(
 
 				// 2c. Seed Modules (Global Schema)
 				var modules []common_models.Entity
-				if err := readJSON(modulesPath, &modules); err != nil {
-					logger.Fatal("Failed to read modules.json", zap.Error(err))
+
+				var crmModulesList []common_models.Entity
+				if err := readJSON(crmModulesPath, &crmModulesList); err != nil {
+					logger.Fatal("Failed to read crm_modules.json", zap.Error(err))
 				}
+				modules = append(modules, crmModulesList...)
+
+				var erpModulesList []common_models.Entity
+				if err := readJSON(erpModulesPath, &erpModulesList); err != nil {
+					logger.Fatal("Failed to read erp_modules.json", zap.Error(err))
+				}
+				modules = append(modules, erpModulesList...)
 				// Product Mapping
 				crmModules := map[string]bool{
 					"accounts": true, "contacts": true, "leads": true,

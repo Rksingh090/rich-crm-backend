@@ -25,4 +25,5 @@ func NewActivityApi(activityController *ActivityController, roleService role.Rol
 func (api *ActivityApi) Setup(app *fiber.App) {
 	group := app.Group("/api/activities", middleware.AuthMiddleware(api.Config.SkipAuth))
 	group.Get("/calendar", api.ActivityController.GetCalendarEvents)
+	group.Get("/timeline", api.ActivityController.GetTimeline)
 }

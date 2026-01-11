@@ -8,10 +8,10 @@ import (
 
 	"go-crm/internal/common/models"
 	"go-crm/internal/config"
-	"go-crm/internal/core/audit"
 	"go-crm/internal/core/organization"
 	"go-crm/internal/database"
 	"go-crm/internal/features/module"
+	"go-crm/internal/features/record"
 	"go-crm/internal/logger"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -25,6 +25,7 @@ func UpdateModules(
 	db *database.MongodbDB,
 	orgRepo organization.OrganizationRepository,
 	moduleRepo module.ModuleRepository,
+	recordRepo record.RecordRepository,
 	logger *zap.Logger,
 	shutdowner fx.Shutdowner,
 ) {
@@ -40,24 +41,37 @@ func UpdateModules(
 				logger.Info("🔄 Starting Module Update...")
 
 				// 1. Load New Module Definitions
-				modulesPath := "cmd/seed/data/modules.json"
-				b, err := os.ReadFile(modulesPath)
-				if err != nil {
-					logger.Fatal("Failed to read modules.json", zap.Error(err))
-				}
+				// 1. Load New Module Definitions
 				var newModules []models.Entity
-				if err := json.Unmarshal(b, &newModules); err != nil {
-					logger.Fatal("Failed to parse modules.json", zap.Error(err))
+
+				// CRM
+				crmPath := "cmd/seed/data/crm_modules.json"
+				b, err := os.ReadFile(crmPath)
+				if err != nil {
+					logger.Fatal("Failed to read crm_modules.json", zap.Error(err))
 				}
+				var crmModules []models.Entity
+				if err := json.Unmarshal(b, &crmModules); err != nil {
+					logger.Fatal("Failed to parse crm_modules.json", zap.Error(err))
+				}
+				newModules = append(newModules, crmModules...)
+
+				// ERP
+				erpPath := "cmd/seed/data/erp_modules.json"
+				b, err = os.ReadFile(erpPath)
+				if err != nil {
+					logger.Fatal("Failed to read erp_modules.json", zap.Error(err))
+				}
+				var erpModules []models.Entity
+				if err := json.Unmarshal(b, &erpModules); err != nil {
+					logger.Fatal("Failed to parse erp_modules.json", zap.Error(err))
+				}
+				newModules = append(newModules, erpModules...)
 				logger.Info("Loaded Module Definitions", zap.Int("count", len(newModules)))
 
 				// 2. Parse CLI Args for Target Organization
-				// usage: go run cmd/update_modules/main.go "Athlon"
 				targetOrg := ""
-				args := os.Args[1:] // args after binary
-				// Filter out potential flags or weird args handled by fx?
-				// Usually go run ... -- arg works better.
-				// But let's look for a non-flag arg.
+				args := os.Args[1:]
 				for _, arg := range args {
 					if len(arg) > 0 && arg[0] != '-' {
 						targetOrg = arg
@@ -76,8 +90,8 @@ func UpdateModules(
 				filter := map[string]interface{}{}
 				if targetOrg != "" {
 					filter["$or"] = []map[string]interface{}{
-						{"name": targetOrg},
-						{"slug": targetOrg},
+						{"name": primitive.Regex{Pattern: "^" + targetOrg + "$", Options: "i"}},
+						{"slug": primitive.Regex{Pattern: "^" + targetOrg + "$", Options: "i"}},
 					}
 				}
 
@@ -136,12 +150,17 @@ func UpdateModules(
 								logger.Info("Created Missing Module", zap.String("tenant", org.Name), zap.String("module", modDef.Name))
 							}
 						}
+
+						// Ensure Indexes on Record Collection (for Unique Fields)
+						if err := recordRepo.EnsureIndexes(tenantCtx, &modToSave); err != nil {
+							logger.Error("Failed to ensure record indexes", zap.String("module", modDef.Name), zap.Error(err))
+						}
 					}
 
 					_ = moduleRepo.EnsureIndexes(tenantCtx)
 				}
 
-				logger.Info("✅ Module Update Complete.")
+				logger.Info("✅ Module Update Complete (Schema + Indexes).")
 			}()
 			return nil
 		},
@@ -156,10 +175,7 @@ func main() {
 			database.NewDatabase,
 			organization.NewOrganizationRepository,
 			module.NewModuleRepository,
-			fx.Annotate(
-				organization.NewOrganizationRepository,
-				fx.As(new(audit.UserFinder)),
-			),
+			record.NewRecordRepository,
 		),
 		fx.WithLogger(func(log *zap.Logger) fxevent.Logger {
 			return &fxevent.ZapLogger{Logger: log}
@@ -168,7 +184,6 @@ func main() {
 	)
 
 	if err := app.Start(context.Background()); err != nil {
-		// Just log fatal only if it's not a normal exit from our hook
 		// logger.NewLogger(&config.Config{Level: "info"}).Fatal("App Start Failed", zap.Error(err))
 	}
 

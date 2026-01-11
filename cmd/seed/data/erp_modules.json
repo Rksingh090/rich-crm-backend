@@ -1,0 +1,549 @@
+[
+    {
+        "name": "products",
+        "label": "Products",
+        "app": "erp",
+        "is_system": true,
+        "fields": [
+            {
+                "name": "name",
+                "label": "Product Name",
+                "type": "text",
+                "required": true,
+                "unique": true
+            },
+            {
+                "name": "sku",
+                "label": "SKU",
+                "type": "text",
+                "required": true,
+                "unique": true
+            },
+            {
+                "name": "category",
+                "label": "Category",
+                "type": "lookup",
+                "lookup": {
+                    "lookup_module": "categories",
+                    "lookup_label": "name",
+                    "value_field": "_id"
+                }
+            },
+            {
+                "name": "selling_price",
+                "label": "Selling Price",
+                "type": "currency",
+                "required": true
+            },
+            {
+                "name": "cost_price",
+                "label": "Cost Price",
+                "type": "currency"
+            },
+            {
+                "name": "unit",
+                "label": "Unit",
+                "type": "select",
+                "options": [
+                    {
+                        "label": "Pcs",
+                        "value": "Pcs"
+                    },
+                    {
+                        "label": "Kg",
+                        "value": "Kg"
+                    }
+                ]
+            },
+            {
+                "name": "stock_quantity",
+                "label": "Stock Quantity",
+                "type": "number",
+                "readonly": true,
+                "default_value": "0"
+            },
+            {
+                "name": "notes",
+                "label": "Notes",
+                "type": "textarea"
+            }
+        ]
+    },
+    {
+        "name": "categories",
+        "label": "Categories",
+        "app": "erp",
+        "is_system": true,
+        "fields": [
+            {
+                "name": "name",
+                "label": "Category Name",
+                "type": "text",
+                "required": true,
+                "unique": true
+            },
+            {
+                "name": "description",
+                "label": "Description",
+                "type": "textarea"
+            },
+            {
+                "name": "notes",
+                "label": "Notes",
+                "type": "textarea"
+            }
+        ]
+    },
+    {
+        "name": "vendors",
+        "label": "Vendors",
+        "app": "erp",
+        "is_system": true,
+        "fields": [
+            {
+                "name": "name",
+                "label": "Vendor Name",
+                "type": "text",
+                "required": true,
+                "unique": true
+            },
+            {
+                "name": "email",
+                "label": "Email",
+                "type": "email",
+                "unique": true
+            },
+            {
+                "name": "phone",
+                "label": "Phone",
+                "type": "phone"
+            },
+            {
+                "name": "address",
+                "label": "Address",
+                "type": "textarea"
+            },
+            {
+                "name": "notes",
+                "label": "Notes",
+                "type": "textarea"
+            }
+        ]
+    },
+    {
+        "name": "sales_orders",
+        "label": "Sales Orders",
+        "app": "erp",
+        "is_system": true,
+        "fields": [
+            {
+                "name": "order_number",
+                "label": "Order Number",
+                "type": "text",
+                "required": true,
+                "unique": true,
+                "auto_increment": true
+            },
+            {
+                "name": "customer",
+                "label": "Customer",
+                "type": "lookup",
+                "required": true,
+                "lookup": {
+                    "lookup_module": "accounts",
+                    "lookup_label": "name",
+                    "value_field": "_id"
+                }
+            },
+            {
+                "name": "order_date",
+                "label": "Order Date",
+                "type": "date",
+                "required": true
+            },
+            {
+                "name": "status",
+                "label": "Status",
+                "type": "select",
+                "options": [
+                    {
+                        "label": "Draft",
+                        "value": "Draft"
+                    },
+                    {
+                        "label": "Confirmed",
+                        "value": "Confirmed"
+                    },
+                    {
+                        "label": "Shipped",
+                        "value": "Shipped"
+                    },
+                    {
+                        "label": "Invoiced",
+                        "value": "Invoiced"
+                    }
+                ],
+                "default_value": "Draft"
+            },
+            {
+                "name": "total_amount",
+                "label": "Total Amount",
+                "type": "currency",
+                "readonly": true
+            },
+            {
+                "name": "line_items",
+                "label": "Line Items",
+                "type": "subform",
+                "sub_fields": [
+                    {
+                        "name": "product",
+                        "label": "Product",
+                        "type": "lookup",
+                        "required": true,
+                        "lookup": {
+                            "lookup_module": "products",
+                            "lookup_label": "name",
+                            "value_field": "_id"
+                        }
+                    },
+                    {
+                        "name": "quantity",
+                        "label": "Quantity",
+                        "type": "number",
+                        "required": true
+                    },
+                    {
+                        "name": "rate",
+                        "label": "Rate",
+                        "type": "currency",
+                        "required": true
+                    },
+                    {
+                        "name": "amount",
+                        "label": "Amount",
+                        "type": "currency",
+                        "readonly": true
+                    }
+                ]
+            },
+            {
+                "name": "notes",
+                "label": "Notes",
+                "type": "textarea"
+            }
+        ]
+    },
+    {
+        "name": "purchase_orders",
+        "label": "Purchase Orders",
+        "app": "erp",
+        "is_system": true,
+        "fields": [
+            {
+                "name": "po_number",
+                "label": "PO Number",
+                "type": "text",
+                "required": true,
+                "unique": true,
+                "auto_increment": true
+            },
+            {
+                "name": "vendor",
+                "label": "Vendor",
+                "type": "lookup",
+                "required": true,
+                "lookup": {
+                    "lookup_module": "vendors",
+                    "lookup_label": "name",
+                    "value_field": "_id"
+                }
+            },
+            {
+                "name": "order_date",
+                "label": "Order Date",
+                "type": "date",
+                "required": true
+            },
+            {
+                "name": "status",
+                "label": "Status",
+                "type": "select",
+                "options": [
+                    {
+                        "label": "Draft",
+                        "value": "Draft"
+                    },
+                    {
+                        "label": "Issued",
+                        "value": "Issued"
+                    },
+                    {
+                        "label": "Received",
+                        "value": "Received"
+                    }
+                ],
+                "default_value": "Draft"
+            },
+            {
+                "name": "total_amount",
+                "label": "Total Amount",
+                "type": "currency",
+                "readonly": true
+            },
+            {
+                "name": "line_items",
+                "label": "Line Items",
+                "type": "subform",
+                "sub_fields": [
+                    {
+                        "name": "product",
+                        "label": "Product",
+                        "type": "lookup",
+                        "required": true,
+                        "lookup": {
+                            "lookup_module": "products",
+                            "lookup_label": "name",
+                            "value_field": "_id"
+                        }
+                    },
+                    {
+                        "name": "quantity",
+                        "label": "Quantity",
+                        "type": "number",
+                        "required": true
+                    },
+                    {
+                        "name": "rate",
+                        "label": "Rate",
+                        "type": "currency",
+                        "required": true
+                    },
+                    {
+                        "name": "amount",
+                        "label": "Amount",
+                        "type": "currency",
+                        "readonly": true
+                    }
+                ]
+            },
+            {
+                "name": "notes",
+                "label": "Notes",
+                "type": "textarea"
+            }
+        ]
+    },
+    {
+        "name": "inventory_adjustments",
+        "label": "Inventory Adjustments",
+        "app": "erp",
+        "is_system": true,
+        "fields": [
+            {
+                "name": "reference",
+                "label": "Reference",
+                "type": "text"
+            },
+            {
+                "name": "date",
+                "label": "Date",
+                "type": "date",
+                "required": true
+            },
+            {
+                "name": "reason",
+                "label": "Reason",
+                "type": "select",
+                "options": [
+                    {
+                        "label": "Stock Take",
+                        "value": "Stock Take"
+                    },
+                    {
+                        "label": "Damaged",
+                        "value": "Damaged"
+                    },
+                    {
+                        "label": "Return",
+                        "value": "Return"
+                    }
+                ]
+            },
+            {
+                "name": "items",
+                "label": "Items",
+                "type": "subform",
+                "sub_fields": [
+                    {
+                        "name": "product",
+                        "label": "Product",
+                        "type": "lookup",
+                        "required": true,
+                        "lookup": {
+                            "lookup_module": "products",
+                            "lookup_label": "name",
+                            "value_field": "_id"
+                        }
+                    },
+                    {
+                        "name": "adjustment",
+                        "label": "Adjustment (+/-)",
+                        "type": "number",
+                        "required": true
+                    }
+                ]
+            },
+            {
+                "name": "notes",
+                "label": "Notes",
+                "type": "textarea"
+            }
+        ]
+    },
+    {
+        "name": "brands",
+        "label": "Brands",
+        "app": "erp",
+        "is_system": true,
+        "fields": [
+            {
+                "name": "name",
+                "label": "Name",
+                "type": "text",
+                "required": true,
+                "unique": true
+            }
+        ]
+    },
+    {
+        "name": "tax_rates",
+        "label": "Tax Rates",
+        "app": "erp",
+        "is_system": true,
+        "fields": [
+            {
+                "name": "name",
+                "label": "Name",
+                "type": "text",
+                "required": true
+            },
+            {
+                "name": "rate",
+                "label": "Rate (%)",
+                "type": "number",
+                "required": true
+            }
+        ]
+    },
+    {
+        "name": "price_lists",
+        "label": "Price Lists",
+        "app": "erp",
+        "is_system": true,
+        "fields": [
+            {
+                "name": "name",
+                "label": "Name",
+                "type": "text",
+                "required": true
+            },
+            {
+                "name": "currency",
+                "label": "Currency",
+                "type": "text",
+                "default_value": "USD"
+            }
+        ]
+    },
+    {
+        "name": "customers",
+        "label": "Customers",
+        "app": "erp",
+        "is_system": true,
+        "fields": [
+            {
+                "name": "name",
+                "label": "Name",
+                "type": "text",
+                "required": true
+            },
+            {
+                "name": "email",
+                "label": "Email",
+                "type": "email"
+            }
+        ]
+    },
+    {
+        "name": "invoices",
+        "label": "Invoices",
+        "app": "erp",
+        "is_system": true,
+        "fields": [
+            {
+                "name": "invoice_number",
+                "label": "Invoice #",
+                "type": "text",
+                "required": true,
+                "unique": true
+            },
+            {
+                "name": "date",
+                "label": "Date",
+                "type": "date",
+                "required": true
+            },
+            {
+                "name": "customer",
+                "label": "Customer",
+                "type": "lookup",
+                "lookup": {
+                    "lookup_module": "customers",
+                    "lookup_label": "name",
+                    "value_field": "_id"
+                }
+            },
+            {
+                "name": "total",
+                "label": "Total",
+                "type": "currency"
+            }
+        ]
+    },
+    {
+        "name": "purchase_invoices",
+        "label": "Purchase Invoices",
+        "app": "erp",
+        "is_system": true,
+        "fields": [
+            {
+                "name": "invoice_number",
+                "label": "Invoice #",
+                "type": "text",
+                "required": true
+            },
+            {
+                "name": "date",
+                "label": "Date",
+                "type": "date",
+                "required": true
+            },
+            {
+                "name": "vendor",
+                "label": "Vendor",
+                "type": "lookup",
+                "lookup": {
+                    "lookup_module": "vendors",
+                    "lookup_label": "name",
+                    "value_field": "_id"
+                }
+            },
+            {
+                "name": "total",
+                "label": "Total",
+                "type": "currency"
+            }
+        ]
+    }
+]

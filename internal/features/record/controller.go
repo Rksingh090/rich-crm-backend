@@ -2,6 +2,7 @@ package record
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
 
 	common_models "go-crm/internal/common/models"
@@ -46,8 +47,9 @@ func (ctrl *RecordController) CreateRecord(c *fiber.Ctx) error {
 
 	res, err := ctrl.Service.CreateRecord(c.UserContext(), moduleName, data, userID)
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": err.Error(),
+		status, msg := formatMongoError(err)
+		return c.Status(status).JSON(fiber.Map{
+			"error": msg,
 		})
 	}
 
@@ -200,8 +202,9 @@ func (ctrl *RecordController) UpdateRecord(c *fiber.Ctx) error {
 	}
 
 	if err := ctrl.Service.UpdateRecord(c.UserContext(), moduleName, id, data, userID); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": err.Error(),
+		status, msg := formatMongoError(err)
+		return c.Status(status).JSON(fiber.Map{
+			"error": msg,
 		})
 	}
 
@@ -346,4 +349,19 @@ func (ctrl *RecordController) QueryRecords(c *fiber.Ctx) error {
 		"page":  req.Page,
 		"limit": req.Limit,
 	})
+}
+
+func formatMongoError(err error) (int, string) {
+	if strings.Contains(err.Error(), "E11000") {
+		msg := err.Error()
+		if idx := strings.Index(msg, "dup key: { data."); idx != -1 {
+			start := idx + len("dup key: { data.")
+			if end := strings.Index(msg[start:], ":"); end != -1 {
+				field := msg[start : start+end]
+				return fiber.StatusBadRequest, fmt.Sprintf("Duplicate value for field '%s'. Please use a unique value.", field)
+			}
+		}
+		return fiber.StatusBadRequest, "Duplicate value detected for a unique field."
+	}
+	return fiber.StatusBadRequest, err.Error()
 }

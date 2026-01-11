@@ -1,0 +1,500 @@
+[
+    {
+        "name": "leads",
+        "label": "Leads",
+        "app": "crm",
+        "is_system": true,
+        "fields": [
+            {
+                "name": "first_name",
+                "label": "First Name",
+                "type": "text",
+                "required": true
+            },
+            {
+                "name": "last_name",
+                "label": "Last Name",
+                "type": "text",
+                "required": true
+            },
+            {
+                "name": "email",
+                "label": "Email",
+                "type": "email",
+                "required": true,
+                "unique": true
+            },
+            {
+                "name": "phone",
+                "label": "Phone",
+                "type": "phone",
+                "unique": true
+            },
+            {
+                "name": "company",
+                "label": "Company",
+                "type": "text"
+            },
+            {
+                "name": "status",
+                "label": "Status",
+                "type": "select",
+                "required": true,
+                "default_value": "New",
+                "options": [
+                    {
+                        "label": "New",
+                        "value": "New"
+                    },
+                    {
+                        "label": "Contacted",
+                        "value": "Contacted"
+                    },
+                    {
+                        "label": "Qualified",
+                        "value": "Qualified"
+                    },
+                    {
+                        "label": "Lost",
+                        "value": "Lost"
+                    }
+                ]
+            },
+            {
+                "name": "source",
+                "label": "Source",
+                "type": "select",
+                "options": [
+                    {
+                        "label": "Web",
+                        "value": "Web"
+                    },
+                    {
+                        "label": "Referral",
+                        "value": "Referral"
+                    },
+                    {
+                        "label": "Event",
+                        "value": "Event"
+                    }
+                ]
+            },
+            {
+                "name": "notes",
+                "label": "Notes",
+                "type": "textarea"
+            }
+        ]
+    },
+    {
+        "name": "contacts",
+        "label": "Contacts",
+        "app": "crm",
+        "is_system": true,
+        "fields": [
+            {
+                "name": "first_name",
+                "label": "First Name",
+                "type": "text",
+                "required": true
+            },
+            {
+                "name": "last_name",
+                "label": "Last Name",
+                "type": "text",
+                "required": true
+            },
+            {
+                "name": "email",
+                "label": "Email",
+                "type": "email",
+                "required": true,
+                "unique": true
+            },
+            {
+                "name": "phone",
+                "label": "Phone",
+                "type": "phone",
+                "unique": true
+            },
+            {
+                "name": "account",
+                "label": "Account",
+                "type": "lookup",
+                "lookup": {
+                    "lookup_module": "accounts",
+                    "lookup_label": "name",
+                    "value_field": "_id"
+                }
+            },
+            {
+                "name": "title",
+                "label": "Job Title",
+                "type": "text"
+            },
+            {
+                "name": "notes",
+                "label": "Notes",
+                "type": "textarea"
+            }
+        ]
+    },
+    {
+        "name": "accounts",
+        "label": "Accounts",
+        "app": "crm",
+        "is_system": true,
+        "fields": [
+            {
+                "name": "name",
+                "label": "Account Name",
+                "type": "text",
+                "required": true,
+                "unique": true
+            },
+            {
+                "name": "industry",
+                "label": "Industry",
+                "type": "select",
+                "options": [
+                    {
+                        "label": "Tech",
+                        "value": "Tech"
+                    },
+                    {
+                        "label": "Finance",
+                        "value": "Finance"
+                    },
+                    {
+                        "label": "Retail",
+                        "value": "Retail"
+                    },
+                    {
+                        "label": "Health",
+                        "value": "Health"
+                    }
+                ]
+            },
+            {
+                "name": "website",
+                "label": "Website",
+                "type": "url",
+                "unique": true
+            },
+            {
+                "name": "phone",
+                "label": "Phone",
+                "type": "phone"
+            },
+            {
+                "name": "type",
+                "label": "Type",
+                "type": "select",
+                "options": [
+                    {
+                        "label": "Customer",
+                        "value": "Customer"
+                    },
+                    {
+                        "label": "Partner",
+                        "value": "Partner"
+                    }
+                ]
+            },
+            {
+                "name": "notes",
+                "label": "Notes",
+                "type": "textarea"
+            }
+        ]
+    },
+    {
+        "name": "opportunities",
+        "label": "Opportunities",
+        "app": "crm",
+        "is_system": true,
+        "fields": [
+            {
+                "name": "name",
+                "label": "Name",
+                "type": "text",
+                "required": true
+            },
+            {
+                "name": "account",
+                "label": "Account",
+                "type": "lookup",
+                "lookup": {
+                    "lookup_module": "accounts",
+                    "lookup_label": "name",
+                    "value_field": "_id"
+                }
+            },
+            {
+                "name": "amount",
+                "label": "Amount",
+                "type": "currency",
+                "required": true
+            },
+            {
+                "name": "stage",
+                "label": "Stage",
+                "type": "select",
+                "required": true,
+                "options": [
+                    {
+                        "label": "Prospecting",
+                        "value": "Prospecting"
+                    },
+                    {
+                        "label": "Negotiation",
+                        "value": "Negotiation"
+                    },
+                    {
+                        "label": "Closed Won",
+                        "value": "Closed Won"
+                    },
+                    {
+                        "label": "Closed Lost",
+                        "value": "Closed Lost"
+                    }
+                ]
+            },
+            {
+                "name": "close_date",
+                "label": "Close Date",
+                "type": "date",
+                "required": true
+            },
+            {
+                "name": "notes",
+                "label": "Notes",
+                "type": "textarea"
+            }
+        ]
+    },
+    {
+        "name": "tasks",
+        "label": "Tasks",
+        "app": "crm",
+        "is_system": true,
+        "fields": [
+            {
+                "name": "subject",
+                "label": "Subject",
+                "type": "text",
+                "required": true
+            },
+            {
+                "name": "status",
+                "label": "Status",
+                "type": "select",
+                "required": true,
+                "default_value": "Not Started",
+                "options": [
+                    {
+                        "label": "Not Started",
+                        "value": "Not Started"
+                    },
+                    {
+                        "label": "In Progress",
+                        "value": "In Progress"
+                    },
+                    {
+                        "label": "Completed",
+                        "value": "Completed"
+                    }
+                ]
+            },
+            {
+                "name": "priority",
+                "label": "Priority",
+                "type": "select",
+                "default_value": "Normal",
+                "options": [
+                    {
+                        "label": "Low",
+                        "value": "Low"
+                    },
+                    {
+                        "label": "Normal",
+                        "value": "Normal"
+                    },
+                    {
+                        "label": "High",
+                        "value": "High"
+                    }
+                ]
+            },
+            {
+                "name": "due_date",
+                "label": "Due Date",
+                "type": "date"
+            },
+            {
+                "name": "related_to",
+                "label": "Related To",
+                "type": "lookup",
+                "lookup": {
+                    "lookup_module": "accounts",
+                    "lookup_label": "name",
+                    "value_field": "_id"
+                }
+            },
+            {
+                "name": "assigned_to",
+                "label": "Assigned To",
+                "type": "user"
+            },
+            {
+                "name": "notes",
+                "label": "Notes",
+                "type": "textarea"
+            }
+        ]
+    },
+    {
+        "name": "calls",
+        "label": "Calls",
+        "app": "crm",
+        "is_system": true,
+        "fields": [
+            {
+                "name": "subject",
+                "label": "Subject",
+                "type": "text",
+                "required": true
+            },
+            {
+                "name": "call_type",
+                "label": "Call Type",
+                "type": "select",
+                "options": [
+                    {
+                        "label": "Inbound",
+                        "value": "Inbound"
+                    },
+                    {
+                        "label": "Outbound",
+                        "value": "Outbound"
+                    }
+                ]
+            },
+            {
+                "name": "start_time",
+                "label": "Start Time",
+                "type": "datetime",
+                "required": true
+            },
+            {
+                "name": "duration",
+                "label": "Duration (min)",
+                "type": "number"
+            },
+            {
+                "name": "status",
+                "label": "Status",
+                "type": "select",
+                "options": [
+                    {
+                        "label": "Planned",
+                        "value": "Planned"
+                    },
+                    {
+                        "label": "Held",
+                        "value": "Held"
+                    },
+                    {
+                        "label": "Missed",
+                        "value": "Missed"
+                    }
+                ]
+            },
+            {
+                "name": "contact",
+                "label": "Contact",
+                "type": "lookup",
+                "lookup": {
+                    "lookup_module": "contacts",
+                    "lookup_label": "last_name",
+                    "value_field": "_id"
+                }
+            },
+            {
+                "name": "outcome",
+                "label": "Outcome",
+                "type": "text"
+            },
+            {
+                "name": "notes",
+                "label": "Notes",
+                "type": "textarea"
+            }
+        ]
+    },
+    {
+        "name": "meetings",
+        "label": "Meetings",
+        "app": "crm",
+        "is_system": true,
+        "fields": [
+            {
+                "name": "subject",
+                "label": "Subject",
+                "type": "text",
+                "required": true
+            },
+            {
+                "name": "location",
+                "label": "Location",
+                "type": "text"
+            },
+            {
+                "name": "start_time",
+                "label": "Start Time",
+                "type": "datetime",
+                "required": true
+            },
+            {
+                "name": "end_time",
+                "label": "End Time",
+                "type": "datetime",
+                "required": true
+            },
+            {
+                "name": "status",
+                "label": "Status",
+                "type": "select",
+                "options": [
+                    {
+                        "label": "Planned",
+                        "value": "Planned"
+                    },
+                    {
+                        "label": "Held",
+                        "value": "Held"
+                    },
+                    {
+                        "label": "Canceled",
+                        "value": "Canceled"
+                    }
+                ]
+            },
+            {
+                "name": "contact",
+                "label": "Contact",
+                "type": "lookup",
+                "lookup": {
+                    "lookup_module": "contacts",
+                    "lookup_label": "last_name",
+                    "value_field": "_id"
+                }
+            },
+            {
+                "name": "notes",
+                "label": "Notes",
+                "type": "textarea"
+            }
+        ]
+    }
+]

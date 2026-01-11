@@ -80,9 +80,9 @@ func (ctrl *ModuleController) ListModules(c *fiber.Ctx) error {
 
 	// Get product from header and add to context
 	ctx := c.UserContext()
-	product := c.Get("X-Rich-App", "")
+	product := c.Get("X-Rich-App", "crm")
 	if product != "" {
-		ctx = context.WithValue(ctx, "app", product)
+		ctx = context.WithValue(ctx, models.AppIDKey, product)
 	}
 
 	modules, err := ctrl.Service.ListModules(ctx, userID)

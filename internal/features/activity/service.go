@@ -2,23 +2,30 @@ package activity
 
 import (
 	"context"
+	"fmt"
+	"go-crm/internal/common/models"
+	"go-crm/internal/database"
 	"go-crm/internal/features/record"
+	"sort"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type ActivityService interface {
 	GetCalendarEvents(ctx context.Context, start, end time.Time) ([]map[string]interface{}, error)
+	GetTimeline(ctx context.Context, moduleName, recordID string) ([]map[string]interface{}, error)
 }
 
 type ActivityServiceImpl struct {
 	RecordRepo record.RecordRepository
+	DB         *database.MongodbDB
 }
 
-func NewActivityService(recordRepo record.RecordRepository) ActivityService {
-	return &ActivityServiceImpl{RecordRepo: recordRepo}
+func NewActivityService(recordRepo record.RecordRepository, db *database.MongodbDB) ActivityService {
+	return &ActivityServiceImpl{RecordRepo: recordRepo, DB: db}
 }
 
 func (s *ActivityServiceImpl) GetCalendarEvents(ctx context.Context, start, end time.Time) ([]map[string]interface{}, error) {
@@ -92,6 +99,104 @@ func (s *ActivityServiceImpl) GetCalendarEvents(ctx context.Context, start, end 
 	}
 
 	return events, nil
+}
+
+func (s *ActivityServiceImpl) GetTimeline(ctx context.Context, moduleName, recordID string) ([]map[string]interface{}, error) {
+	tenantID, ok := ctx.Value(models.TenantIDKey).(string)
+	if !ok || tenantID == "" {
+		return nil, fmt.Errorf("organization context missing")
+	}
+
+	db := s.DB.GetTenantDB(tenantID)
+	oid, _ := primitive.ObjectIDFromHex(recordID) // Ignore error, check both string and oid
+
+	timeline := []map[string]interface{}{}
+
+	// Collections to check
+	// Map Collection Name -> Type Label
+	sources := map[string]string{
+		"crm_calls":    "call",
+		"crm_meetings": "meeting",
+		"crm_tasks":    "task",
+	}
+
+	// Query Filter: Look for recordID in relationship fields
+	// We check both String ID and ObjectID version
+	orConditions := []bson.M{
+		{"data.related_to": recordID},
+		{"data.contact": recordID},
+		{"data.account": recordID},
+		{"data.lead": recordID},
+	}
+	if !oid.IsZero() {
+		orConditions = append(orConditions,
+			bson.M{"data.related_to": oid},
+			bson.M{"data.contact": oid},
+			bson.M{"data.account": oid},
+			bson.M{"data.lead": oid},
+		)
+	}
+
+	filter := bson.M{
+		"deleted": bson.M{"$ne": true},
+		"$or":     orConditions,
+	}
+
+	for collName, typeLabel := range sources {
+		coll := db.Collection(collName)
+
+		// Optimization: Index on related_to/contact is needed for perf, but strict timeline implies partial scan?
+		// We rely on sparse indexes created by EnsureIndexes?
+		// Currently unrelated.
+
+		cursor, err := coll.Find(ctx, filter, options.Find().SetLimit(50).SetSort(bson.M{"created_at": -1}))
+		if err != nil {
+			continue // Skip if collection error or missing
+		}
+
+		var results []map[string]interface{}
+		if err := cursor.All(ctx, &results); err != nil {
+			continue
+		}
+
+		for _, item := range results {
+			// Extract Data
+			data, _ := item["data"].(map[string]interface{})
+
+			// Determine Date (Priority: start_time > due_date > created_at)
+			var date time.Time
+			if v, ok := data["start_time"]; ok {
+				date = toTime(v)
+			} else if v, ok := data["due_date"]; ok {
+				date = toTime(v)
+			} else {
+				date = toTime(item["created_at"])
+			}
+
+			// Normalized Activity Item
+			timelineItem := map[string]interface{}{
+				"id":         item["_id"],
+				"type":       typeLabel,
+				"module":     collName, // e.g. crm_calls
+				"date":       date,
+				"subject":    data["subject"], // Assuming subject exists
+				"status":     data["status"],
+				"owner":      data["owner"], // or assigned_to
+				"data":       data,          // full data for UI
+				"created_at": item["created_at"],
+			}
+			timeline = append(timeline, timelineItem)
+		}
+	}
+
+	// Sort consolidated timeline descending
+	sort.Slice(timeline, func(i, j int) bool {
+		t1, _ := timeline[i]["date"].(time.Time)
+		t2, _ := timeline[j]["date"].(time.Time)
+		return t1.After(t2)
+	})
+
+	return timeline, nil
 }
 
 func toTime(v interface{}) time.Time {

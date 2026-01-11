@@ -1,0 +1,297 @@
+{
+    "categories": [
+        {
+            "name": "Electronics",
+            "description": "Gadgets and devices"
+        },
+        {
+            "name": "Services",
+            "description": "Consulting and Support"
+        },
+        {
+            "name": "Furniture",
+            "description": "Office setup"
+        }
+    ],
+    "erp_data": {
+        "vendors": [
+            {
+                "name": "Global Supply Co",
+                "email": "supply@global.com",
+                "phone": "555-9999",
+                "address": "123 Port St, NY"
+            },
+            {
+                "name": "Metal Works Ltd",
+                "email": "sales@metalworks.com",
+                "phone": "555-8888",
+                "address": "456 Industrial Ave, DET"
+            }
+        ],
+        "products": [
+            {
+                "name": "Batmobile Tire",
+                "sku": "BAT-TIRE-001",
+                "selling_price": 500.00,
+                "cost_price": 200.00,
+                "unit": "Pcs",
+                "category_name": "Electronics"
+            },
+            {
+                "name": "Arc Reactor Core",
+                "sku": "ARC-CORE-V1",
+                "selling_price": 15000.00,
+                "cost_price": 5000.00,
+                "unit": "Pcs",
+                "category_name": "Electronics"
+            },
+            {
+                "name": "T-800 Chip",
+                "sku": "CPU-T800",
+                "selling_price": 2500.00,
+                "cost_price": 800.00,
+                "unit": "Pcs",
+                "category_name": "Electronics"
+            },
+            {
+                "name": "Office Chair",
+                "sku": "FURN-001",
+                "selling_price": 150.00,
+                "cost_price": 80.00,
+                "unit": "Pcs",
+                "category_name": "Furniture"
+            }
+        ]
+    },
+    "crm_data": {
+        "accounts": [
+            {
+                "name": "Wayne Enterprises",
+                "industry": "Tech",
+                "type": "Customer",
+                "website": "https://wayne.com",
+                "phone": "555-0101"
+            },
+            {
+                "name": "Stark Industries",
+                "industry": "Tech",
+                "type": "Partner",
+                "website": "https://stark.com",
+                "phone": "555-0102"
+            },
+            {
+                "name": "Cyberdyne Systems",
+                "industry": "Manufacturing",
+                "type": "Vendor",
+                "website": "https://cyberdyne.net",
+                "phone": "555-0103"
+            },
+            {
+                "name": "Acme Corp",
+                "industry": "Retail",
+                "type": "Customer",
+                "website": "https://acme.com",
+                "phone": "555-0104"
+            },
+            {
+                "name": "Globex Corp",
+                "industry": "Finance",
+                "type": "Customer",
+                "website": "https://globex.com",
+                "phone": "555-0105"
+            }
+        ],
+        "contacts": [
+            {
+                "first_name": "Bruce",
+                "last_name": "Wayne",
+                "email": "bruce@wayne.com",
+                "title": "CEO",
+                "phone": "555-1111",
+                "account_name": "Wayne Enterprises"
+            },
+            {
+                "first_name": "Tony",
+                "last_name": "Stark",
+                "email": "tony@stark.com",
+                "title": "CTO",
+                "phone": "555-1112",
+                "account_name": "Stark Industries"
+            },
+            {
+                "first_name": "Sarah",
+                "last_name": "Connor",
+                "email": "sarah@future.com",
+                "title": "Consultant",
+                "phone": "555-1113",
+                "account_name": "Cyberdyne Systems"
+            },
+            {
+                "first_name": "Wile",
+                "last_name": "Coyote",
+                "email": "wile@acme.com",
+                "title": "Engineer",
+                "phone": "555-1114",
+                "account_name": "Acme Corp"
+            },
+            {
+                "first_name": "Hank",
+                "last_name": "Scorpio",
+                "email": "hank@globex.com",
+                "title": "Manager",
+                "phone": "555-1115",
+                "account_name": "Globex Corp"
+            }
+        ],
+        "leads": [
+            {
+                "first_name": "Clark",
+                "last_name": "Kent",
+                "email": "clark@dailyplanet.com",
+                "status": "New",
+                "source": "Web",
+                "company": "Daily Planet"
+            },
+            {
+                "first_name": "Diana",
+                "last_name": "Prince",
+                "email": "diana@themyscira.gov",
+                "status": "Qualified",
+                "source": "Referral",
+                "company": "Museum"
+            },
+            {
+                "first_name": "Barry",
+                "last_name": "Allen",
+                "email": "barry@ccpd.gov",
+                "status": "Contacted",
+                "source": "Event",
+                "company": "CCPD"
+            }
+        ],
+        "opportunities": [
+            {
+                "name": "Wayne Tech Upgrade",
+                "amount": 500000.00,
+                "stage": "Negotiation",
+                "close_in_days": 30,
+                "account_name": "Wayne Enterprises"
+            },
+            {
+                "name": "Stark AI Partnership",
+                "amount": 1200000.00,
+                "stage": "Prospecting",
+                "close_in_days": 90,
+                "account_name": "Stark Industries"
+            },
+            {
+                "name": "Acme Widget Order",
+                "amount": 5000.00,
+                "stage": "Closed Won",
+                "close_in_days": -5,
+                "account_name": "Acme Corp"
+            }
+        ],
+        "tasks": [
+            {
+                "subject": "Follow up with Bruce",
+                "status": "Not Started",
+                "priority": "High",
+                "due_in_days": 2,
+                "related_to_name": "Wayne Enterprises",
+                "assign_to_admin": true
+            },
+            {
+                "subject": "Prepare Contract for Stark",
+                "status": "In Progress",
+                "priority": "Normal",
+                "due_in_days": 5,
+                "related_to_name": "Stark Industries",
+                "assign_to_admin": true
+            }
+        ],
+        "meetings": [
+            {
+                "subject": "Demo with Wayne Ent",
+                "start_in_hours": 24,
+                "duration_hours": 1,
+                "status": "Planned",
+                "contact_email": "bruce@wayne.com",
+                "location": "Zoom"
+            },
+            {
+                "subject": "Quarterly Review",
+                "start_in_hours": -48,
+                "duration_hours": 1,
+                "status": "Held",
+                "contact_email": "sarah@future.com",
+                "location": "Office"
+            }
+        ],
+        "calls": [
+            {
+                "subject": "Intro Call",
+                "call_type": "Outbound",
+                "start_in_hours": -2,
+                "duration": 15,
+                "status": "Held",
+                "outcome": "Connected",
+                "contact_email": "tony@stark.com"
+            }
+        ]
+    },
+    "orders": {
+        "sales_orders": [
+            {
+                "order_number": "SO-1001",
+                "customer_name": "Wayne Enterprises",
+                "status": "Draft",
+                "line_items": [
+                    {
+                        "product_name": "Batmobile Tire",
+                        "quantity": 4,
+                        "rate": 500.00,
+                        "amount": 2000.00
+                    }
+                ],
+                "total_amount": 2000.00
+            },
+            {
+                "order_number": "SO-1002",
+                "customer_name": "Stark Industries",
+                "status": "Confirmed",
+                "line_items": [
+                    {
+                        "product_name": "Arc Reactor Core",
+                        "quantity": 2,
+                        "rate": 15000.00,
+                        "amount": 30000.00
+                    },
+                    {
+                        "product_name": "T-800 Chip",
+                        "quantity": 10,
+                        "rate": 2500.00,
+                        "amount": 25000.00
+                    }
+                ],
+                "total_amount": 55000.00
+            }
+        ],
+        "purchase_orders": [
+            {
+                "po_number": "PO-9001",
+                "vendor_name": "Global Supply Co",
+                "status": "Issued",
+                "line_items": [
+                    {
+                        "product_name": "Batmobile Tire",
+                        "quantity": 100,
+                        "rate": 200.00,
+                        "amount": 20000.00
+                    }
+                ],
+                "total_amount": 20000.00
+            }
+        ]
+    }
+}

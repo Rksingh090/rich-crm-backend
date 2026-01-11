@@ -51,3 +51,28 @@ func (c *ActivityController) GetCalendarEvents(ctx *fiber.Ctx) error {
 
 	return ctx.JSON(events)
 }
+
+// GetTimeline godoc
+// @Summary      Get activity timeline
+// @Description  Retrieve chronological timeline of activities (calls, meetings, tasks) for a record
+// @Tags         activity
+// @Produce      json
+// @Param        module query     string  true  "Module Name (e.g. contacts)"
+// @Param        id     query     string  true  "Record ID"
+// @Success      200    {array}   interface{}
+// @Router       /api/activities/timeline [get]
+func (c *ActivityController) GetTimeline(ctx *fiber.Ctx) error {
+	moduleName := ctx.Query("module")
+	recordID := ctx.Query("id")
+
+	if moduleName == "" || recordID == "" {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "module and id are required"})
+	}
+
+	timeline, err := c.ActivityService.GetTimeline(ctx.UserContext(), moduleName, recordID)
+	if err != nil {
+		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	return ctx.JSON(timeline)
+}
