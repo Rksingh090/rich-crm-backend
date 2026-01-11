@@ -363,26 +363,35 @@ func (s *RecordServiceImpl) QueryRecords(ctx context.Context, moduleName string,
 	// But perms are usually keyed by "product.module".
 	resourceKey := fmt.Sprintf("%s.%s", m.App, m.Name)
 
-	// Check specific resource permission
 	var actionPerm *common_models.ActionPermission
-	if p, ok := perms[resourceKey]; ok {
+
+	// Helper to find action perms
+	findAction := func(p *permission.Permission) *common_models.ActionPermission {
 		if ap, ok := p.Actions[action]; ok {
-			actionPerm = &ap
+			return &ap
 		}
-	} else if p, ok := perms[m.Name]; ok {
-		// Fallback to checking the exact resource request if constructed key fails
-		// This handles cases where maybe the input WAS the full key or product is implicitly included in name
-		if ap, ok := p.Actions[action]; ok {
-			actionPerm = &ap
+		if ap, ok := p.Actions["*"]; ok {
+			return &ap
+		}
+		return nil
+	}
+
+	// 1. Check specific resource permission
+	if p, ok := perms[resourceKey]; ok {
+		actionPerm = findAction(p)
+	}
+
+	// 2. Check simple name permission (Fallback)
+	if actionPerm == nil {
+		if p, ok := perms[m.Name]; ok {
+			actionPerm = findAction(p)
 		}
 	}
 
+	// 3. Check wildcard permission (Global Fallback)
 	if actionPerm == nil {
-		// Check wildcard
 		if p, ok := perms["*"]; ok {
-			if ap, ok := p.Actions[action]; ok {
-				actionPerm = &ap
-			}
+			actionPerm = findAction(p)
 		}
 	}
 

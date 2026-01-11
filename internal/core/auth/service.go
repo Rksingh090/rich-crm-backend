@@ -58,6 +58,7 @@ func NewAuthService(
 }
 
 func (s *AuthServiceImpl) Register(ctx context.Context, password, email, orgName, plan string, apps []string) (*models.User, error) {
+	fmt.Printf("DEBUG: Register called for %s, Org: %s\n", email, orgName)
 	// hash password placeholder (TODO: use bcrypt)
 	hashedPassword := password
 
@@ -98,25 +99,103 @@ func (s *AuthServiceImpl) Register(ctx context.Context, password, email, orgName
 	newOrg.OwnerID = newUserID
 
 	if err := s.OrganizationRepo.Create(ctx, &newOrg); err != nil {
+		fmt.Printf("DEBUG: Org Create Failed: %v\n", err)
 		return nil, err
 	}
+	fmt.Printf("DEBUG: Org Created: %s\n", newOrg.ID.Hex())
 
 	// 2. Seed Tenant (Copy Defaults)
 	adminRoleID, err := s.seedTenant(ctx, newOrg.ID)
 	if err != nil {
+		fmt.Printf("DEBUG: seedTenant Failed: %v\n", err)
 		return nil, err
 	}
+	fmt.Printf("DEBUG: seedTenant Success, AdminRole: %s\n", adminRoleID.Hex())
 
 	// 3. Set Organization Context for subsequent calls
 	ctx = context.WithValue(ctx, models.TenantIDKey, newOrg.ID.Hex())
 
 	// Prepare App Roles
 	var userAppRoles []models.UserAppRole
-	for _, p := range enabledApps {
-		userAppRoles = append(userAppRoles, models.UserAppRole{
-			AppID:  p,
-			RoleID: adminRoleID,
-		})
+
+	// Fetch all available roles to assign to the user
+	allRoles, err := s.RoleRepo.List(ctx)
+	if err != nil {
+		fmt.Printf("DEBUG: Failed to list roles: %v. Fallback to Admin only.\n", err)
+		// Fallback
+		for _, p := range enabledApps {
+			userAppRoles = append(userAppRoles, models.UserAppRole{
+				AppID:  p,
+				RoleID: adminRoleID,
+			})
+		}
+	} else {
+		// Assign all roles that match enabled apps
+		// Ensure admin role is added if it has empty App
+		adminAdded := false
+
+		for _, r := range allRoles {
+			// Check if app is enabled
+			appEnabled := false
+			for _, ea := range enabledApps {
+				if string(ea) == string(r.App) || r.ID == adminRoleID {
+					appEnabled = true
+					break
+				}
+			}
+
+			if appEnabled {
+				// Use the role's App, or if empty (admin fallback), use matching app from enabledApps?
+				// Admin role applies to all apps usually.
+				// If role.App is empty, we might need to add it for EACH enabled app, or just once?
+				// JWT looks at AppRoles.
+				// Let's add it for its specific App if defined.
+				if r.App != "" {
+					userAppRoles = append(userAppRoles, models.UserAppRole{
+						AppID:  models.App(r.App),
+						RoleID: r.ID,
+					})
+				} else {
+					// Universal role (like Admin fallback), assign to all enabled apps?
+					// Or just add once with empty AppID?
+					// The system seems to expect AppID.
+					// Let's assign adminRoleID for each enabled app if not already covered.
+					// But simplified: Just add what we found.
+				}
+
+				if r.ID == adminRoleID {
+					adminAdded = true
+				}
+			}
+		}
+
+		// Ensure Admin Role is explicitly added for all apps if not covered (e.g. fallback admin has no app)
+		if !adminAdded || len(userAppRoles) == 0 {
+			for _, p := range enabledApps {
+				userAppRoles = append(userAppRoles, models.UserAppRole{
+					AppID:  p,
+					RoleID: adminRoleID,
+				})
+			}
+		} else {
+			// If admin was added but maybe only for one app?
+			// Let's aggressively ensure admin role is present for all apps just in case
+			for _, p := range enabledApps {
+				alreadyHasAdmin := false
+				for _, uar := range userAppRoles {
+					if uar.AppID == p && uar.RoleID == adminRoleID {
+						alreadyHasAdmin = true
+						break
+					}
+				}
+				if !alreadyHasAdmin {
+					userAppRoles = append(userAppRoles, models.UserAppRole{
+						AppID:  p,
+						RoleID: adminRoleID,
+					})
+				}
+			}
+		}
 	}
 
 	newUser := models.User{
@@ -131,8 +210,10 @@ func (s *AuthServiceImpl) Register(ctx context.Context, password, email, orgName
 	}
 
 	if err := s.UserRepo.Create(ctx, &newUser); err != nil {
+		fmt.Printf("DEBUG: User Create Failed: %v\n", err)
 		return nil, err
 	}
+	fmt.Printf("DEBUG: User Created: %s\n", newUser.ID.Hex())
 
 	// Audit Log
 	changes := map[string]models.Change{
@@ -458,6 +539,21 @@ func (s *AuthServiceImpl) seedTenant(ctx context.Context, tenantID primitive.Obj
 			return primitive.NilObjectID, err
 		}
 		adminRoleID = adminRole.ID
+
+		// Create corresponding Permission Document for PermissionService visibility
+		adminPerm := permission.Permission{
+			ID:         primitive.NewObjectID(),
+			RoleID:     adminRoleID,
+			RoleName:   "admin",
+			ResourceID: "*",
+			TenantID:   tenantID,
+			Actions: map[string]models.ActionPermission{
+				"*": {Allowed: true},
+			},
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+		}
+		_ = s.PermissionRepo.Create(tenantCtx, &adminPerm)
 	}
 
 	return adminRoleID, nil

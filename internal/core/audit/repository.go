@@ -17,34 +17,45 @@ type AuditRepository interface {
 }
 
 type AuditRepositoryImpl struct {
-	Collection *mongo.Collection
+	DB *database.MongodbDB
 }
 
 func NewAuditRepository(mongodb *database.MongodbDB) AuditRepository {
 	return &AuditRepositoryImpl{
-		Collection: mongodb.DB.Collection("audit_logs"),
+		DB: mongodb,
 	}
 }
 
+func (r *AuditRepositoryImpl) getCollection(ctx context.Context) *mongo.Collection {
+	tenantID, ok := ctx.Value(common_models.TenantIDKey).(string)
+	if ok && tenantID != "" {
+		return r.DB.GetTenantDB(tenantID).Collection("audit_logs")
+	}
+	return r.DB.GetControlPlaneDB().Collection("audit_logs")
+}
+
 func (r *AuditRepositoryImpl) Create(ctx context.Context, log common_models.AuditLog) error {
+	coll := r.getCollection(ctx)
+
 	tenantID, ok := ctx.Value(common_models.TenantIDKey).(string)
 	if ok && tenantID != "" {
 		if oid, err := primitive.ObjectIDFromHex(tenantID); err == nil {
 			log.TenantID = oid
 		}
 	}
-	// Note: Audit logs might sometimes be created without tenant context (e.g. system events).
-	// But mostly they should have it.
 
-	_, err := r.Collection.InsertOne(ctx, log)
+	_, err := coll.InsertOne(ctx, log)
 	return err
 }
 
 func (r *AuditRepositoryImpl) List(ctx context.Context, filters map[string]interface{}, limit, offset int64) ([]common_models.AuditLog, error) {
+	coll := r.getCollection(ctx)
 	opts := options.Find().SetLimit(limit).SetSkip(offset).SetSort(bson.M{"timestamp": -1})
 
 	query := bson.M{}
 
+	// If in Tenant DB, we don't strictly need to filter by tenant_id as DB is isolated,
+	// but it doesn't hurt and ensures consistency if fallback to global.
 	tenantID, ok := ctx.Value(common_models.TenantIDKey).(string)
 	if ok && tenantID != "" {
 		if oid, err := primitive.ObjectIDFromHex(tenantID); err == nil {
@@ -62,13 +73,17 @@ func (r *AuditRepositoryImpl) List(ctx context.Context, filters map[string]inter
 		query[k] = v
 	}
 
-	cursor, err := r.Collection.Find(ctx, query, opts)
+	cursor, err := coll.Find(ctx, query, opts)
 	if err != nil {
 		return nil, err
 	}
 	var logs []common_models.AuditLog
 	if err = cursor.All(ctx, &logs); err != nil {
 		return nil, err
+	}
+	// Initializing slice to avoid returning null in JSON
+	if logs == nil {
+		logs = []common_models.AuditLog{}
 	}
 	return logs, nil
 }

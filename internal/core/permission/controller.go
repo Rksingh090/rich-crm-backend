@@ -217,6 +217,22 @@ func (ctrl *PermissionController) RevokeResourceFromRole(c *fiber.Ctx) error {
 // @Failure      500  {string} string "Failed to get permissions"
 // @Router       /api/permissions/user/{userId}/effective [get]
 func (ctrl *PermissionController) GetUserEffectivePermissions(c *fiber.Ctx) error {
+	// 1. Check if Platform Admin via Token Claims (fastest, robust bypass)
+	if isPlatformAdmin, ok := c.Locals("is_platform_admin").(bool); ok && isPlatformAdmin {
+		return c.JSON(map[string]interface{}{
+			"*": map[string]interface{}{
+				"resource_id": "*",
+				"actions": map[string]interface{}{
+					"read":   map[string]bool{"allowed": true},
+					"create": map[string]bool{"allowed": true},
+					"update": map[string]bool{"allowed": true},
+					"delete": map[string]bool{"allowed": true},
+				},
+				"field_rules": map[string]string{},
+			},
+		})
+	}
+
 	userIDStr, ok := c.Locals("user_id").(string)
 	if !ok || userIDStr == "" {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{

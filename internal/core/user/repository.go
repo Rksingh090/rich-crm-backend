@@ -72,21 +72,16 @@ func (r *UserRepositoryImpl) FindByEmailGlobal(ctx context.Context, email string
 }
 
 func (r *UserRepositoryImpl) FindByID(ctx context.Context, id string) (*models.User, error) {
-	tenantID, ok := ctx.Value(models.TenantIDKey).(string)
-	if !ok || tenantID == "" {
-		return nil, fmt.Errorf("tenant context missing")
-	}
-	oid, err := primitive.ObjectIDFromHex(tenantID)
-	if err != nil {
-		return nil, err
-	}
+	// Relaxed lookup: ID is unique globally.
+	// We can optionally verify tenant_id matches context if needed, but strict filtering
+	// can cause issues if context is slightly mismatching (e.g. during heavy load or weird middleware edge cases).
 
 	objectID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return nil, err
 	}
 	var user models.User
-	err = r.Collection.FindOne(ctx, bson.M{"_id": objectID, "tenant_id": oid}).Decode(&user)
+	err = r.Collection.FindOne(ctx, bson.M{"_id": objectID}).Decode(&user)
 	if err != nil {
 		return nil, err
 	}

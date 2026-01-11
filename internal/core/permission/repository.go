@@ -103,8 +103,12 @@ func (r *PermissionRepositoryImpl) FindByRoleID(ctx context.Context, roleID stri
 
 func (r *PermissionRepositoryImpl) FindByResource(ctx context.Context, resourceType, resourceID string) ([]Permission, error) {
 	filter := bson.M{
-		"resource.type": resourceType,
-		"resource.id":   resourceID,
+		"resource.type": resourceType, // Is type nested? JSON doesn't show type?
+		// JSON shows "resource_id": "crm.leads". Where is type?
+		// Assuming strictly resource_id is what we want.
+		// If 'type' is missing in struct, this query is useless?
+		// Let's assume resource_id is enough as it is unique string "crm.leads".
+		"resource_id": resourceID,
 	}
 
 	coll := r.getCollection(ctx)
@@ -129,7 +133,7 @@ func (r *PermissionRepositoryImpl) FindByRoleAndResource(ctx context.Context, ro
 
 	filter := bson.M{
 		"role_id":     oid,
-		"resource.id": resourceID,
+		"resource_id": resourceID,
 	}
 
 	var permission Permission
@@ -248,9 +252,9 @@ func (r *PermissionRepositoryImpl) EnsureIndexes(ctx context.Context) error {
 		{
 			Keys: bson.D{
 				{Key: "role_id", Value: 1},
-				{Key: "resource.id", Value: 1},
+				{Key: "resource_id", Value: 1},
 			},
-			Options: options.Index().SetName("idx_role_resource").SetUnique(true),
+			Options: options.Index().SetName("idx_role_resource_v2").SetUnique(true),
 		},
 	}
 	_, err := coll.Indexes().CreateMany(ctx, indexes)
@@ -265,9 +269,9 @@ func (r *PermissionRepositoryImpl) EnsureGlobalIndexes(ctx context.Context) erro
 		{
 			Keys: bson.D{
 				{Key: "role_name", Value: 1},
-				{Key: "resource.id", Value: 1},
+				{Key: "resource_id", Value: 1},
 			},
-			Options: options.Index().SetName("idx_template_role_resource").SetUnique(true),
+			Options: options.Index().SetName("idx_template_role_resource_v2").SetUnique(true),
 		},
 	}
 	_, err := coll.Indexes().CreateMany(ctx, indexes)

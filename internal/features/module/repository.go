@@ -73,6 +73,13 @@ func (r *ModuleRepositoryImpl) GetDefaults(ctx context.Context) ([]models.Entity
 }
 
 func (r *ModuleRepositoryImpl) Create(ctx context.Context, module *models.Entity) error {
+	if module.Scope == "global" {
+		db := r.DB.GetControlPlaneDB()
+		coll := db.Collection("default_modules")
+		_, err := coll.InsertOne(ctx, module)
+		return err
+	}
+
 	coll, err := r.getCollection(ctx)
 	if err != nil {
 		return err
@@ -96,9 +103,21 @@ func (r *ModuleRepositoryImpl) FindByName(ctx context.Context, name string) (*mo
 
 	var module models.Entity
 	err = coll.FindOne(ctx, bson.M{"name": name, "deleted_at": bson.M{"$exists": false}}).Decode(&module)
-	if err != nil {
+	if err == nil {
+		return &module, nil
+	}
+	if err != mongo.ErrNoDocuments {
 		return nil, err
 	}
+
+	// Fallback to Global
+	db := r.DB.GetControlPlaneDB()
+	defaultColl := db.Collection("default_modules")
+	if err := defaultColl.FindOne(ctx, bson.M{"name": name, "deleted_at": bson.M{"$exists": false}}).Decode(&module); err != nil {
+		return nil, err
+	}
+
+	// Ensure we preserve the scope as global so UI/Backend knows it's a default
 	return &module, nil
 }
 
@@ -128,6 +147,16 @@ func (r *ModuleRepositoryImpl) List(ctx context.Context) ([]models.Entity, error
 }
 
 func (r *ModuleRepositoryImpl) Update(ctx context.Context, module *models.Entity) error {
+	if module.Scope == "global" {
+		db := r.DB.GetControlPlaneDB()
+		coll := db.Collection("default_modules")
+
+		filter := bson.M{"name": module.Name}
+		update := bson.M{"$set": module}
+		_, err := coll.UpdateOne(ctx, filter, update)
+		return err
+	}
+
 	coll, err := r.getCollection(ctx)
 	if err != nil {
 		return err

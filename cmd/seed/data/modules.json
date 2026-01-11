@@ -1,80 +1,8 @@
 [
     {
-        "name": "accounts",
-        "label": "Accounts",
-        "is_system": true,
-        "fields": [
-            {
-                "name": "name",
-                "label": "Account Name",
-                "type": "text",
-                "required": true
-            },
-            {
-                "name": "industry",
-                "label": "Industry",
-                "type": "select",
-                "required": false,
-                "options": [
-                    {
-                        "label": "Tech",
-                        "value": "Tech"
-                    },
-                    {
-                        "label": "Finance",
-                        "value": "Finance"
-                    },
-                    {
-                        "label": "Retail",
-                        "value": "Retail"
-                    },
-                    {
-                        "label": "Manufacturing",
-                        "value": "Manufacturing"
-                    },
-                    {
-                        "label": "Healthcare",
-                        "value": "Healthcare"
-                    }
-                ]
-            },
-            {
-                "name": "website",
-                "label": "Website",
-                "type": "url",
-                "required": false
-            },
-            {
-                "name": "phone",
-                "label": "Phone",
-                "type": "phone",
-                "required": false
-            },
-            {
-                "name": "type",
-                "label": "Type",
-                "type": "select",
-                "required": false,
-                "options": [
-                    {
-                        "label": "Customer",
-                        "value": "Customer"
-                    },
-                    {
-                        "label": "Partner",
-                        "value": "Partner"
-                    },
-                    {
-                        "label": "Vendor",
-                        "value": "Vendor"
-                    }
-                ]
-            }
-        ]
-    },
-    {
-        "name": "contacts",
-        "label": "Contacts",
+        "name": "leads",
+        "label": "Leads",
+        "app": "crm",
         "is_system": true,
         "fields": [
             {
@@ -93,49 +21,8 @@
                 "name": "email",
                 "label": "Email",
                 "type": "email",
-                "required": true
-            },
-            {
-                "name": "phone",
-                "label": "Phone",
-                "type": "phone",
-                "required": false
-            },
-            {
-                "name": "account",
-                "label": "Account",
-                "type": "lookup",
-                "required": false,
-                "lookup": {
-                    "lookup_module": "accounts",
-                    "lookup_label": "name",
-                    "value_field": "_id"
-                }
-            },
-            {
-                "name": "title",
-                "label": "Job Title",
-                "type": "text",
-                "required": false
-            }
-        ]
-    },
-    {
-        "name": "leads",
-        "label": "Leads",
-        "is_system": true,
-        "fields": [
-            {
-                "name": "name",
-                "label": "Full Name",
-                "type": "text",
-                "required": true
-            },
-            {
-                "name": "email",
-                "label": "Email",
-                "type": "email",
-                "required": true
+                "required": true,
+                "unique": true
             },
             {
                 "name": "phone",
@@ -171,13 +58,13 @@
                         "label": "Lost",
                         "value": "Lost"
                     }
-                ]
+                ],
+                "default_value": "New"
             },
             {
                 "name": "source",
                 "label": "Source",
                 "type": "select",
-                "required": false,
                 "options": [
                     {
                         "label": "Web",
@@ -196,15 +83,134 @@
         ]
     },
     {
-        "name": "opportunities",
-        "label": "Opportunities",
+        "name": "contacts",
+        "label": "Contacts",
+        "app": "crm",
+        "is_system": true,
+        "fields": [
+            {
+                "name": "first_name",
+                "label": "First Name",
+                "type": "text",
+                "required": true
+            },
+            {
+                "name": "last_name",
+                "label": "Last Name",
+                "type": "text",
+                "required": true
+            },
+            {
+                "name": "email",
+                "label": "Email",
+                "type": "email",
+                "required": true
+            },
+            {
+                "name": "phone",
+                "label": "Phone",
+                "type": "phone"
+            },
+            {
+                "name": "account",
+                "label": "Account",
+                "type": "lookup",
+                "lookup": {
+                    "lookup_module": "accounts",
+                    "lookup_label": "name",
+                    "value_field": "_id"
+                }
+            },
+            {
+                "name": "title",
+                "label": "Job Title",
+                "type": "text"
+            }
+        ]
+    },
+    {
+        "name": "accounts",
+        "label": "Accounts",
+        "app": "crm",
         "is_system": true,
         "fields": [
             {
                 "name": "name",
-                "label": "Opportunity Name",
+                "label": "Account Name",
                 "type": "text",
                 "required": true
+            },
+            {
+                "name": "industry",
+                "label": "Industry",
+                "type": "select",
+                "options": [
+                    {
+                        "label": "Tech",
+                        "value": "Tech"
+                    },
+                    {
+                        "label": "Finance",
+                        "value": "Finance"
+                    },
+                    {
+                        "label": "Retail",
+                        "value": "Retail"
+                    },
+                    {
+                        "label": "Health",
+                        "value": "Health"
+                    }
+                ]
+            },
+            {
+                "name": "website",
+                "label": "Website",
+                "type": "url"
+            },
+            {
+                "name": "phone",
+                "label": "Phone",
+                "type": "phone"
+            },
+            {
+                "name": "type",
+                "label": "Type",
+                "type": "select",
+                "options": [
+                    {
+                        "label": "Customer",
+                        "value": "Customer"
+                    },
+                    {
+                        "label": "Partner",
+                        "value": "Partner"
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "name": "opportunities",
+        "label": "Opportunities",
+        "app": "crm",
+        "is_system": true,
+        "fields": [
+            {
+                "name": "name",
+                "label": "Name",
+                "type": "text",
+                "required": true
+            },
+            {
+                "name": "account",
+                "label": "Account",
+                "type": "lookup",
+                "lookup": {
+                    "lookup_module": "accounts",
+                    "lookup_label": "name",
+                    "value_field": "_id"
+                }
             },
             {
                 "name": "amount",
@@ -241,25 +247,14 @@
                 "label": "Close Date",
                 "type": "date",
                 "required": true
-            },
-            {
-                "name": "account",
-                "label": "Account",
-                "type": "lookup",
-                "required": false,
-                "lookup": {
-                    "lookup_module": "accounts",
-                    "lookup_label": "name",
-                    "value_field": "_id"
-                }
             }
         ]
     },
     {
         "name": "tasks",
         "label": "Tasks",
+        "app": "crm",
         "is_system": true,
-        "readonly": true,
         "fields": [
             {
                 "name": "subject",
@@ -284,14 +279,6 @@
                     {
                         "label": "Completed",
                         "value": "Completed"
-                    },
-                    {
-                        "label": "Waiting on someone else",
-                        "value": "Waiting on someone else"
-                    },
-                    {
-                        "label": "Deferred",
-                        "value": "Deferred"
                     }
                 ],
                 "default_value": "Not Started"
@@ -300,7 +287,6 @@
                 "name": "priority",
                 "label": "Priority",
                 "type": "select",
-                "required": true,
                 "options": [
                     {
                         "label": "Low",
@@ -320,1093 +306,336 @@
             {
                 "name": "due_date",
                 "label": "Due Date",
-                "type": "date",
-                "required": false
+                "type": "date"
             },
             {
-                "name": "description",
-                "label": "Description",
-                "type": "textarea",
-                "required": false
-            },
-            {
-                "name": "assigned_to",
-                "label": "Assigned To",
-                "type": "user",
-                "required": false
-            },
-            {
-                "name": "contact",
-                "label": "Contact",
+                "name": "related_to",
+                "label": "Related To",
                 "type": "lookup",
-                "required": false,
-                "lookup": {
-                    "lookup_module": "contacts",
-                    "lookup_label": "first_name",
-                    "value_field": "_id"
-                }
-            },
-            {
-                "name": "account",
-                "label": "Account",
-                "type": "lookup",
-                "required": false,
                 "lookup": {
                     "lookup_module": "accounts",
                     "lookup_label": "name",
                     "value_field": "_id"
                 }
-            }
-        ]
-    },
-    {
-        "name": "meetings",
-        "label": "Meetings",
-        "is_system": true,
-        "readonly": true,
-        "fields": [
-            {
-                "name": "subject",
-                "label": "Subject",
-                "type": "text",
-                "required": true
-            },
-            {
-                "name": "start_time",
-                "label": "Start Time",
-                "type": "date",
-                "required": true
-            },
-            {
-                "name": "end_time",
-                "label": "End Time",
-                "type": "date",
-                "required": true
-            },
-            {
-                "name": "location",
-                "label": "Location",
-                "type": "text",
-                "required": false
-            },
-            {
-                "name": "status",
-                "label": "Status",
-                "type": "select",
-                "required": true,
-                "options": [
-                    {
-                        "label": "Planned",
-                        "value": "Planned"
-                    },
-                    {
-                        "label": "Held",
-                        "value": "Held"
-                    },
-                    {
-                        "label": "Not Held",
-                        "value": "Not Held"
-                    }
-                ],
-                "default_value": "Planned"
-            },
-            {
-                "name": "description",
-                "label": "Description",
-                "type": "textarea",
-                "required": false
-            },
-            {
-                "name": "host",
-                "label": "Host",
-                "type": "user",
-                "required": false
-            },
-            {
-                "name": "contact",
-                "label": "Contact",
-                "type": "lookup",
-                "required": false,
-                "lookup": {
-                    "lookup_module": "contacts",
-                    "lookup_label": "first_name",
-                    "value_field": "_id"
-                }
-            },
-            {
-                "name": "account",
-                "label": "Account",
-                "type": "lookup",
-                "required": false,
-                "lookup": {
-                    "lookup_module": "accounts",
-                    "lookup_label": "name",
-                    "value_field": "_id"
-                }
-            }
-        ]
-    },
-    {
-        "name": "calls",
-        "label": "Calls",
-        "is_system": true,
-        "readonly": true,
-        "fields": [
-            {
-                "name": "subject",
-                "label": "Subject",
-                "type": "text",
-                "required": true
-            },
-            {
-                "name": "call_type",
-                "label": "Call Type",
-                "type": "select",
-                "required": true,
-                "options": [
-                    {
-                        "label": "Inbound",
-                        "value": "Inbound"
-                    },
-                    {
-                        "label": "Outbound",
-                        "value": "Outbound"
-                    }
-                ],
-                "default_value": "Outbound"
-            },
-            {
-                "name": "start_time",
-                "label": "Start Time",
-                "type": "date",
-                "required": true
-            },
-            {
-                "name": "duration",
-                "label": "Duration (mins)",
-                "type": "number",
-                "required": false
-            },
-            {
-                "name": "status",
-                "label": "Status",
-                "type": "select",
-                "required": true,
-                "options": [
-                    {
-                        "label": "Planned",
-                        "value": "Planned"
-                    },
-                    {
-                        "label": "Held",
-                        "value": "Held"
-                    },
-                    {
-                        "label": "Missed",
-                        "value": "Missed"
-                    }
-                ],
-                "default_value": "Planned"
-            },
-            {
-                "name": "outcome",
-                "label": "Outcome",
-                "type": "select",
-                "required": false,
-                "options": [
-                    {
-                        "label": "No Answer",
-                        "value": "No Answer"
-                    },
-                    {
-                        "label": "Busy",
-                        "value": "Busy"
-                    },
-                    {
-                        "label": "Connected",
-                        "value": "Connected"
-                    },
-                    {
-                        "label": "Left Voicemail",
-                        "value": "Left Voicemail"
-                    },
-                    {
-                        "label": "Wrong Number",
-                        "value": "Wrong Number"
-                    }
-                ]
-            },
-            {
-                "name": "description",
-                "label": "Description",
-                "type": "textarea",
-                "required": false
-            },
-            {
-                "name": "assigned_to",
-                "label": "Assigned To",
-                "type": "user",
-                "required": false
-            },
-            {
-                "name": "contact",
-                "label": "Contact",
-                "type": "lookup",
-                "required": false,
-                "lookup": {
-                    "lookup_module": "contacts",
-                    "lookup_label": "first_name",
-                    "value_field": "_id"
-                }
-            },
-            {
-                "name": "account",
-                "label": "Account",
-                "type": "lookup",
-                "required": false,
-                "lookup": {
-                    "lookup_module": "accounts",
-                    "lookup_label": "name",
-                    "value_field": "_id"
-                }
-            }
-        ]
-    },
-    {
-        "name": "categories",
-        "label": "Categories",
-        "is_system": true,
-        "fields": [
-            {
-                "name": "name",
-                "label": "Category Name",
-                "type": "text",
-                "required": true,
-                "sub_fields": null,
-                "is_system": false,
-                "filterable": false,
-                "sortable": false,
-                "unique": false,
-                "default_value": "",
-                "placeholder": "",
-                "help_text": "",
-                "hidden": false,
-                "readonly": false
-            },
-            {
-                "name": "parent_category",
-                "label": "Parent Category",
-                "type": "lookup",
-                "required": false,
-                "lookup": {
-                    "lookup_module": "categories",
-                    "lookup_label": "name",
-                    "value_field": ""
-                },
-                "sub_fields": null,
-                "is_system": false,
-                "filterable": false,
-                "sortable": false,
-                "unique": false,
-                "default_value": "",
-                "placeholder": "",
-                "help_text": "",
-                "hidden": false,
-                "readonly": false
-            },
-            {
-                "name": "created_at",
-                "label": "Created At",
-                "type": "date",
-                "required": false,
-                "sub_fields": null,
-                "is_system": true,
-                "filterable": false,
-                "sortable": false,
-                "unique": false,
-                "default_value": "",
-                "placeholder": "",
-                "help_text": "",
-                "hidden": false,
-                "readonly": false
-            },
-            {
-                "name": "updated_at",
-                "label": "Updated At",
-                "type": "date",
-                "required": false,
-                "sub_fields": null,
-                "is_system": true,
-                "filterable": false,
-                "sortable": false,
-                "unique": false,
-                "default_value": "",
-                "placeholder": "",
-                "help_text": "",
-                "hidden": false,
-                "readonly": false
-            },
-            {
-                "name": "description",
-                "label": "Description",
-                "type": "textarea",
-                "required": false,
-                "sub_fields": null,
-                "is_system": false,
-                "filterable": false,
-                "sortable": false,
-                "unique": false,
-                "default_value": "",
-                "placeholder": "",
-                "help_text": "",
-                "hidden": false,
-                "readonly": false
-            },
-            {
-                "name": "status",
-                "label": "Status",
-                "type": "boolean",
-                "required": true,
-                "sub_fields": null,
-                "is_system": false,
-                "filterable": false,
-                "sortable": false,
-                "unique": false,
-                "default_value": "true",
-                "placeholder": "",
-                "help_text": "",
-                "hidden": false,
-                "readonly": false
             }
         ]
     },
     {
         "name": "products",
         "label": "Products",
+        "app": "erp",
         "is_system": true,
         "fields": [
             {
                 "name": "name",
                 "label": "Product Name",
                 "type": "text",
-                "required": true,
-                "is_system": true,
-                "filterable": false,
-                "sortable": false,
-                "unique": false,
-                "default_value": "",
-                "placeholder": "",
-                "help_text": "",
-                "hidden": false
+                "required": true
             },
             {
                 "name": "sku",
                 "label": "SKU",
                 "type": "text",
-                "required": false,
-                "is_system": true,
-                "filterable": true,
-                "sortable": true,
-                "unique": true,
-                "default_value": "",
-                "placeholder": "",
-                "help_text": "",
-                "hidden": false
-            },
-            {
-                "name": "barcode",
-                "label": "barcode",
-                "type": "text",
-                "required": false,
-                "is_system": true,
-                "filterable": false,
-                "sortable": false,
-                "unique": false,
-                "default_value": "",
-                "placeholder": "",
-                "help_text": "",
-                "hidden": false
-            },
-            {
-                "name": "unit_of_measure",
-                "label": "Unit of Measure",
-                "type": "select",
                 "required": true,
-                "options": [
-                    {
-                        "label": "PCS",
-                        "value": "PCS"
-                    },
-                    {
-                        "label": "KG",
-                        "value": "KG"
-                    },
-                    {
-                        "label": "LTR",
-                        "value": "LTR"
-                    }
-                ],
-                "is_system": true,
-                "filterable": false,
-                "sortable": false,
-                "unique": false,
-                "default_value": "",
-                "placeholder": "",
-                "help_text": "",
-                "hidden": false
+                "unique": true
             },
             {
-                "name": "description",
-                "label": "Description",
-                "type": "textarea",
-                "required": false,
-                "is_system": true,
-                "filterable": false,
-                "sortable": false,
-                "unique": false,
-                "default_value": "",
-                "placeholder": "",
-                "help_text": "",
-                "hidden": false
-            },
-            {
-                "name": "purchase_cost",
-                "label": "Purchase Cost",
-                "type": "number",
-                "required": false,
-                "is_system": true,
-                "filterable": false,
-                "sortable": false,
-                "unique": false,
-                "default_value": "",
-                "placeholder": "",
-                "help_text": "",
-                "hidden": false
-            },
-            {
-                "name": "selling_price",
-                "label": "Selling Price",
-                "type": "number",
-                "required": true,
-                "is_system": true,
-                "filterable": false,
-                "sortable": false,
-                "unique": false,
-                "default_value": "",
-                "placeholder": "",
-                "help_text": "",
-                "hidden": false
-            },
-            {
-                "name": "category_id",
+                "name": "category",
                 "label": "Category",
                 "type": "lookup",
-                "required": false,
                 "lookup": {
                     "lookup_module": "categories",
                     "lookup_label": "name",
                     "value_field": "_id"
-                },
-                "is_system": true,
-                "filterable": false,
-                "sortable": false,
-                "unique": false,
-                "default_value": "",
-                "placeholder": "",
-                "help_text": "",
-                "hidden": false
+                }
             },
             {
-                "name": "low_stock_level",
-                "label": "Low Stock Level",
+                "name": "selling_price",
+                "label": "Selling Price",
+                "type": "currency",
+                "required": true
+            },
+            {
+                "name": "cost_price",
+                "label": "Cost Price",
+                "type": "currency"
+            },
+            {
+                "name": "unit",
+                "label": "Unit",
+                "type": "select",
+                "options": [
+                    {
+                        "label": "Pcs",
+                        "value": "Pcs"
+                    },
+                    {
+                        "label": "Kg",
+                        "value": "Kg"
+                    }
+                ]
+            },
+            {
+                "name": "stock_quantity",
+                "label": "Stock Quantity",
                 "type": "number",
-                "required": false,
-                "is_system": true,
-                "filterable": false,
-                "sortable": false,
-                "unique": false,
-                "default_value": "",
-                "placeholder": "",
-                "help_text": "",
-                "hidden": false
+                "readonly": true,
+                "default_value": "0"
+            }
+        ]
+    },
+    {
+        "name": "categories",
+        "label": "Categories",
+        "app": "erp",
+        "is_system": true,
+        "fields": [
+            {
+                "name": "name",
+                "label": "Category Name",
+                "type": "text",
+                "required": true
             },
             {
-                "name": "allow_negative_stock",
-                "label": "Allow Negative Stock",
-                "type": "boolean",
-                "required": false,
-                "is_system": true,
-                "filterable": false,
-                "sortable": false,
-                "unique": false,
-                "default_value": "",
-                "placeholder": "",
-                "help_text": "",
-                "hidden": false
-            },
-            {
-                "name": "brand_id",
-                "label": "Brand",
-                "type": "lookup",
-                "required": false,
-                "lookup": {
-                    "lookup_module": "brands",
-                    "lookup_label": "name",
-                    "value_field": "_id"
-                },
-                "is_system": true,
-                "filterable": false,
-                "sortable": false,
-                "unique": false,
-                "default_value": "",
-                "placeholder": "",
-                "help_text": "",
-                "hidden": false
-            },
-            {
-                "name": "gst_rate",
-                "label": "GST Rate (%)",
-                "type": "number",
-                "required": false,
-                "is_system": true,
-                "filterable": false,
-                "sortable": false,
-                "unique": false,
-                "default_value": "",
-                "placeholder": "",
-                "help_text": "",
-                "hidden": false
-            },
-            {
-                "name": "is_active",
-                "label": "Active",
-                "type": "boolean",
-                "required": true,
-                "is_system": true,
-                "filterable": false,
-                "sortable": false,
-                "unique": false,
-                "default_value": "",
-                "placeholder": "",
-                "help_text": "",
-                "hidden": false
-            },
-            {
-                "name": "created_at",
-                "label": "Created At",
-                "type": "date",
-                "required": false,
-                "is_system": true,
-                "filterable": false,
-                "sortable": false,
-                "unique": false,
-                "default_value": "",
-                "placeholder": "",
-                "help_text": "",
-                "hidden": false
-            },
-            {
-                "name": "updated_at",
-                "label": "Updated At",
-                "type": "date",
-                "required": false,
-                "is_system": true,
-                "filterable": false,
-                "sortable": false,
-                "unique": false,
-                "default_value": "",
-                "placeholder": "",
-                "help_text": "",
-                "hidden": false
-            },
-            {
-                "name": "product_image",
-                "label": "Product Image",
-                "type": "image",
-                "required": false,
-                "is_system": true,
-                "filterable": false,
-                "sortable": false,
-                "unique": false,
-                "default_value": "",
-                "placeholder": "",
-                "help_text": "",
-                "hidden": false
-            },
-            {
-                "name": "brochure",
-                "label": "Brochure",
-                "type": "file",
-                "required": false,
-                "is_system": true,
-                "filterable": false,
-                "sortable": false,
-                "unique": false,
-                "default_value": "",
-                "placeholder": "",
-                "help_text": "",
-                "hidden": false
+                "name": "description",
+                "label": "Description",
+                "type": "textarea"
             }
         ]
     },
     {
         "name": "vendors",
         "label": "Vendors",
+        "app": "erp",
         "is_system": true,
         "fields": [
             {
                 "name": "name",
                 "label": "Vendor Name",
                 "type": "text",
-                "required": true,
-                "is_system": true,
-                "filterable": false,
-                "sortable": false,
-                "unique": false,
-                "default_value": "",
-                "placeholder": "",
-                "help_text": "",
-                "hidden": false
-            },
-            {
-                "name": "contact_person",
-                "label": "Contact Person",
-                "type": "text",
-                "required": false,
-                "is_system": true,
-                "filterable": false,
-                "sortable": false,
-                "unique": false,
-                "default_value": "",
-                "placeholder": "",
-                "help_text": "",
-                "hidden": false
-            },
-            {
-                "name": "phone",
-                "label": "Phone",
-                "type": "text",
-                "required": false,
-                "is_system": true,
-                "filterable": false,
-                "sortable": false,
-                "unique": false,
-                "default_value": "",
-                "placeholder": "",
-                "help_text": "",
-                "hidden": false
+                "required": true
             },
             {
                 "name": "email",
                 "label": "Email",
-                "type": "text",
-                "required": false,
-                "is_system": true,
-                "filterable": false,
-                "sortable": false,
-                "unique": false,
-                "default_value": "",
-                "placeholder": "",
-                "help_text": "",
-                "hidden": false
+                "type": "email"
             },
             {
-                "name": "created_at",
-                "label": "Created At",
-                "type": "date",
-                "required": false,
-                "is_system": true,
-                "filterable": false,
-                "sortable": false,
-                "unique": false,
-                "default_value": "",
-                "placeholder": "",
-                "help_text": "",
-                "hidden": false
-            },
-            {
-                "name": "updated_at",
-                "label": "Updated At",
-                "type": "date",
-                "required": false,
-                "is_system": true,
-                "filterable": false,
-                "sortable": false,
-                "unique": false,
-                "default_value": "",
-                "placeholder": "",
-                "help_text": "",
-                "hidden": false
+                "name": "phone",
+                "label": "Phone",
+                "type": "phone"
             },
             {
                 "name": "address",
                 "label": "Address",
-                "type": "textarea",
-                "required": false,
-                "is_system": true,
-                "filterable": false,
-                "sortable": false,
-                "unique": false,
-                "default_value": "",
-                "placeholder": "",
-                "help_text": "",
-                "hidden": false
-            },
-            {
-                "name": "gstin",
-                "label": "GSTIN",
-                "type": "text",
-                "required": false,
-                "is_system": true,
-                "filterable": false,
-                "sortable": false,
-                "unique": false,
-                "default_value": "",
-                "placeholder": "",
-                "help_text": "",
-                "hidden": false
-            },
-            {
-                "name": "active",
-                "label": "Active",
-                "type": "boolean",
-                "required": false,
-                "is_system": true,
-                "filterable": false,
-                "sortable": false,
-                "unique": false,
-                "default_value": "true",
-                "placeholder": "",
-                "help_text": "",
-                "hidden": false
+                "type": "textarea"
             }
         ]
     },
     {
-        "name": "purchase_order",
-        "label": "Purchase Order",
+        "name": "sales_orders",
+        "label": "Sales Orders",
+        "app": "erp",
         "is_system": true,
         "fields": [
             {
-                "name": "po_number",
-                "label": "Po Number",
+                "name": "order_number",
+                "label": "Order Number",
                 "type": "text",
-                "required": false,
-                "sub_fields": null,
-                "is_system": false,
-                "filterable": false,
-                "sortable": false,
-                "unique": false,
-                "default_value": "",
-                "placeholder": "",
-                "help_text": "",
-                "hidden": false
+                "required": true,
+                "unique": true,
+                "auto_increment": true
             },
             {
-                "name": "created_at",
-                "label": "Created At",
-                "type": "date",
-                "required": false,
-                "sub_fields": null,
-                "is_system": true,
-                "filterable": false,
-                "sortable": false,
-                "unique": false,
-                "default_value": "",
-                "placeholder": "",
-                "help_text": "",
-                "hidden": false
-            },
-            {
-                "name": "updated_at",
-                "label": "Updated At",
-                "type": "date",
-                "required": false,
-                "sub_fields": null,
-                "is_system": true,
-                "filterable": false,
-                "sortable": false,
-                "unique": false,
-                "default_value": "",
-                "placeholder": "",
-                "help_text": "",
-                "hidden": false
-            },
-            {
-                "name": "vendor",
-                "label": "Vendor",
+                "name": "customer",
+                "label": "Customer",
                 "type": "lookup",
-                "required": false,
+                "required": true,
                 "lookup": {
-                    "lookup_module": "vendors",
+                    "lookup_module": "accounts",
                     "lookup_label": "name",
-                    "value_field": ""
-                },
-                "sub_fields": null,
-                "is_system": false,
-                "filterable": false,
-                "sortable": false,
-                "unique": false,
-                "default_value": "",
-                "placeholder": "",
-                "help_text": "",
-                "hidden": false
+                    "value_field": "_id"
+                }
+            },
+            {
+                "name": "order_date",
+                "label": "Order Date",
+                "type": "date",
+                "required": true
             },
             {
                 "name": "status",
                 "label": "Status",
                 "type": "select",
-                "required": false,
                 "options": [
                     {
                         "label": "Draft",
                         "value": "Draft"
                     },
                     {
-                        "label": "Ordered",
-                        "value": "Ordered"
+                        "label": "Confirmed",
+                        "value": "Confirmed"
+                    },
+                    {
+                        "label": "Shipped",
+                        "value": "Shipped"
+                    },
+                    {
+                        "label": "Invoiced",
+                        "value": "Invoiced"
+                    }
+                ],
+                "default_value": "Draft"
+            },
+            {
+                "name": "total_amount",
+                "label": "Total Amount",
+                "type": "currency",
+                "readonly": true
+            },
+            {
+                "name": "line_items",
+                "label": "Line Items",
+                "type": "subform",
+                "sub_fields": [
+                    {
+                        "name": "product",
+                        "label": "Product",
+                        "type": "lookup",
+                        "required": true,
+                        "lookup": {
+                            "lookup_module": "products",
+                            "lookup_label": "name",
+                            "value_field": "_id"
+                        }
+                    },
+                    {
+                        "name": "quantity",
+                        "label": "Quantity",
+                        "type": "number",
+                        "required": true
+                    },
+                    {
+                        "name": "rate",
+                        "label": "Rate",
+                        "type": "currency",
+                        "required": true
+                    },
+                    {
+                        "name": "amount",
+                        "label": "Amount",
+                        "type": "currency",
+                        "readonly": true
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "name": "purchase_orders",
+        "label": "Purchase Orders",
+        "app": "erp",
+        "is_system": true,
+        "fields": [
+            {
+                "name": "po_number",
+                "label": "PO Number",
+                "type": "text",
+                "required": true,
+                "unique": true,
+                "auto_increment": true
+            },
+            {
+                "name": "vendor",
+                "label": "Vendor",
+                "type": "lookup",
+                "required": true,
+                "lookup": {
+                    "lookup_module": "vendors",
+                    "lookup_label": "name",
+                    "value_field": "_id"
+                }
+            },
+            {
+                "name": "order_date",
+                "label": "Order Date",
+                "type": "date",
+                "required": true
+            },
+            {
+                "name": "status",
+                "label": "Status",
+                "type": "select",
+                "options": [
+                    {
+                        "label": "Draft",
+                        "value": "Draft"
+                    },
+                    {
+                        "label": "Issued",
+                        "value": "Issued"
                     },
                     {
                         "label": "Received",
                         "value": "Received"
                     }
                 ],
-                "sub_fields": null,
-                "is_system": false,
-                "filterable": false,
-                "sortable": false,
-                "unique": false,
-                "default_value": "",
-                "placeholder": "",
-                "help_text": "",
-                "hidden": false
+                "default_value": "Draft"
             },
             {
-                "name": "order_date",
-                "label": "Order Date",
-                "type": "date",
-                "required": false,
-                "sub_fields": null,
-                "is_system": false,
-                "filterable": false,
-                "sortable": false,
-                "unique": false,
-                "default_value": "",
-                "placeholder": "",
-                "help_text": "",
-                "hidden": false
+                "name": "total_amount",
+                "label": "Total Amount",
+                "type": "currency",
+                "readonly": true
             },
             {
-                "name": "expected_delivery_date",
-                "label": "Expected Delivery Date",
-                "type": "date",
-                "required": false,
-                "sub_fields": null,
-                "is_system": false,
-                "filterable": false,
-                "sortable": false,
-                "unique": false,
-                "default_value": "",
-                "placeholder": "",
-                "help_text": "",
-                "hidden": false
-            },
-            {
-                "name": "purchase_order_line",
-                "label": "Purchase Order Line",
+                "name": "line_items",
+                "label": "Line Items",
                 "type": "subform",
-                "required": false,
                 "sub_fields": [
                     {
                         "name": "product",
                         "label": "Product",
                         "type": "lookup",
-                        "required": false,
+                        "required": true,
                         "lookup": {
                             "lookup_module": "products",
                             "lookup_label": "name",
                             "value_field": "_id"
-                        },
-                        "sub_fields": null,
-                        "is_system": false,
-                        "filterable": false,
-                        "sortable": false,
-                        "unique": false,
-                        "default_value": "",
-                        "placeholder": "",
-                        "help_text": "",
-                        "hidden": false
+                        }
                     },
                     {
                         "name": "quantity",
                         "label": "Quantity",
                         "type": "number",
-                        "required": false,
-                        "sub_fields": null,
-                        "is_system": false,
-                        "filterable": false,
-                        "sortable": false,
-                        "unique": false,
-                        "default_value": "",
-                        "placeholder": "",
-                        "help_text": "",
-                        "hidden": false
-                    },
-                    {
-                        "name": "purchase_cost",
-                        "label": "Purchase Cost",
-                        "type": "number",
-                        "required": false,
-                        "sub_fields": null,
-                        "is_system": false,
-                        "filterable": false,
-                        "sortable": false,
-                        "unique": false,
-                        "default_value": "",
-                        "placeholder": "",
-                        "help_text": "",
-                        "hidden": false
-                    }
-                ],
-                "is_system": false,
-                "filterable": false,
-                "sortable": false,
-                "unique": false,
-                "default_value": "",
-                "placeholder": "",
-                "help_text": "",
-                "hidden": false
-            }
-        ]
-    },
-    {
-        "name": "purchase_receipts",
-        "label": "Purchase Receipts (GRN)",
-        "is_system": true,
-        "fields": [
-            {
-                "name": "receipt_number",
-                "label": "Receipt Number",
-                "type": "text",
-                "required": true,
-                "is_system": true
-            },
-            {
-                "name": "po_id",
-                "label": "Purchase Order",
-                "type": "lookup",
-                "required": true,
-                "lookup": {
-                    "lookup_module": "purchase_order",
-                    "lookup_label": "po_number",
-                    "value_field": "_id"
-                }
-            },
-            {
-                "name": "date",
-                "label": "Date Received",
-                "type": "date",
-                "required": true
-            },
-            {
-                "name": "items",
-                "label": "Items Received",
-                "type": "subform",
-                "sub_fields": [
-                    {
-                        "name": "product_id",
-                        "label": "Product",
-                        "type": "lookup",
-                        "lookup": {
-                            "lookup_module": "products",
-                            "lookup_label": "name",
-                            "value_field": "_id"
-                        }
-                    },
-                    {
-                        "name": "quantity",
-                        "label": "Quantity Received",
-                        "type": "number",
                         "required": true
                     },
                     {
-                        "name": "unit_cost",
-                        "label": "Unit Cost",
-                        "type": "currency"
+                        "name": "rate",
+                        "label": "Rate",
+                        "type": "currency",
+                        "required": true
+                    },
+                    {
+                        "name": "amount",
+                        "label": "Amount",
+                        "type": "currency",
+                        "readonly": true
                     }
                 ]
             }
         ]
     },
     {
-        "name": "shipments",
-        "label": "Shipments (Delivery Notes)",
+        "name": "inventory_adjustments",
+        "label": "Inventory Adjustments",
+        "app": "erp",
         "is_system": true,
         "fields": [
             {
-                "name": "shipment_number",
-                "label": "Shipment Number",
-                "type": "text",
-                "required": true,
-                "is_system": true
-            },
-            {
-                "name": "invoice_id",
-                "label": "Sales Invoice",
-                "type": "lookup",
-                "required": false,
-                "lookup": {
-                    "lookup_module": "invoices",
-                    "lookup_label": "invoice_number",
-                    "value_field": "_id"
-                }
-            },
-            {
-                "name": "date",
-                "label": "Date Shipped",
-                "type": "date",
-                "required": true
-            },
-            {
-                "name": "shipping_address",
-                "label": "Shipping Address",
-                "type": "textarea"
-            },
-            {
-                "name": "items",
-                "label": "Items Shipped",
-                "type": "subform",
-                "sub_fields": [
-                    {
-                        "name": "product_id",
-                        "label": "Product",
-                        "type": "lookup",
-                        "lookup": {
-                            "lookup_module": "products",
-                            "lookup_label": "name",
-                            "value_field": "_id"
-                        }
-                    },
-                    {
-                        "name": "quantity",
-                        "label": "Quantity Shipped",
-                        "type": "number",
-                        "required": true
-                    }
-                ]
-            }
-        ]
-    },
-    {
-        "name": "stock_adjustments",
-        "label": "Stock Adjustments",
-        "is_system": true,
-        "fields": [
-            {
-                "name": "reference_code",
+                "name": "reference",
                 "label": "Reference",
-                "type": "text",
-                "required": true
+                "type": "text"
             },
             {
                 "name": "date",
@@ -1420,16 +649,12 @@
                 "type": "select",
                 "options": [
                     {
-                        "label": "Damage",
-                        "value": "Damage"
+                        "label": "Stock Take",
+                        "value": "Stock Take"
                     },
                     {
-                        "label": "Theft",
-                        "value": "Theft"
-                    },
-                    {
-                        "label": "Stocktake Correction",
-                        "value": "Stocktake Correction"
+                        "label": "Damaged",
+                        "value": "Damaged"
                     },
                     {
                         "label": "Return",
@@ -1439,13 +664,14 @@
             },
             {
                 "name": "items",
-                "label": "Adjustments",
+                "label": "Items",
                 "type": "subform",
                 "sub_fields": [
                     {
-                        "name": "product_id",
+                        "name": "product",
                         "label": "Product",
                         "type": "lookup",
+                        "required": true,
                         "lookup": {
                             "lookup_module": "products",
                             "lookup_label": "name",
@@ -1453,477 +679,12 @@
                         }
                     },
                     {
-                        "name": "quantity",
-                        "label": "Quantity Change (+/-)",
+                        "name": "adjustment",
+                        "label": "Adjustment (+/-)",
                         "type": "number",
-                        "required": true,
-                        "help_text": "Use negative values for reduction"
+                        "required": true
                     }
                 ]
-            }
-        ]
-    },
-    {
-        "name": "stock_movements",
-        "label": "Stock Movements (Ledger)",
-        "is_system": true,
-        "readonly": true,
-        "fields": [
-            {
-                "name": "product_id",
-                "label": "Product",
-                "type": "lookup",
-                "required": true,
-                "lookup": {
-                    "lookup_module": "products",
-                    "lookup_label": "name",
-                    "value_field": "_id"
-                }
-            },
-            {
-                "name": "quantity",
-                "label": "Quantity Change",
-                "type": "number",
-                "required": true
-            },
-            {
-                "name": "type",
-                "label": "Movement Type",
-                "type": "select",
-                "options": [
-                    {
-                        "label": "In",
-                        "value": "In"
-                    },
-                    {
-                        "label": "Out",
-                        "value": "Out"
-                    },
-                    {
-                        "label": "Adjustment",
-                        "value": "Adjustment"
-                    }
-                ],
-                "required": true
-            },
-            {
-                "name": "reference_module",
-                "label": "Ref Module",
-                "type": "text"
-            },
-            {
-                "name": "reference_id",
-                "label": "Ref ID",
-                "type": "text"
-            },
-            {
-                "name": "date",
-                "label": "Movement Date",
-                "type": "datetime",
-                "required": true
-            }
-        ]
-    },
-    {
-        "name": "inventory",
-        "label": "Inventory",
-        "is_system": true,
-        "readonly": true,
-        "fields": [
-            {
-                "name": "product_id",
-                "label": "Product",
-                "type": "lookup",
-                "required": true,
-                "unique": true,
-                "readonly": true,
-                "lookup": {
-                    "lookup_module": "products",
-                    "lookup_label": "name",
-                    "value_field": "_id"
-                }
-            },
-            {
-                "name": "stock_quantity",
-                "label": "Stock Quantity",
-                "type": "number",
-                "required": true,
-                "readonly": true,
-                "default_value": "0"
-            },
-            {
-                "name": "average_cost",
-                "label": "Average Cost",
-                "type": "currency",
-                "required": false,
-                "readonly": true,
-                "default_value": "0"
-            },
-            {
-                "name": "last_movement_at",
-                "label": "Last Movement",
-                "type": "datetime",
-                "required": false
-            }
-        ]
-    },
-    {
-        "name": "uom",
-        "label": "Unit of Measure",
-        "is_system": true,
-        "readonly": true,
-        "fields": [
-            {
-                "name": "name",
-                "label": "Name",
-                "type": "text",
-                "required": false,
-                "sub_fields": null,
-                "is_system": false,
-                "filterable": false,
-                "sortable": false,
-                "unique": false,
-                "default_value": "",
-                "placeholder": "",
-                "help_text": "",
-                "hidden": false,
-                "readonly": false
-            },
-            {
-                "name": "created_at",
-                "label": "Created At",
-                "type": "date",
-                "required": false,
-                "sub_fields": null,
-                "is_system": true,
-                "filterable": false,
-                "sortable": false,
-                "unique": false,
-                "default_value": "",
-                "placeholder": "",
-                "help_text": "",
-                "hidden": false,
-                "readonly": false
-            },
-            {
-                "name": "updated_at",
-                "label": "Updated At",
-                "type": "date",
-                "required": false,
-                "sub_fields": null,
-                "is_system": true,
-                "filterable": false,
-                "sortable": false,
-                "unique": false,
-                "default_value": "",
-                "placeholder": "",
-                "help_text": "",
-                "hidden": false,
-                "readonly": false
-            },
-            {
-                "name": "short_code",
-                "label": "Short Code",
-                "type": "text",
-                "required": false,
-                "sub_fields": null,
-                "is_system": false,
-                "filterable": false,
-                "sortable": false,
-                "unique": false,
-                "default_value": "",
-                "placeholder": "",
-                "help_text": "",
-                "hidden": false,
-                "readonly": false
-            },
-            {
-                "name": "conversion_factor",
-                "label": "Conversion Factor",
-                "type": "number",
-                "required": false,
-                "sub_fields": null,
-                "is_system": false,
-                "filterable": false,
-                "sortable": false,
-                "unique": false,
-                "default_value": "",
-                "placeholder": "",
-                "help_text": "",
-                "hidden": false,
-                "readonly": false
-            },
-            {
-                "name": "uom_type_id",
-                "label": "UOM Type Id",
-                "type": "number",
-                "required": false,
-                "sub_fields": null,
-                "is_system": false,
-                "filterable": false,
-                "sortable": false,
-                "unique": false,
-                "default_value": "",
-                "placeholder": "",
-                "help_text": "",
-                "hidden": false,
-                "readonly": false
-            },
-            {
-                "name": "is_base_uom",
-                "label": "Is Base UOM",
-                "type": "boolean",
-                "required": false,
-                "sub_fields": null,
-                "is_system": false,
-                "filterable": false,
-                "sortable": false,
-                "unique": false,
-                "default_value": "false",
-                "placeholder": "",
-                "help_text": "",
-                "hidden": false,
-                "readonly": false
-            },
-            {
-                "name": "active",
-                "label": "Active",
-                "type": "boolean",
-                "required": false,
-                "sub_fields": null,
-                "is_system": false,
-                "filterable": false,
-                "sortable": false,
-                "unique": false,
-                "default_value": "",
-                "placeholder": "",
-                "help_text": "",
-                "hidden": false,
-                "readonly": false
-            }
-        ]
-    },
-    {
-        "name": "warehouse",
-        "label": "Warehouse",
-        "is_system": true,
-        "readonly": true,
-        "fields": [
-            {
-                "name": "name",
-                "label": "Name",
-                "type": "text",
-                "required": true,
-                "sub_fields": null,
-                "is_system": false,
-                "filterable": false,
-                "sortable": false,
-                "unique": false,
-                "default_value": "",
-                "placeholder": "",
-                "help_text": "",
-                "hidden": false,
-                "readonly": false
-            },
-            {
-                "name": "created_at",
-                "label": "Created At",
-                "type": "date",
-                "required": false,
-                "sub_fields": null,
-                "is_system": true,
-                "filterable": false,
-                "sortable": false,
-                "unique": false,
-                "default_value": "",
-                "placeholder": "",
-                "help_text": "",
-                "hidden": false,
-                "readonly": false
-            },
-            {
-                "name": "updated_at",
-                "label": "Updated At",
-                "type": "date",
-                "required": false,
-                "sub_fields": null,
-                "is_system": true,
-                "filterable": false,
-                "sortable": false,
-                "unique": false,
-                "default_value": "",
-                "placeholder": "",
-                "help_text": "",
-                "hidden": false,
-                "readonly": false
-            },
-            {
-                "name": "code",
-                "label": "Code",
-                "type": "text",
-                "required": false,
-                "sub_fields": null,
-                "is_system": false,
-                "filterable": false,
-                "sortable": false,
-                "unique": false,
-                "default_value": "",
-                "placeholder": "",
-                "help_text": "",
-                "hidden": false,
-                "readonly": false
-            },
-            {
-                "name": "address",
-                "label": "Address",
-                "type": "textarea",
-                "required": false,
-                "sub_fields": null,
-                "is_system": false,
-                "filterable": false,
-                "sortable": false,
-                "unique": false,
-                "default_value": "",
-                "placeholder": "",
-                "help_text": "",
-                "hidden": false,
-                "readonly": false
-            },
-            {
-                "name": "status",
-                "label": "Status",
-                "type": "boolean",
-                "required": false,
-                "sub_fields": null,
-                "is_system": false,
-                "filterable": false,
-                "sortable": false,
-                "unique": false,
-                "default_value": "",
-                "placeholder": "",
-                "help_text": "",
-                "hidden": false,
-                "readonly": false
-            },
-            {
-                "name": "is_virtual",
-                "label": "Is Virtual",
-                "type": "boolean",
-                "required": false,
-                "sub_fields": null,
-                "is_system": false,
-                "filterable": false,
-                "sortable": false,
-                "unique": false,
-                "default_value": "",
-                "placeholder": "",
-                "help_text": "",
-                "hidden": false,
-                "readonly": false
-            }
-        ]
-    },
-    {
-        "name": "tax",
-        "label": "Tax",
-        "is_system": true,
-        "readonly": true,
-        "fields": [
-            {
-                "name": "name",
-                "label": "Name",
-                "type": "text",
-                "required": true,
-                "sub_fields": null,
-                "is_system": false,
-                "filterable": false,
-                "sortable": false,
-                "unique": false,
-                "default_value": "",
-                "placeholder": "",
-                "help_text": "",
-                "hidden": false,
-                "readonly": false
-            },
-            {
-                "name": "created_at",
-                "label": "Created At",
-                "type": "date",
-                "required": false,
-                "sub_fields": null,
-                "is_system": true,
-                "filterable": false,
-                "sortable": false,
-                "unique": false,
-                "default_value": "",
-                "placeholder": "",
-                "help_text": "",
-                "hidden": false,
-                "readonly": false
-            },
-            {
-                "name": "updated_at",
-                "label": "Updated At",
-                "type": "date",
-                "required": false,
-                "sub_fields": null,
-                "is_system": true,
-                "filterable": false,
-                "sortable": false,
-                "unique": false,
-                "default_value": "",
-                "placeholder": "",
-                "help_text": "",
-                "hidden": false,
-                "readonly": false
-            },
-            {
-                "name": "percentage",
-                "label": "Percentage",
-                "type": "number",
-                "required": false,
-                "sub_fields": null,
-                "is_system": false,
-                "filterable": false,
-                "sortable": false,
-                "unique": false,
-                "default_value": "",
-                "placeholder": "",
-                "help_text": "",
-                "hidden": false,
-                "readonly": false
-            },
-            {
-                "name": "type",
-                "label": "Type",
-                "type": "text",
-                "required": false,
-                "sub_fields": null,
-                "is_system": false,
-                "filterable": false,
-                "sortable": false,
-                "unique": false,
-                "default_value": "",
-                "placeholder": "",
-                "help_text": "",
-                "hidden": false,
-                "readonly": false
-            },
-            {
-                "name": "status",
-                "label": "Status",
-                "type": "boolean",
-                "required": false,
-                "sub_fields": null,
-                "is_system": false,
-                "filterable": false,
-                "sortable": false,
-                "unique": false,
-                "default_value": "",
-                "placeholder": "",
-                "help_text": "",
-                "hidden": false,
-                "readonly": false
             }
         ]
     }

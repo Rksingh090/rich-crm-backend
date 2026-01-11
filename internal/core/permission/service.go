@@ -194,6 +194,22 @@ func (s *PermissionServiceImpl) GetUserEffectivePermissions(ctx context.Context,
 		return nil, fmt.Errorf("user not found")
 	}
 
+	// 1b. Check Platform Admin (Bypass)
+	if user.IsPlatformAdmin {
+		return map[string]*Permission{
+			"*": {
+				ResourceID: "*",
+				Actions: map[string]common_models.ActionPermission{
+					"read":   {Allowed: true},
+					"create": {Allowed: true},
+					"update": {Allowed: true},
+					"delete": {Allowed: true},
+				},
+				FieldRules: map[string]string{}, // Full access implicitly
+			},
+		}, nil
+	}
+
 	// Initialize effective permissions map
 	effectivePerms := make(map[string]*Permission)
 

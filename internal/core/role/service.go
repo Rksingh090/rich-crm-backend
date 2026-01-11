@@ -316,6 +316,7 @@ func (s *RoleServiceImpl) GetAccessFilter(ctx context.Context, userID primitive.
 		for _, p := range perms {
 			// Check Wildcard or Specific Resource
 			if p.ResourceID == "*" || p.ResourceID == moduleName {
+				// Check specific action
 				if actionPerm, ok := p.Actions[action]; ok && actionPerm.Allowed {
 					if actionPerm.Conditions == nil {
 						hasFullAccess = true
@@ -325,6 +326,11 @@ func (s *RoleServiceImpl) GetAccessFilter(ctx context.Context, userID primitive.
 							orConditions = append(orConditions, cond)
 						}
 					}
+				}
+				// Check wildcard action
+				if actionPerm, ok := p.Actions["*"]; ok && actionPerm.Allowed {
+					// Wildcard action usually implies full access without conditions
+					hasFullAccess = true
 				}
 			}
 		}
@@ -357,11 +363,17 @@ func (s *RoleServiceImpl) CheckPermission(ctx context.Context, userID primitive.
 		if p, ok := wildPerm.Actions[action]; ok && p.Allowed {
 			return true, nil
 		}
+		if p, ok := wildPerm.Actions["*"]; ok && p.Allowed {
+			return true, nil
+		}
 	}
 
 	// 2. Check Specific Resource
 	if resPerm, ok := effectivePerms[resourceID]; ok {
 		if p, ok := resPerm.Actions[action]; ok && p.Allowed {
+			return true, nil
+		}
+		if p, ok := resPerm.Actions["*"]; ok && p.Allowed {
 			return true, nil
 		}
 	}

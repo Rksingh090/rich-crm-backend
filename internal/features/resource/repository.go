@@ -74,53 +74,63 @@ func (r *ResourceRepositoryImpl) FindAll(ctx context.Context) ([]Resource, error
 		return nil, err
 	}
 
-	// Build filter to get both global resources and tenant-specific resources
-	filter := bson.M{
-		"$or": []bson.M{
-			{"scope": "global"},                     // Global resources (no tenant_id)
-			{"tenant_id": oid, "scope": "tenant"},   // Tenant-specific resources
-			{"tenant_id": oid, "is_override": true}, // Tenant overrides
-		},
+	// 1. Fetch Global Resources (Control Plane)
+	globalColl := r.DB.GetControlPlaneDB().Collection("default_resources")
+	globalFilter := bson.M{
+		"scope":      "global",
 		"deleted_at": bson.M{"$exists": false},
 	}
-
-	// Read app from context (set by middleware/controller)
+	// App filter from context
 	if app, ok := ctx.Value(models.AppIDKey).(string); ok && app != "" {
-		filter["app"] = app
+		globalFilter["app"] = app
 	}
 
-	coll := r.getCollection(ctx)
-	cursor, err := coll.Find(ctx, filter)
+	globalCursor, err := globalColl.Find(ctx, globalFilter)
 	if err != nil {
 		return nil, err
 	}
-	defer cursor.Close(ctx)
-
-	var resources []Resource
-	if err := cursor.All(ctx, &resources); err != nil {
+	defer globalCursor.Close(ctx)
+	var globalResources []Resource
+	if err := globalCursor.All(ctx, &globalResources); err != nil {
 		return nil, err
 	}
 
-	// Merge resources: tenant overrides should replace global resources with same ResourceID
+	// 2. Fetch Tenant Resources & Overrides (Tenant DB)
+	tenantColl := r.getCollection(ctx)
+	tenantFilter := bson.M{
+		"$or": []bson.M{
+			{"tenant_id": oid, "scope": "tenant"},   // Tenant-specific
+			{"tenant_id": oid, "is_override": true}, // Overrides
+		},
+		"deleted_at": bson.M{"$exists": false},
+	}
+	if app, ok := ctx.Value(models.AppIDKey).(string); ok && app != "" {
+		tenantFilter["app"] = app
+	}
+
+	tenantCursor, err := tenantColl.Find(ctx, tenantFilter)
+	if err != nil {
+		return nil, err
+	}
+	defer tenantCursor.Close(ctx)
+	var tenantResources []Resource
+	if err := tenantCursor.All(ctx, &tenantResources); err != nil {
+		return nil, err
+	}
+
+	// 3. Merge: Tenant overrides/specifics replace globals
 	resourceMap := make(map[string]Resource)
 
-	for _, res := range resources {
-		existing, exists := resourceMap[res.ResourceID]
-		if !exists {
-			// First time seeing this resource
-			resourceMap[res.ResourceID] = res
-		} else {
-			// Resource already exists, check if current one should override
-			// Priority: tenant override > tenant-specific > global
-			if res.IsOverride {
-				// Override always wins
-				resourceMap[res.ResourceID] = res
-			} else if res.Scope == "tenant" && existing.Scope == "global" {
-				// Tenant-specific wins over global
-				resourceMap[res.ResourceID] = res
-			}
-			// Otherwise keep existing
-		}
+	// Base: Globals
+	for _, res := range globalResources {
+		resourceMap[res.ResourceID] = res
+	}
+
+	// Overlay: Tenants
+	for _, res := range tenantResources {
+		// If override, it replaces global.
+		// If tenant specific (scope=tenant), it is added (or replaces if ID conflict, though unlikely for distinct resources)
+		resourceMap[res.ResourceID] = res
 	}
 
 	// Convert map back to slice
@@ -128,6 +138,11 @@ func (r *ResourceRepositoryImpl) FindAll(ctx context.Context) ([]Resource, error
 	for _, res := range resourceMap {
 		result = append(result, res)
 	}
+
+	// Optional: Sort by ID or name for consistency?
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].ResourceID < result[j].ResourceID
+	})
 
 	return result, nil
 }
@@ -168,7 +183,7 @@ func (r *ResourceRepositoryImpl) FindByResourceID(ctx context.Context, resourceI
 		oid, _ = primitive.ObjectIDFromHex(tenantID)
 	}
 
-	// 1. Try to find tenant-specific or override
+	// 1. Try to find tenant-specific or override in Tenant DB
 	if !oid.IsZero() {
 		filter := bson.M{
 			"resource_id": resourceID,
@@ -183,13 +198,14 @@ func (r *ResourceRepositoryImpl) FindByResourceID(ctx context.Context, resourceI
 		}
 	}
 
-	// 2. Fallback to global
+	// 2. Fallback to global in Control Plane DB
 	filter := bson.M{
 		"resource_id": resourceID,
-		"scope":       "global",
-		"deleted_at":  bson.M{"$exists": false},
+		// "scope":       "global", // Not strictly needed if default_resources contains only globals
+		"deleted_at": bson.M{"$exists": false},
 	}
-	coll := r.getCollection(ctx)
+	db := r.DB.GetControlPlaneDB()
+	coll := db.Collection("default_resources")
 	var res Resource
 	err := coll.FindOne(ctx, filter).Decode(&res)
 	if err != nil {
@@ -213,6 +229,20 @@ func (r *ResourceRepositoryImpl) FindByKey(ctx context.Context, key string) (*Re
 }
 
 func (r *ResourceRepositoryImpl) Create(ctx context.Context, resource *Resource) error {
+	if resource.Scope == "global" {
+		db := r.DB.GetControlPlaneDB()
+		coll := db.Collection("default_resources")
+		// Ensure timestamps
+		if resource.CreatedAt.IsZero() {
+			resource.CreatedAt = time.Now()
+		}
+		if resource.UpdatedAt.IsZero() {
+			resource.UpdatedAt = time.Now()
+		}
+		_, err := coll.InsertOne(ctx, resource)
+		return err
+	}
+
 	// For tenant-scoped resources, require tenant context
 	if resource.Scope == "tenant" && !resource.IsOverride {
 		tenantID, ok := ctx.Value(models.TenantIDKey).(string)
@@ -225,15 +255,32 @@ func (r *ResourceRepositoryImpl) Create(ctx context.Context, resource *Resource)
 		}
 		resource.TenantID = oid
 	}
-	// For global resources, TenantID should be empty
-	// For overrides, TenantID is already set
 
 	coll := r.getCollection(ctx)
+	// Ensure timestamps
+	if resource.CreatedAt.IsZero() {
+		resource.CreatedAt = time.Now()
+	}
+	if resource.UpdatedAt.IsZero() {
+		resource.UpdatedAt = time.Now()
+	}
 	_, err := coll.InsertOne(ctx, resource)
 	return err
 }
 
 func (r *ResourceRepositoryImpl) Update(ctx context.Context, resource *Resource) error {
+	if resource.Scope == "global" {
+		db := r.DB.GetControlPlaneDB()
+		coll := db.Collection("default_resources")
+
+		resource.UpdatedAt = time.Now()
+		filter := bson.M{"_id": resource.ID}
+		update := bson.M{"$set": resource}
+
+		_, err := coll.UpdateOne(ctx, filter, update)
+		return err
+	}
+
 	filter := bson.M{"_id": resource.ID}
 
 	// For non-global resources, strictly enforce tenant_id
@@ -246,6 +293,7 @@ func (r *ResourceRepositoryImpl) Update(ctx context.Context, resource *Resource)
 		filter["tenant_id"] = oid
 	}
 
+	resource.UpdatedAt = time.Now()
 	coll := r.getCollection(ctx)
 	_, err := coll.ReplaceOne(ctx, filter, resource)
 	return err
@@ -289,74 +337,76 @@ func (r *ResourceRepositoryImpl) FindSidebarResources(ctx context.Context, app s
 		return nil, err
 	}
 
-	// Build filter to get both global resources and tenant-specific resources
-	filter := bson.M{
+	// 1. Fetch Global Resources (Control Plane)
+	globalColl := r.DB.GetControlPlaneDB().Collection("default_resources")
+	globalFilter := bson.M{
+		"ui.sidebar": true,
+		"deleted_at": bson.M{"$exists": false},
+	}
+	if app != "" {
+		globalFilter["app"] = app
+	}
+	if location != "" {
+		globalFilter["ui.location"] = location
+	}
+
+	globalCursor, err := globalColl.Find(ctx, globalFilter)
+	if err != nil {
+		return nil, err
+	}
+	defer globalCursor.Close(ctx)
+	var globalResources []Resource
+	if err := globalCursor.All(ctx, &globalResources); err != nil {
+		return nil, err
+	}
+
+	// 2. Fetch Tenant Resources & Overrides (Tenant DB)
+	tenantColl := r.getCollection(ctx)
+	tenantFilter := bson.M{
 		"$or": []bson.M{
-			{"scope": "global"},                     // Global resources (no tenant_id)
-			{"tenant_id": oid, "scope": "tenant"},   // Tenant-specific resources
-			{"tenant_id": oid, "is_override": true}, // Tenant overrides
+			{"tenant_id": oid, "scope": "tenant"},   // Tenant-specific
+			{"tenant_id": oid, "is_override": true}, // Overrides
 		},
 		"ui.sidebar": true,
 		"deleted_at": bson.M{"$exists": false},
 	}
-
 	if app != "" {
-		filter["app"] = app
+		tenantFilter["app"] = app
 	}
-
 	if location != "" {
-		filter["ui.location"] = location
+		tenantFilter["ui.location"] = location
 	}
 
-	// Sort by group order, then group name, then by item order
-	opts := options.Find().SetSort(bson.D{
-		{Key: "ui.group_order", Value: 1},
-		{Key: "ui.group", Value: 1},
-		{Key: "ui.order", Value: 1},
-	})
-
-	coll := r.getCollection(ctx)
-	cursor, err := coll.Find(ctx, filter, opts)
+	tenantCursor, err := tenantColl.Find(ctx, tenantFilter)
 	if err != nil {
 		return nil, err
 	}
-	defer cursor.Close(ctx)
-
-	var resources []Resource
-	if err := cursor.All(ctx, &resources); err != nil {
+	defer tenantCursor.Close(ctx)
+	var tenantResources []Resource
+	if err := tenantCursor.All(ctx, &tenantResources); err != nil {
 		return nil, err
 	}
 
-	// Merge resources: tenant overrides should replace global resources with same ResourceID
+	// 3. Merge: Tenant overrides replace globals
 	resourceMap := make(map[string]Resource)
 
-	for _, res := range resources {
-		existing, exists := resourceMap[res.ResourceID]
-		if !exists {
-			// First time seeing this resource
-			resourceMap[res.ResourceID] = res
-		} else {
-			// Resource already exists, check if current one should override
-			// Priority: tenant override > tenant-specific > global
-			if res.IsOverride {
-				// Override always wins
-				resourceMap[res.ResourceID] = res
-			} else if res.Scope == "tenant" && existing.Scope == "global" {
-				// Tenant-specific wins over global
-				resourceMap[res.ResourceID] = res
-			}
-			// Otherwise keep existing
-		}
+	// Base: Globals
+	for _, res := range globalResources {
+		resourceMap[res.ResourceID] = res
 	}
 
-	// Convert map back to slice
+	// Overlay: Tenants
+	for _, res := range tenantResources {
+		resourceMap[res.ResourceID] = res
+	}
+
+	// Convert to slice
 	var result []Resource
 	for _, res := range resourceMap {
 		result = append(result, res)
 	}
 
-	// Sort the result to maintain proper order
-	// Sort by group order, then group name, then by item order
+	// 4. Sort
 	sort.Slice(result, func(i, j int) bool {
 		if result[i].UI.GroupOrder != result[j].UI.GroupOrder {
 			return result[i].UI.GroupOrder < result[j].UI.GroupOrder
@@ -372,12 +422,15 @@ func (r *ResourceRepositoryImpl) FindSidebarResources(ctx context.Context, app s
 
 // FindGlobalResources returns all global resources (scope="global")
 func (r *ResourceRepositoryImpl) FindGlobalResources(ctx context.Context) ([]Resource, error) {
+	// Query Control Plane DB
+	db := r.DB.GetControlPlaneDB()
+	coll := db.Collection("default_resources")
+
 	filter := bson.M{
 		"scope":      "global",
 		"deleted_at": bson.M{"$exists": false},
 	}
 
-	coll := r.getCollection(ctx)
 	cursor, err := coll.Find(ctx, filter)
 	if err != nil {
 		return nil, err
