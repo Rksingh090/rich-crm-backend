@@ -1,5 +1,37 @@
 basePath: /
 definitions:
+  action.Action:
+    properties:
+      config:
+        additionalProperties: true
+        type: object
+      type:
+        $ref: '#/definitions/action.ActionType'
+    type: object
+  action.ActionType:
+    enum:
+    - send_email
+    - create_task
+    - update_field
+    - webhook
+    - run_script
+    - send_notification
+    - send_sms
+    - generate_pdf
+    - data_sync
+    - send_report
+    type: string
+    x-enum-varnames:
+    - ActionSendEmail
+    - ActionCreateTask
+    - ActionUpdateField
+    - ActionWebhook
+    - ActionRunScript
+    - ActionSendNotification
+    - ActionSendSMS
+    - ActionGeneratePDF
+    - ActionDataSync
+    - ActionSendReport
   analytics.DataSource:
     properties:
       config:
@@ -168,35 +200,11 @@ definitions:
       plan:
         type: string
     type: object
-  automation.ActionType:
-    enum:
-    - send_email
-    - create_task
-    - update_field
-    - webhook
-    - run_script
-    - send_notification
-    - send_sms
-    - generate_pdf
-    - data_sync
-    - send_report
-    type: string
-    x-enum-varnames:
-    - ActionSendEmail
-    - ActionCreateTask
-    - ActionUpdateField
-    - ActionWebhook
-    - ActionRunScript
-    - ActionSendNotification
-    - ActionSendSMS
-    - ActionGeneratePDF
-    - ActionDataSync
-    - ActionSendReport
   automation.AutomationRule:
     properties:
       actions:
         items:
-          $ref: '#/definitions/automation.RuleAction'
+          $ref: '#/definitions/action.Action'
         type: array
       active:
         type: boolean
@@ -218,14 +226,6 @@ definitions:
         type: string
       updated_at:
         type: string
-    type: object
-  automation.RuleAction:
-    properties:
-      config:
-        additionalProperties: true
-        type: object
-      type:
-        $ref: '#/definitions/automation.ActionType'
     type: object
   automation.RuleCondition:
     properties:
@@ -249,18 +249,6 @@ definitions:
     - OperatorContains
     - OperatorGreaterThan
     - OperatorLessThan
-  blueprint.ActionType:
-    enum:
-    - email
-    - field_update
-    - webhook
-    - script
-    type: string
-    x-enum-varnames:
-    - ActionTypeEmail
-    - ActionTypeFieldUpdate
-    - ActionTypeWebhook
-    - ActionTypeScript
   blueprint.Blueprint:
     properties:
       active:
@@ -305,7 +293,7 @@ definitions:
       order:
         type: integer
       type:
-        $ref: '#/definitions/blueprint.ActionType'
+        $ref: '#/definitions/action.ActionType'
     type: object
   blueprint.ExecuteTransitionRequest:
     properties:
@@ -592,35 +580,11 @@ definitions:
       module:
         type: string
     type: object
-  cron_feature.ActionType:
-    enum:
-    - send_email
-    - create_task
-    - update_field
-    - webhook
-    - run_script
-    - send_notification
-    - send_sms
-    - generate_pdf
-    - data_sync
-    - send_report
-    type: string
-    x-enum-varnames:
-    - ActionSendEmail
-    - ActionCreateTask
-    - ActionUpdateField
-    - ActionWebhook
-    - ActionRunScript
-    - ActionSendNotification
-    - ActionSendSMS
-    - ActionGeneratePDF
-    - ActionDataSync
-    - ActionSendReport
   cron_feature.CronJob:
     properties:
       actions:
         items:
-          $ref: '#/definitions/cron_feature.RuleAction'
+          $ref: '#/definitions/action.Action'
         type: array
       active:
         type: boolean
@@ -646,16 +610,10 @@ definitions:
         type: string
       schedule:
         type: string
+      tenant_id:
+        type: string
       updated_at:
         type: string
-    type: object
-  cron_feature.RuleAction:
-    properties:
-      config:
-        additionalProperties: true
-        type: object
-      type:
-        $ref: '#/definitions/cron_feature.ActionType'
     type: object
   cron_feature.RuleCondition:
     properties:
@@ -2195,28 +2153,6 @@ paths:
           schema:
             type: string
       summary: Welcome Admin
-      tags:
-      - admin
-  /api/admin/handle-webhook:
-    post:
-      consumes:
-      - application/json
-      description: Receive and print webhook payload
-      parameters:
-      - description: Webhook Payload
-        in: body
-        name: payload
-        required: true
-        schema:
-          type: string
-      produces:
-      - text/plain
-      responses:
-        "200":
-          description: Webhook handled successfully!
-          schema:
-            type: string
-      summary: Handle Webhook
       tags:
       - admin
   /api/analytics/dashboards/{id}/metrics:

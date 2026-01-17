@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	common_models "go-crm/internal/common/models"
+	"go-crm/internal/core/action"
 	"go-crm/internal/core/audit"
 	"strings"
 )
@@ -21,11 +22,11 @@ type AutomationService interface {
 
 type AutomationServiceImpl struct {
 	Repo           AutomationRepository
-	ActionExecutor ActionExecutor
+	ActionExecutor action.ActionExecutor
 	AuditService   audit.AuditService
 }
 
-func NewAutomationService(repo AutomationRepository, actionExecutor ActionExecutor, auditService audit.AuditService) AutomationService {
+func NewAutomationService(repo AutomationRepository, actionExecutor action.ActionExecutor, auditService audit.AuditService) AutomationService {
 	return &AutomationServiceImpl{
 		Repo:           repo,
 		ActionExecutor: actionExecutor,
@@ -145,6 +146,6 @@ func (s *AutomationServiceImpl) evaluateConditions(conditions []RuleCondition, r
 	return true
 }
 
-func (s *AutomationServiceImpl) executeActions(ctx context.Context, actions []RuleAction, moduleName string, record map[string]interface{}) error {
+func (s *AutomationServiceImpl) executeActions(ctx context.Context, actions []action.Action, moduleName string, record map[string]interface{}) error {
 	return s.ActionExecutor.ExecuteActions(ctx, actions, moduleName, record)
 }

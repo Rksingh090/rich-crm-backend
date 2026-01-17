@@ -4,8 +4,9 @@ import (
 	"context"
 	"fmt"
 	common_models "go-crm/internal/common/models"
+	"go-crm/internal/core/action"
 	"go-crm/internal/core/audit"
-	"go-crm/internal/features/automation"
+	"go-crm/internal/core/organization"
 	"go-crm/internal/features/email"
 	"go-crm/internal/features/record"
 	sync_feature "go-crm/internal/features/sync"
@@ -33,23 +34,30 @@ type CronService interface {
 type CronServiceImpl struct {
 	repo           CronRepository
 	recordRepo     record.RecordRepository
-	actionExecutor automation.ActionExecutor
+	actionExecutor action.ActionExecutor
 	auditService   audit.AuditService
 	syncService    sync_feature.SyncService
 	emailService   email.EmailService
+	orgRepo        OrganizationRepository
 
 	scheduler  *cron.Cron
 	jobEntries map[string]cron.EntryID
 	mu         sync.RWMutex
 }
 
+// OrganizationRepository interface for getting all tenants
+type OrganizationRepository interface {
+	List(ctx context.Context, filter map[string]interface{}) ([]common_models.Organization, error)
+}
+
 func NewCronService(
 	repo CronRepository,
 	recordRepo record.RecordRepository,
-	actionExecutor automation.ActionExecutor,
+	actionExecutor action.ActionExecutor,
 	auditService audit.AuditService,
 	syncService sync_feature.SyncService,
 	emailService email.EmailService,
+	orgRepo organization.OrganizationRepository,
 ) CronService {
 	return &CronServiceImpl{
 		repo:           repo,
@@ -58,6 +66,7 @@ func NewCronService(
 		auditService:   auditService,
 		syncService:    syncService,
 		emailService:   emailService,
+		orgRepo:        orgRepo,
 		jobEntries:     make(map[string]cron.EntryID),
 	}
 }
@@ -247,16 +256,8 @@ func (s *CronServiceImpl) executeRecordBasedJob(ctx context.Context, cronJob *Cr
 	recordsAffected := 0
 
 	for _, record := range records {
-		// Convert features/cron/RuleAction to features/automation/RuleAction
-		autoActions := make([]automation.RuleAction, len(cronJob.Actions))
-		for i, a := range cronJob.Actions {
-			autoActions[i] = automation.RuleAction{
-				Type:   automation.ActionType(a.Type),
-				Config: a.Config,
-			}
-		}
-
-		if err := s.actionExecutor.ExecuteActions(ctx, autoActions, cronJob.ModuleID, record); err != nil {
+		// Actions are already action.Action type, no conversion needed
+		if err := s.actionExecutor.ExecuteActions(ctx, cronJob.Actions, cronJob.ModuleID, record); err != nil {
 			log.Printf("Failed to execute actions for record %v: %v", record["_id"], err)
 		} else {
 			recordsAffected++
@@ -267,31 +268,13 @@ func (s *CronServiceImpl) executeRecordBasedJob(ctx context.Context, cronJob *Cr
 }
 
 func (s *CronServiceImpl) executeNonRecordBasedJob(ctx context.Context, cronJob *CronJob) (int, error) {
-	recordsAffected := 0
-
-	for _, action := range cronJob.Actions {
-		switch action.Type {
-		case ActionSendEmail:
-			log.Printf("Sending email with config: %v", action.Config)
-			recordsAffected++
-		case ActionWebhook:
-			log.Printf("Triggering webhook with config: %v", action.Config)
-			recordsAffected++
-		case ActionDataSync:
-			syncSettingID, ok := action.Config["sync_setting_id"].(string)
-			if !ok {
-				return recordsAffected, fmt.Errorf("sync_setting_id missing in action config")
-			}
-			if err := s.syncService.RunSync(ctx, syncSettingID); err != nil {
-				return recordsAffected, err
-			}
-			recordsAffected++
-		default:
-			log.Printf("Action type %s not supported for non-record based jobs", action.Type)
-		}
+	// Actions are already action.Action type, no conversion needed
+	// For non-record based jobs, pass empty record
+	if err := s.actionExecutor.ExecuteActions(ctx, cronJob.Actions, "", map[string]interface{}{}); err != nil {
+		return 0, err
 	}
 
-	return recordsAffected, nil
+	return len(cronJob.Actions), nil
 }
 
 func (s *CronServiceImpl) GetCronJobLogs(ctx context.Context, cronJobID string, limit int) ([]CronJobLog, error) {
@@ -304,18 +287,38 @@ func (s *CronServiceImpl) GetCronJobLogs(ctx context.Context, cronJobID string, 
 func (s *CronServiceImpl) InitializeScheduler(ctx context.Context) error {
 	log.Println("Initializing cron scheduler...")
 	s.scheduler = cron.New()
-	cronJobs, err := s.repo.GetActive(ctx)
+
+	// Get all organizations/tenants
+	orgs, err := s.orgRepo.List(ctx, map[string]interface{}{})
 	if err != nil {
-		return fmt.Errorf("failed to load active cron jobs: %w", err)
+		return fmt.Errorf("failed to load organizations: %w", err)
 	}
 
-	for i := range cronJobs {
-		if err := s.RegisterJob(&cronJobs[i]); err != nil {
-			log.Printf("Failed to register cron job %s: %v", cronJobs[i].ID.Hex(), err)
+	log.Printf("Loading cron jobs for %d tenants...", len(orgs))
+
+	// Load jobs from each tenant
+	for _, org := range orgs {
+		tenantID := org.ID.Hex()
+		// Create context with tenant ID
+		tenantCtx := context.WithValue(ctx, common_models.TenantIDKey, tenantID)
+
+		cronJobs, err := s.repo.GetActive(tenantCtx)
+		if err != nil {
+			log.Printf("Failed to load cron jobs for tenant %s: %v", tenantID, err)
+			continue
+		}
+
+		log.Printf("Loaded %d active cron jobs for tenant %s", len(cronJobs), tenantID)
+
+		for i := range cronJobs {
+			if err := s.RegisterJob(&cronJobs[i]); err != nil {
+				log.Printf("Failed to register cron job %s: %v", cronJobs[i].ID.Hex(), err)
+			}
 		}
 	}
 
 	s.scheduler.Start()
+	log.Println("Cron scheduler initialized successfully")
 	return nil
 }
 
@@ -336,8 +339,12 @@ func (s *CronServiceImpl) RegisterJob(cronJob *CronJob) error {
 	}
 
 	cronJobID := cronJob.ID.Hex()
+	tenantID := cronJob.TenantID.Hex()
+
 	jobFunc := func() {
-		ctx := context.Background()
+		// Create context with tenant ID for job execution
+		ctx := context.WithValue(context.Background(), common_models.TenantIDKey, tenantID)
+
 		latestCronJob, err := s.repo.GetByID(ctx, cronJobID)
 		if err != nil || latestCronJob == nil || !latestCronJob.Active {
 			return

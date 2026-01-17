@@ -1,25 +1,16 @@
 package blueprint
 
 import (
-	"time"
-
 	"go-crm/internal/common/models"
+	"go-crm/internal/core/action"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-type ActionType string
-
-const (
-	ActionTypeEmail       ActionType = "email"
-	ActionTypeFieldUpdate ActionType = "field_update"
-	ActionTypeWebhook     ActionType = "webhook"
-	ActionTypeScript      ActionType = "script"
-)
-
 type BlueprintAction struct {
 	ID     string                 `bson:"id" json:"id"`
-	Type   ActionType             `bson:"type" json:"type"`
+	Type   action.ActionType      `bson:"type" json:"type"`
 	Config map[string]interface{} `bson:"config" json:"config"` // Config depends on Type
 	Order  int                    `bson:"order" json:"order"`
 }

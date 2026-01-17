@@ -6,6 +6,7 @@ import (
 	common_api "go-crm/internal/common/api"
 	"go-crm/internal/common/models"
 	"go-crm/internal/config"
+	"go-crm/internal/core/action"
 	"go-crm/internal/core/audit"
 	"go-crm/internal/core/auth"
 	"go-crm/internal/core/organization"
@@ -325,7 +326,8 @@ func main() {
 			approval.NewApprovalService,
 			settings.NewSettingsService,
 			report.NewReportService,
-			automation.NewActionExecutor,
+			// Create centralized action executor
+			action.NewActionExecutor,
 			automation.NewAutomationService,
 			ticket.NewTicketService,
 			ticket.NewSLAService,

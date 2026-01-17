@@ -2,6 +2,8 @@ package approval
 
 import (
 	"context"
+	"fmt"
+	"go-crm/internal/common/models"
 	"go-crm/internal/database"
 	"time"
 
@@ -21,23 +23,39 @@ type ApprovalRepository interface {
 }
 
 type ApprovalRepositoryImpl struct {
-	Collection *mongo.Collection
+	DB *database.MongodbDB
 }
 
 func NewApprovalRepository(mongodb *database.MongodbDB) ApprovalRepository {
 	return &ApprovalRepositoryImpl{
-		Collection: mongodb.DB.Collection("approval_workflows"),
+		DB: mongodb,
 	}
 }
 
+func (r *ApprovalRepositoryImpl) getCollection(ctx context.Context) (*mongo.Collection, error) {
+	tenantID, ok := ctx.Value(models.TenantIDKey).(string)
+	if !ok || tenantID == "" {
+		return nil, fmt.Errorf("tenant context missing")
+	}
+	return r.DB.GetTenantDB(tenantID).Collection("approval_workflows"), nil
+}
+
 func (r *ApprovalRepositoryImpl) Create(ctx context.Context, workflow ApprovalWorkflow) error {
-	_, err := r.Collection.InsertOne(ctx, workflow)
+	coll, err := r.getCollection(ctx)
+	if err != nil {
+		return err
+	}
+	_, err = coll.InsertOne(ctx, workflow)
 	return err
 }
 
 func (r *ApprovalRepositoryImpl) GetByModuleID(ctx context.Context, moduleID string) (*ApprovalWorkflow, error) {
+	coll, err := r.getCollection(ctx)
+	if err != nil {
+		return nil, err
+	}
 	var workflow ApprovalWorkflow
-	err := r.Collection.FindOne(ctx, bson.M{"module_id": moduleID, "active": true}).Decode(&workflow)
+	err = coll.FindOne(ctx, bson.M{"module_id": moduleID, "active": true}).Decode(&workflow)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			return nil, nil // No active workflow found for this module
@@ -48,7 +66,11 @@ func (r *ApprovalRepositoryImpl) GetByModuleID(ctx context.Context, moduleID str
 }
 
 func (r *ApprovalRepositoryImpl) ListActiveByModuleID(ctx context.Context, moduleID string) ([]ApprovalWorkflow, error) {
-	cursor, err := r.Collection.Find(ctx, bson.M{"module_id": moduleID, "active": true})
+	coll, err := r.getCollection(ctx)
+	if err != nil {
+		return nil, err
+	}
+	cursor, err := coll.Find(ctx, bson.M{"module_id": moduleID, "active": true})
 	if err != nil {
 		return nil, err
 	}
@@ -61,12 +83,16 @@ func (r *ApprovalRepositoryImpl) ListActiveByModuleID(ctx context.Context, modul
 }
 
 func (r *ApprovalRepositoryImpl) GetByID(ctx context.Context, id string) (*ApprovalWorkflow, error) {
+	coll, err := r.getCollection(ctx)
+	if err != nil {
+		return nil, err
+	}
 	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return nil, err
 	}
 	var workflow ApprovalWorkflow
-	err = r.Collection.FindOne(ctx, bson.M{"_id": oid}).Decode(&workflow)
+	err = coll.FindOne(ctx, bson.M{"_id": oid}).Decode(&workflow)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			return nil, nil
@@ -77,7 +103,11 @@ func (r *ApprovalRepositoryImpl) GetByID(ctx context.Context, id string) (*Appro
 }
 
 func (r *ApprovalRepositoryImpl) List(ctx context.Context) ([]ApprovalWorkflow, error) {
-	cursor, err := r.Collection.Find(ctx, bson.M{})
+	coll, err := r.getCollection(ctx)
+	if err != nil {
+		return nil, err
+	}
+	cursor, err := coll.Find(ctx, bson.M{})
 	if err != nil {
 		return nil, err
 	}
@@ -89,6 +119,10 @@ func (r *ApprovalRepositoryImpl) List(ctx context.Context) ([]ApprovalWorkflow, 
 }
 
 func (r *ApprovalRepositoryImpl) Update(ctx context.Context, id string, workflow ApprovalWorkflow) error {
+	coll, err := r.getCollection(ctx)
+	if err != nil {
+		return err
+	}
 	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return err
@@ -102,15 +136,19 @@ func (r *ApprovalRepositoryImpl) Update(ctx context.Context, id string, workflow
 			"updated_at": time.Now(),
 		},
 	}
-	_, err = r.Collection.UpdateOne(ctx, bson.M{"_id": oid}, update)
+	_, err = coll.UpdateOne(ctx, bson.M{"_id": oid}, update)
 	return err
 }
 
 func (r *ApprovalRepositoryImpl) Delete(ctx context.Context, id string) error {
+	coll, err := r.getCollection(ctx)
+	if err != nil {
+		return err
+	}
 	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return err
 	}
-	_, err = r.Collection.DeleteOne(ctx, bson.M{"_id": oid})
+	_, err = coll.DeleteOne(ctx, bson.M{"_id": oid})
 	return err
 }

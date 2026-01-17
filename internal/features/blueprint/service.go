@@ -4,12 +4,13 @@ import (
 	"context"
 	"fmt"
 	common_models "go-crm/internal/common/models"
+	"go-crm/internal/core/action"
 	"go-crm/internal/core/audit"
-	"go-crm/internal/features/automation"
 	"go-crm/internal/features/record"
 	"strings"
 	"time"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -30,11 +31,11 @@ type Service interface {
 type ServiceImpl struct {
 	repo         Repository
 	recordRepo   record.RecordRepository
-	executor     automation.ActionExecutor
+	executor     action.ActionExecutor
 	auditService audit.AuditService
 }
 
-func NewService(repo Repository, recordRepo record.RecordRepository, executor automation.ActionExecutor, auditService audit.AuditService) Service {
+func NewService(repo Repository, recordRepo record.RecordRepository, executor action.ActionExecutor, auditService audit.AuditService) Service {
 	return &ServiceImpl{
 		repo:         repo,
 		recordRepo:   recordRepo,
@@ -118,6 +119,11 @@ func (s *ServiceImpl) ExecuteTransition(ctx context.Context, blueprintID string,
 	}
 	if rec == nil {
 		return fmt.Errorf("record not found")
+	}
+
+	// CHECK APPROVAL STATUS
+	if s.isPendingApproval(rec) {
+		return fmt.Errorf("record is currently pending approval and cannot be transitioned")
 	}
 
 	// Get Old State for Audit
@@ -227,6 +233,12 @@ func (s *ServiceImpl) GetAvailableTransitions(ctx context.Context, module string
 		return nil, fmt.Errorf("record not found")
 	}
 
+	// CHECK APPROVAL STATUS
+	if s.isPendingApproval(rec) {
+		// Return empty list if pending approval
+		return []Transition{}, nil
+	}
+
 	// 3. Determine Current State
 	currentState := ""
 	if val, ok := rec[bp.TargetField]; ok {
@@ -251,35 +263,25 @@ func (s *ServiceImpl) GetAvailableTransitions(ctx context.Context, module string
 }
 
 func (s *ServiceImpl) executeActions(ctx context.Context, actions []BlueprintAction, moduleName string, rec map[string]interface{}) error {
-	for _, action := range actions {
-		ruleAction := s.mapToRuleAction(action)
-		if err := s.executor.ExecuteAction(ctx, ruleAction, moduleName, rec); err != nil {
-			return err
+	// Convert BlueprintAction to action.Action
+	coreActions := make([]action.Action, len(actions))
+	for i, a := range actions {
+		coreActions[i] = action.Action{
+			Type:   a.Type, // Already action.ActionType
+			Config: a.Config,
 		}
 	}
-	return nil
+	return s.executor.ExecuteActions(ctx, coreActions, moduleName, rec)
 }
 
-func (s *ServiceImpl) mapToRuleAction(action BlueprintAction) automation.RuleAction {
-	var ruleType automation.ActionType
-	switch action.Type {
-	case ActionTypeEmail:
-		ruleType = automation.ActionSendEmail
-	case ActionTypeFieldUpdate:
-		ruleType = automation.ActionUpdateField
-	case ActionTypeWebhook:
-		ruleType = automation.ActionWebhook
-	case ActionTypeScript:
-		ruleType = automation.ActionRunScript
-	default:
-		// Fallback or unknown
-		ruleType = automation.ActionType(action.Type)
+func (s *ServiceImpl) isPendingApproval(rec map[string]interface{}) bool {
+	if val, ok := rec["_approval"]; ok {
+		var state common_models.ApprovalRecordState
+		bytes, _ := bson.Marshal(val)
+		bson.Unmarshal(bytes, &state)
+		return state.Status == common_models.ApprovalStatusPending
 	}
-
-	return automation.RuleAction{
-		Type:   ruleType,
-		Config: action.Config,
-	}
+	return false
 }
 
 func (s *ServiceImpl) evaluateCriteria(rec map[string]interface{}, criteria []common_models.Filter) bool {

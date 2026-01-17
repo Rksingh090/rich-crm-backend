@@ -800,7 +800,7 @@
     "type": "module",
     "key": "meetings",
     "label": "Meetings",
-    "icon": "Calendar",
+    "icon": "Meeting",
     "route": "/dashboard/modules/meetings",
     "actions": [
       "read",

@@ -132,40 +132,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/admin/handle-webhook": {
-            "post": {
-                "description": "Receive and print webhook payload",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "text/plain"
-                ],
-                "tags": [
-                    "admin"
-                ],
-                "summary": "Handle Webhook",
-                "parameters": [
-                    {
-                        "description": "Webhook Payload",
-                        "name": "payload",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Webhook handled successfully!",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
         "/api/analytics/dashboards/{id}/metrics": {
             "get": {
                 "produces": [
@@ -8565,6 +8531,45 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "action.Action": {
+            "type": "object",
+            "properties": {
+                "config": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "type": {
+                    "$ref": "#/definitions/action.ActionType"
+                }
+            }
+        },
+        "action.ActionType": {
+            "type": "string",
+            "enum": [
+                "send_email",
+                "create_task",
+                "update_field",
+                "webhook",
+                "run_script",
+                "send_notification",
+                "send_sms",
+                "generate_pdf",
+                "data_sync",
+                "send_report"
+            ],
+            "x-enum-varnames": [
+                "ActionSendEmail",
+                "ActionCreateTask",
+                "ActionUpdateField",
+                "ActionWebhook",
+                "ActionRunScript",
+                "ActionSendNotification",
+                "ActionSendSMS",
+                "ActionGeneratePDF",
+                "ActionDataSync",
+                "ActionSendReport"
+            ]
+        },
         "analytics.DataSource": {
             "type": "object",
             "properties": {
@@ -8812,40 +8817,13 @@ const docTemplate = `{
                 }
             }
         },
-        "automation.ActionType": {
-            "type": "string",
-            "enum": [
-                "send_email",
-                "create_task",
-                "update_field",
-                "webhook",
-                "run_script",
-                "send_notification",
-                "send_sms",
-                "generate_pdf",
-                "data_sync",
-                "send_report"
-            ],
-            "x-enum-varnames": [
-                "ActionSendEmail",
-                "ActionCreateTask",
-                "ActionUpdateField",
-                "ActionWebhook",
-                "ActionRunScript",
-                "ActionSendNotification",
-                "ActionSendSMS",
-                "ActionGeneratePDF",
-                "ActionDataSync",
-                "ActionSendReport"
-            ]
-        },
         "automation.AutomationRule": {
             "type": "object",
             "properties": {
                 "actions": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/automation.RuleAction"
+                        "$ref": "#/definitions/action.Action"
                     }
                 },
                 "active": {
@@ -8880,18 +8858,6 @@ const docTemplate = `{
                 }
             }
         },
-        "automation.RuleAction": {
-            "type": "object",
-            "properties": {
-                "config": {
-                    "type": "object",
-                    "additionalProperties": true
-                },
-                "type": {
-                    "$ref": "#/definitions/automation.ActionType"
-                }
-            }
-        },
         "automation.RuleCondition": {
             "type": "object",
             "properties": {
@@ -8919,21 +8885,6 @@ const docTemplate = `{
                 "OperatorContains",
                 "OperatorGreaterThan",
                 "OperatorLessThan"
-            ]
-        },
-        "blueprint.ActionType": {
-            "type": "string",
-            "enum": [
-                "email",
-                "field_update",
-                "webhook",
-                "script"
-            ],
-            "x-enum-varnames": [
-                "ActionTypeEmail",
-                "ActionTypeFieldUpdate",
-                "ActionTypeWebhook",
-                "ActionTypeScript"
             ]
         },
         "blueprint.Blueprint": {
@@ -9001,7 +8952,7 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "type": {
-                    "$ref": "#/definitions/blueprint.ActionType"
+                    "$ref": "#/definitions/action.ActionType"
                 }
             }
         },
@@ -9412,40 +9363,13 @@ const docTemplate = `{
                 }
             }
         },
-        "cron_feature.ActionType": {
-            "type": "string",
-            "enum": [
-                "send_email",
-                "create_task",
-                "update_field",
-                "webhook",
-                "run_script",
-                "send_notification",
-                "send_sms",
-                "generate_pdf",
-                "data_sync",
-                "send_report"
-            ],
-            "x-enum-varnames": [
-                "ActionSendEmail",
-                "ActionCreateTask",
-                "ActionUpdateField",
-                "ActionWebhook",
-                "ActionRunScript",
-                "ActionSendNotification",
-                "ActionSendSMS",
-                "ActionGeneratePDF",
-                "ActionDataSync",
-                "ActionSendReport"
-            ]
-        },
         "cron_feature.CronJob": {
             "type": "object",
             "properties": {
                 "actions": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/cron_feature.RuleAction"
+                        "$ref": "#/definitions/action.Action"
                     }
                 },
                 "active": {
@@ -9484,20 +9408,11 @@ const docTemplate = `{
                 "schedule": {
                     "type": "string"
                 },
+                "tenant_id": {
+                    "type": "string"
+                },
                 "updated_at": {
                     "type": "string"
-                }
-            }
-        },
-        "cron_feature.RuleAction": {
-            "type": "object",
-            "properties": {
-                "config": {
-                    "type": "object",
-                    "additionalProperties": true
-                },
-                "type": {
-                    "$ref": "#/definitions/cron_feature.ActionType"
                 }
             }
         },

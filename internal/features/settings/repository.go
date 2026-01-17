@@ -19,12 +19,12 @@ type SettingsRepository interface {
 }
 
 type SettingsRepositoryImpl struct {
-	Collection *mongo.Collection
+	DB *database.MongodbDB
 }
 
 func NewSettingsRepository(mongodb *database.MongodbDB) SettingsRepository {
 	return &SettingsRepositoryImpl{
-		Collection: mongodb.DB.Collection("settings"),
+		DB: mongodb,
 	}
 }
 
@@ -38,8 +38,11 @@ func (r *SettingsRepositoryImpl) GetByType(ctx context.Context, sType SettingsTy
 		return nil, err
 	}
 
+	// Use tenant-specific database
+	collection := r.DB.GetTenantDB(tenantID).Collection("settings")
+
 	var settings Settings
-	err = r.Collection.FindOne(ctx, bson.M{"type": sType, "tenant_id": oid}).Decode(&settings)
+	err = collection.FindOne(ctx, bson.M{"type": sType, "tenant_id": oid}).Decode(&settings)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			return nil, nil
@@ -60,9 +63,12 @@ func (r *SettingsRepositoryImpl) Upsert(ctx context.Context, settings *Settings)
 	}
 	settings.TenantID = oid
 
+	// Use tenant-specific database
+	collection := r.DB.GetTenantDB(tenantID).Collection("settings")
+
 	filter := bson.M{"type": settings.Type, "tenant_id": oid}
 	update := bson.M{"$set": settings}
 	opts := options.Update().SetUpsert(true)
-	_, err = r.Collection.UpdateOne(ctx, filter, update, opts)
+	_, err = collection.UpdateOne(ctx, filter, update, opts)
 	return err
 }

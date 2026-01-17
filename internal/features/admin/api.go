@@ -28,7 +28,4 @@ func (h *AdminApi) Setup(app *fiber.App) {
 	app.Get("/api/admin",
 		h.Controller.WelcomeAdmin,
 	)
-	app.Post("/api/admin/handle-webhook",
-		h.Controller.HandleWebhook,
-	)
 }

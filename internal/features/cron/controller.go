@@ -1,9 +1,6 @@
 package cron_feature
 
 import (
-	"context"
-	"time"
-
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -34,10 +31,7 @@ func (c *CronController) CreateCronJob(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request body"})
 	}
 
-	ctxt, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	if err := c.Service.CreateCronJob(ctxt, &cronJob); err != nil {
+	if err := c.Service.CreateCronJob(ctx.UserContext(), &cronJob); err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
@@ -65,10 +59,7 @@ func (c *CronController) ListCronJobs(ctx *fiber.Ctx) error {
 		filter["module_id"] = moduleID
 	}
 
-	ctxt, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	cronJobs, err := c.Service.ListCronJobs(ctxt, filter)
+	cronJobs, err := c.Service.ListCronJobs(ctx.UserContext(), filter)
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
@@ -89,10 +80,7 @@ func (c *CronController) ListCronJobs(ctx *fiber.Ctx) error {
 func (c *CronController) GetCronJob(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 
-	ctxt, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	cronJob, err := c.Service.GetCronJob(ctxt, id)
+	cronJob, err := c.Service.GetCronJob(ctx.UserContext(), id)
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
@@ -121,10 +109,7 @@ func (c *CronController) UpdateCronJob(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request body"})
 	}
 
-	ctxt, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	if err := c.Service.UpdateCronJob(ctxt, &cronJob); err != nil {
+	if err := c.Service.UpdateCronJob(ctx.UserContext(), &cronJob); err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
@@ -142,10 +127,7 @@ func (c *CronController) UpdateCronJob(ctx *fiber.Ctx) error {
 func (c *CronController) DeleteCronJob(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 
-	ctxt, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	if err := c.Service.DeleteCronJob(ctxt, id); err != nil {
+	if err := c.Service.DeleteCronJob(ctx.UserContext(), id); err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
@@ -164,10 +146,7 @@ func (c *CronController) DeleteCronJob(ctx *fiber.Ctx) error {
 func (c *CronController) ExecuteCronJob(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 
-	ctxt, cancel := context.WithTimeout(context.Background(), 60*time.Second)
-	defer cancel()
-
-	if err := c.Service.ExecuteCronJob(ctxt, id); err != nil {
+	if err := c.Service.ExecuteCronJob(ctx.UserContext(), id); err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
@@ -188,10 +167,7 @@ func (c *CronController) GetCronJobLogs(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 	limit := ctx.QueryInt("limit", 50)
 
-	ctxt, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	logs, err := c.Service.GetCronJobLogs(ctxt, id, limit)
+	logs, err := c.Service.GetCronJobLogs(ctx.UserContext(), id, limit)
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
