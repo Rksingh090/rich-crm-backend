@@ -3,6 +3,7 @@ package permission
 import (
 	"context"
 	"fmt"
+	"maps"
 	"time"
 
 	common_models "go-crm/internal/common/models"
@@ -142,6 +143,12 @@ func (s *PermissionServiceImpl) AssignResourceToRole(ctx context.Context, req As
 		return fmt.Errorf("invalid tenant ID: %v", err)
 	}
 
+	// Get app from context
+	app := common_models.AppCRM // Default to CRM
+	if appStr, ok := ctx.Value(common_models.AppIDKey).(string); ok && appStr != "" {
+		app = common_models.App(appStr)
+	}
+
 	// Check if permission already exists
 	existing, err := s.PermissionRepo.FindByRoleAndResource(ctx, req.RoleID, req.ResourceID)
 	if err != nil {
@@ -152,6 +159,7 @@ func (s *PermissionServiceImpl) AssignResourceToRole(ctx context.Context, req As
 		// Update existing permission
 		existing.Actions = req.Actions
 		existing.FieldRules = req.FieldRules
+		existing.App = app // Update app field too
 		existing.UpdatedAt = time.Now()
 		return s.PermissionRepo.Update(ctx, existing.ID.Hex(), existing)
 	}
@@ -161,6 +169,7 @@ func (s *PermissionServiceImpl) AssignResourceToRole(ctx context.Context, req As
 		ID:         primitive.NewObjectID(),
 		TenantID:   tenantID,
 		RoleID:     roleID,
+		App:        app,            // Set app from context
 		ResourceID: req.ResourceID, // Reference to Resource Registry
 		Actions:    req.Actions,
 		FieldRules: req.FieldRules,
@@ -230,23 +239,19 @@ func (s *PermissionServiceImpl) GetUserEffectivePermissions(ctx context.Context,
 		}
 
 		// Merge Actions
-		for action, perm := range actions {
-			// Logic: If existing is set, we overwrite ONLY if this layer is higher priority?
-			// But this helper is called for each layer.
-			// Problem: How to handle "Union" within layer (Role A vs Role B) vs "Override" between layers (User vs Role).
-			// This helper assumes it is called in order of priority.
-			// But for Roles, we need Union.
-			// So Roles should be merged FIRST into a temporary map, then that map merged here?
-			// Let's simplify:
-			// If we process layers from Lowest (Org) to Highest (User).
-			// Then later overwrites earlier.
-			existing.Actions[action] = perm
-		}
+		// Logic: If existing is set, we overwrite ONLY if this layer is higher priority?
+		// But this helper is called for each layer.
+		// Problem: How to handle "Union" within layer (Role A vs Role B) vs "Override" between layers (User vs Role).
+		// This helper assumes it is called in order of priority.
+		// But for Roles, we need Union.
+		// So Roles should be merged FIRST into a temporary map, then that map merged here?
+		// Let's simplify:
+		// If we process layers from Lowest (Org) to Highest (User).
+		// Then later overwrites earlier.
+		maps.Copy(existing.Actions, actions)
 
 		// Merge Field Rules
-		for field, rule := range fieldRules {
-			existing.FieldRules[field] = rule
-		}
+		maps.Copy(existing.FieldRules, fieldRules)
 	}
 
 	// Helper helper for union merging (within same level)
@@ -296,16 +301,38 @@ func (s *PermissionServiceImpl) GetUserEffectivePermissions(ctx context.Context,
 	}
 
 	// Layer 3: Roles (Union of all roles)
+	// Get current app from context to filter roles
+	currentApp := ""
+	if app, ok := ctx.Value(common_models.AppIDKey).(string); ok && app != "" {
+		currentApp = app
+	}
+
 	rolePermsMap := make(map[string]*Permission)
 	for _, appRole := range user.AppRoles {
+		// Filter by current app if app context is available
+		if currentApp != "" && string(appRole.AppID) != currentApp {
+			continue
+		}
+
 		perms, err := s.PermissionRepo.FindByRoleID(ctx, appRole.RoleID.Hex())
 		if err != nil {
 			continue
 		}
+
 		for _, p := range perms {
 			resID := p.ResourceID
 			if _, ok := rolePermsMap[resID]; !ok {
-				rolePermsMap[resID] = &Permission{}
+				rolePermsMap[resID] = &Permission{
+					ResourceID: resID,
+					App:        p.App,
+					RoleID:     p.RoleID,
+					RoleName:   p.RoleName,
+					TenantID:   p.TenantID,
+					CreatedAt:  p.CreatedAt,
+					UpdatedAt:  p.UpdatedAt,
+					Actions:    make(map[string]common_models.ActionPermission),
+					FieldRules: make(map[string]string),
+				}
 			}
 			mergeUnion(rolePermsMap[resID], resID, p.Actions, p.FieldRules)
 		}
@@ -317,10 +344,15 @@ func (s *PermissionServiceImpl) GetUserEffectivePermissions(ctx context.Context,
 	}
 
 	// Layer 2: Groups (Union of all groups)
-	// Groups are stored in User.Groups as ObjectIDs
+	// Groups are stored in User.AppGroups with app-specific memberships
 	groupPermsMap := make(map[string]*Permission)
-	for _, groupID := range user.Groups {
-		g, err := s.GroupRepo.FindByID(ctx, groupID)
+	for _, appGroup := range user.AppGroups {
+		// Filter by current app if app context is available
+		if currentApp != "" && string(appGroup.AppID) != currentApp {
+			continue
+		}
+
+		g, err := s.GroupRepo.FindByID(ctx, appGroup.GroupID)
 		if err != nil {
 			continue
 		}
@@ -335,7 +367,17 @@ func (s *PermissionServiceImpl) GetUserEffectivePermissions(ctx context.Context,
 			}
 
 			if _, ok := groupPermsMap[resID]; !ok {
-				groupPermsMap[resID] = &Permission{}
+				groupPermsMap[resID] = &Permission{
+					ResourceID: resID,
+					App:        g.App,
+					// GroupID:    g.ID,
+					// GroupName:  g.Name,
+					TenantID:   g.TenantID,
+					CreatedAt:  g.CreatedAt,
+					UpdatedAt:  g.UpdatedAt,
+					Actions:    make(map[string]common_models.ActionPermission),
+					FieldRules: make(map[string]string),
+				}
 			}
 			mergeUnion(groupPermsMap[resID], resID, actions, rules)
 		}
@@ -417,8 +459,18 @@ func (s *PermissionServiceImpl) InspectPermissions(ctx context.Context, userID p
 	}
 
 	// Layer 2: Groups
-	for _, groupID := range user.Groups {
-		g, err := s.GroupRepo.FindByID(ctx, groupID)
+	currentApp := ""
+	if app, ok := ctx.Value(common_models.AppIDKey).(string); ok && app != "" {
+		currentApp = app
+	}
+
+	for _, appGroup := range user.AppGroups {
+		// Filter by current app if app context is available
+		if currentApp != "" && string(appGroup.AppID) != currentApp {
+			continue
+		}
+
+		g, err := s.GroupRepo.FindByID(ctx, appGroup.GroupID)
 		if err == nil && g != nil {
 			if actions, ok := g.Permissions[targetResourceID]; ok {
 				for k, v := range actions {

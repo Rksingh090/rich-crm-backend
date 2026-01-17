@@ -72,6 +72,43 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/activities/timeline": {
+            "get": {
+                "description": "Retrieve chronological timeline of activities (calls, meetings, tasks) for a record",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "activity"
+                ],
+                "summary": "Get activity timeline",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Module Name (e.g. contacts)",
+                        "name": "module",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Record ID",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {}
+                        }
+                    }
+                }
+            }
+        },
         "/api/admin": {
             "get": {
                 "description": "Simple welcome message for admin",
@@ -803,7 +840,7 @@ const docTemplate = `{
         },
         "/api/audit/logs": {
             "get": {
-                "description": "Retrieve a list of audit logs with optional filtering",
+                "description": "Retrieve a list of audit logs with optional filtering. Requires 'crm.settings_audit_logs' permission OR 'read' permission for the specific module being filtered.",
                 "consumes": [
                     "application/json"
                 ],
@@ -853,6 +890,46 @@ const docTemplate = `{
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/auth/control-plane-login": {
+            "post": {
+                "description": "Login for control plane admins",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Control Plane Login",
+                "parameters": [
+                    {
+                        "description": "Login Input",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/auth.LoginRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/auth.AuthResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "string"
                         }
                     }
                 }
@@ -3805,7 +3882,7 @@ const docTemplate = `{
         },
         "/api/login": {
             "post": {
-                "description": "Login with username and password",
+                "description": "Login with email and password",
                 "consumes": [
                     "application/json"
                 ],
@@ -3844,236 +3921,6 @@ const docTemplate = `{
                         "description": "Invalid credentials",
                         "schema": {
                             "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/modules": {
-            "get": {
-                "description": "List all available modules, optionally filtered by product",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "modules"
-                ],
-                "summary": "List all modules",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Filter by product",
-                        "name": "product",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "List of modules",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/module.Module"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Failed to fetch modules",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            },
-            "post": {
-                "description": "Create a new module definition",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "modules"
-                ],
-                "summary": "Create a new module",
-                "parameters": [
-                    {
-                        "description": "Module Definition",
-                        "name": "module",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/module.Module"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Module created successfully",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid request body or validation error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/api/modules/{name}": {
-            "get": {
-                "description": "Get a module definition by its name",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "modules"
-                ],
-                "summary": "Get a module by name",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Module Name",
-                        "name": "name",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Module details",
-                        "schema": {
-                            "$ref": "#/definitions/module.Module"
-                        }
-                    },
-                    "404": {
-                        "description": "Module not found",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            },
-            "put": {
-                "description": "Update an existing module definition",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "modules"
-                ],
-                "summary": "Update a module",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Module Name",
-                        "name": "name",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Module Definition",
-                        "name": "module",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/module.Module"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Module updated successfully",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid request body",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "description": "Delete a module definition",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "modules"
-                ],
-                "summary": "Delete a module",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Module Name",
-                        "name": "name",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Module deleted successfully",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
                         }
                     }
                 }
@@ -4600,6 +4447,56 @@ const docTemplate = `{
                         "description": "Failed to delete permission",
                         "schema": {
                             "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/records/query": {
+            "post": {
+                "description": "Query records based on resource, action, and filters",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "records"
+                ],
+                "summary": "Query records with strict permission checks",
+                "parameters": [
+                    {
+                        "description": "Query Request",
+                        "name": "query",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
@@ -5276,95 +5173,6 @@ const docTemplate = `{
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/api/resources": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Get all resources for the current tenant (admin only)",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Resources"
-                ],
-                "summary": "List all resources",
-                "responses": {
-                    "200": {
-                        "description": "List of all resources",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/resource.Resource"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/api/resources/sidebar": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Get resources filtered for sidebar display, optionally filtered by product (crm, erp, analytics)",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Resources"
-                ],
-                "summary": "Get sidebar resources",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "default": "crm",
-                        "description": "Product filter (e.g., crm, erp, analytics)",
-                        "name": "product",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "List of sidebar resources grouped by category",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/resource.Resource"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
                         }
                     }
                 }
@@ -6890,6 +6698,382 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/resources": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get all resources for the current tenant, filtered by app via X-Rich-App header",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Resources"
+                ],
+                "summary": "List all resources",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "App filter (e.g., crm, erp, analytics)",
+                        "name": "X-Rich-App",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of all resources",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/internal_features_resource.Resource"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Creates a new tenant-specific resource (typically called by Module Builder)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "resources"
+                ],
+                "summary": "Register a new resource",
+                "parameters": [
+                    {
+                        "description": "Resource to register",
+                        "name": "resource",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_core_resource.Resource"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/internal_core_resource.Resource"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/resources/discover": {
+            "get": {
+                "description": "Retrieves all resources of a specific type for the authenticated tenant",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "resources"
+                ],
+                "summary": "Discover resources by type",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "App filter (crm, erp, analytics)",
+                        "name": "app",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Resource type (module, page, setting, etc.)",
+                        "name": "type",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/internal_core_resource.Resource"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/resources/sidebar": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get resources filtered for sidebar display, filtered by app from X-Rich-App header",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Resources"
+                ],
+                "summary": "Get sidebar resources",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Location filter (e.g., main, settings)",
+                        "name": "location",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "App filter (e.g., crm, erp, analytics)",
+                        "name": "X-Rich-App",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of sidebar resources grouped by category",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/internal_features_resource.Resource"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/resources/{id}": {
+            "put": {
+                "description": "Updates an existing resource (only non-system resources can be updated)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "resources"
+                ],
+                "summary": "Update a resource",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Resource ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Updated resource",
+                        "name": "resource",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_core_resource.Resource"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_core_resource.Resource"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Soft deletes a tenant-specific resource (system resources cannot be deleted)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "resources"
+                ],
+                "summary": "Delete a resource",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Resource ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/resources/{resource_id}": {
+            "get": {
+                "description": "Retrieves a resource by its resource_id",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "resources"
+                ],
+                "summary": "Get a specific resource by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Resource ID (e.g., crm.leads)",
+                        "name": "resource_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_core_resource.Resource"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/webhooks": {
             "get": {
                 "description": "List all webhooks",
@@ -7076,6 +7260,159 @@ const docTemplate = `{
                 }
             }
         },
+        "/blueprints": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Blueprint"
+                ],
+                "summary": "List blueprints by module",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Module Name",
+                        "name": "module",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search Term",
+                        "name": "search",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/blueprint.Blueprint"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Blueprint"
+                ],
+                "summary": "Create a new blueprint",
+                "parameters": [
+                    {
+                        "description": "Blueprint",
+                        "name": "blueprint",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/blueprint.Blueprint"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/blueprint.Blueprint"
+                        }
+                    }
+                }
+            }
+        },
+        "/blueprints/{id}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Blueprint"
+                ],
+                "summary": "Get a blueprint by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Blueprint ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/blueprint.Blueprint"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Blueprint"
+                ],
+                "summary": "Update an existing blueprint",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Blueprint ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Blueprint",
+                        "name": "blueprint",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/blueprint.Blueprint"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/blueprint.Blueprint"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Blueprint"
+                ],
+                "summary": "Delete a blueprint",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Blueprint ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    }
+                }
+            }
+        },
         "/debug/user": {
             "get": {
                 "description": "Get the current user's info from JWT",
@@ -7117,9 +7454,381 @@ const docTemplate = `{
                 }
             }
         },
+        "/me/resources/{resource}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get resource schema and allowed filters based on permissions",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Resources"
+                ],
+                "summary": "Get resource metadata",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Resource ID (e.g., crm.leads)",
+                        "name": "resource",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Action to check (default: read)",
+                        "name": "action",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/modules": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieves all modules for the current user and application",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Modules"
+                ],
+                "summary": "List all modules",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Application identifier (defaults to 'crm')",
+                        "name": "X-Rich-App",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of modules",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.Entity"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to fetch modules",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Creates a new module/entity for the specified application",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Modules"
+                ],
+                "summary": "Create a new module",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Application identifier (e.g., crm, erp)",
+                        "name": "X-Rich-App",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "Module data",
+                        "name": "module",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.Entity"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Module created successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body or missing product header",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/modules/{module}/records/{id}/transition": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Blueprint"
+                ],
+                "summary": "Execute a transition on a record",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Module Name",
+                        "name": "module",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Record ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Transition Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/blueprint.ExecuteTransitionRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/modules/{name}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieves a specific module by its name",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Modules"
+                ],
+                "summary": "Get a module by name",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Module name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Module details",
+                        "schema": {
+                            "$ref": "#/definitions/models.Entity"
+                        }
+                    },
+                    "404": {
+                        "description": "Module not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Updates an existing module by name",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Modules"
+                ],
+                "summary": "Update a module",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Module name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Updated module data",
+                        "name": "module",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.Entity"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Module updated successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to update module",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Deletes a module by name",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Modules"
+                ],
+                "summary": "Delete a module",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Module name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Module deleted successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to delete module",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/register": {
             "post": {
-                "description": "Register a new user with username, password, and email",
+                "description": "Register a new user with password and email",
                 "consumes": [
                     "application/json"
                 ],
@@ -7468,6 +8177,104 @@ const docTemplate = `{
                     },
                     "500": {
                         "description": "Failed to create user",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/users/accept-invite": {
+            "post": {
+                "description": "Complete user signup via invite token",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Accept user invite",
+                "parameters": [
+                    {
+                        "description": "Accept Invite Input",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/user.AcceptInviteRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to accept invite",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/users/invite": {
+            "post": {
+                "description": "Invite a new user to the tenant",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Invite a new user",
+                "parameters": [
+                    {
+                        "description": "Invite User Input",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/user.InviteUserRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to invite user",
                         "schema": {
                             "type": "string"
                         }
@@ -7936,10 +8743,10 @@ const docTemplate = `{
         "auth.LoginRequest": {
             "type": "object",
             "properties": {
-                "password": {
+                "email": {
                     "type": "string"
                 },
-                "username": {
+                "password": {
                     "type": "string"
                 }
             }
@@ -7947,6 +8754,12 @@ const docTemplate = `{
         "auth.RegisterRequest": {
             "type": "object",
             "properties": {
+                "apps": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "email": {
                     "type": "string"
                 },
@@ -7956,7 +8769,7 @@ const docTemplate = `{
                 "password": {
                     "type": "string"
                 },
-                "username": {
+                "plan": {
                     "type": "string"
                 }
             }
@@ -8070,6 +8883,183 @@ const docTemplate = `{
                 "OperatorLessThan"
             ]
         },
+        "blueprint.ActionType": {
+            "type": "string",
+            "enum": [
+                "email",
+                "field_update",
+                "webhook",
+                "script"
+            ],
+            "x-enum-varnames": [
+                "ActionTypeEmail",
+                "ActionTypeFieldUpdate",
+                "ActionTypeWebhook",
+                "ActionTypeScript"
+            ]
+        },
+        "blueprint.Blueprint": {
+            "type": "object",
+            "properties": {
+                "active": {
+                    "type": "boolean"
+                },
+                "app": {
+                    "description": "crm, erp, etc.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.App"
+                        }
+                    ]
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "layout": {
+                    "description": "Node positions: key=stateName, val={x,y}",
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "module": {
+                    "description": "Target Module Name",
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "target_field": {
+                    "description": "The select field this blueprint controls",
+                    "type": "string"
+                },
+                "tenant_id": {
+                    "type": "string"
+                },
+                "transitions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/blueprint.Transition"
+                    }
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "blueprint.BlueprintAction": {
+            "type": "object",
+            "properties": {
+                "config": {
+                    "description": "Config depends on Type",
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "id": {
+                    "type": "string"
+                },
+                "order": {
+                    "type": "integer"
+                },
+                "type": {
+                    "$ref": "#/definitions/blueprint.ActionType"
+                }
+            }
+        },
+        "blueprint.ExecuteTransitionRequest": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "object",
+                    "additionalProperties": {}
+                },
+                "transition_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "blueprint.Transition": {
+            "type": "object",
+            "properties": {
+                "after": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/blueprint.BlueprintAction"
+                    }
+                },
+                "before": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/blueprint.BlueprintAction"
+                    }
+                },
+                "criteria": {
+                    "description": "Conditions to trigger or allow transition",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Filter"
+                    }
+                },
+                "during": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/blueprint.BlueprintAction"
+                    }
+                },
+                "from_state": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_common": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "roles": {
+                    "description": "Allowed roles (if manual)",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "source_handle": {
+                    "description": "ID of the source handle (e.g. \"source-right\")",
+                    "type": "string"
+                },
+                "target_handle": {
+                    "description": "ID of the target handle (e.g. \"target-left\")",
+                    "type": "string"
+                },
+                "to_state": {
+                    "type": "string"
+                },
+                "trigger_type": {
+                    "$ref": "#/definitions/blueprint.TransitionTriggerType"
+                }
+            }
+        },
+        "blueprint.TransitionTriggerType": {
+            "type": "string",
+            "enum": [
+                "manual",
+                "condition"
+            ],
+            "x-enum-comments": {
+                "TriggerTypeCondition": "Automatic based on criteria"
+            },
+            "x-enum-descriptions": [
+                "",
+                "Automatic based on criteria"
+            ],
+            "x-enum-varnames": [
+                "TriggerTypeManual",
+                "TriggerTypeCondition"
+            ]
+        },
         "bulk_operation.BulkError": {
             "type": "object",
             "properties": {
@@ -8100,8 +9090,10 @@ const docTemplate = `{
                     }
                 },
                 "filters": {
-                    "type": "object",
-                    "additionalProperties": true
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Filter"
+                    }
                 },
                 "id": {
                     "type": "string"
@@ -8117,6 +9109,9 @@ const docTemplate = `{
                 },
                 "success_count": {
                     "type": "integer"
+                },
+                "tenant_id": {
+                    "type": "string"
                 },
                 "total_records": {
                     "type": "integer"
@@ -8594,6 +9589,10 @@ const docTemplate = `{
                 "description": {
                     "type": "string"
                 },
+                "design": {
+                    "type": "array",
+                    "items": {}
+                },
                 "id": {
                     "type": "string"
                 },
@@ -8607,6 +9606,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "subject": {
+                    "type": "string"
+                },
+                "tenant_id": {
                     "type": "string"
                 },
                 "updated_at": {
@@ -8763,11 +9765,24 @@ const docTemplate = `{
         "group.Group": {
             "type": "object",
             "properties": {
+                "app": {
+                    "$ref": "#/definitions/models.App"
+                },
                 "created_at": {
                     "type": "string"
                 },
                 "description": {
                     "type": "string"
+                },
+                "field_permissions": {
+                    "description": "Module -\u003e Field -\u003e \"read_write\" | \"read_only\" | \"none\"",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "string"
+                        }
+                    }
                 },
                 "id": {
                     "type": "string"
@@ -8794,6 +9809,9 @@ const docTemplate = `{
                             "$ref": "#/definitions/models.ActionPermission"
                         }
                     }
+                },
+                "tenant_id": {
+                    "type": "string"
                 },
                 "updated_at": {
                     "type": "string"
@@ -8886,6 +9904,206 @@ const docTemplate = `{
                 "ImportStatusFailed"
             ]
         },
+        "internal_core_resource.Resource": {
+            "type": "object",
+            "properties": {
+                "app": {
+                    "$ref": "#/definitions/models.App"
+                },
+                "available_actions": {
+                    "description": "Available actions for this resource",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "created_at": {
+                    "description": "Lifecycle",
+                    "type": "string"
+                },
+                "deleted_at": {
+                    "type": "string"
+                },
+                "icon": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_configurable": {
+                    "description": "Can permissions be configured",
+                    "type": "boolean"
+                },
+                "is_system": {
+                    "description": "System resources cannot be deleted",
+                    "type": "boolean"
+                },
+                "key": {
+                    "description": "Internal key (e.g., \"leads\")",
+                    "type": "string"
+                },
+                "label": {
+                    "description": "Display name (e.g., \"Leads\")",
+                    "type": "string"
+                },
+                "resource_id": {
+                    "description": "e.g., \"crm.leads\", \"erp.inventory\"",
+                    "type": "string"
+                },
+                "route": {
+                    "type": "string"
+                },
+                "scope": {
+                    "description": "Scope determines visibility",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/resource.ResourceScope"
+                        }
+                    ]
+                },
+                "tenant_id": {
+                    "description": "null for global/app-level",
+                    "type": "string"
+                },
+                "type": {
+                    "$ref": "#/definitions/resource.ResourceType"
+                },
+                "ui": {
+                    "description": "UI metadata for rendering in frontend",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/internal_core_resource.ResourceUI"
+                        }
+                    ]
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_core_resource.ResourceUI": {
+            "type": "object",
+            "properties": {
+                "group": {
+                    "type": "string"
+                },
+                "group_order": {
+                    "type": "integer"
+                },
+                "location": {
+                    "description": "\"main\", \"settings\"",
+                    "type": "string"
+                },
+                "order": {
+                    "type": "integer"
+                },
+                "sidebar": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "internal_features_resource.Resource": {
+            "type": "object",
+            "properties": {
+                "actions": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "app": {
+                    "$ref": "#/definitions/models.App"
+                },
+                "base_resource_id": {
+                    "description": "For overrides, points to global resource",
+                    "type": "string"
+                },
+                "can_override": {
+                    "description": "Can this resource be overridden?",
+                    "type": "boolean"
+                },
+                "configurable": {
+                    "type": "boolean"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "deleted_at": {
+                    "type": "string"
+                },
+                "deleted_by": {
+                    "type": "string"
+                },
+                "fields": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.ModuleField"
+                    }
+                },
+                "icon": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_override": {
+                    "description": "True if this is a tenant override",
+                    "type": "boolean"
+                },
+                "is_system": {
+                    "type": "boolean"
+                },
+                "key": {
+                    "type": "string"
+                },
+                "label": {
+                    "type": "string"
+                },
+                "resource_id": {
+                    "type": "string"
+                },
+                "route": {
+                    "type": "string"
+                },
+                "scope": {
+                    "description": "\"global\" or \"tenant\"",
+                    "type": "string"
+                },
+                "tenant_id": {
+                    "description": "Empty for global resources",
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "ui": {
+                    "$ref": "#/definitions/internal_features_resource.ResourceUI"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_features_resource.ResourceUI": {
+            "type": "object",
+            "properties": {
+                "group": {
+                    "type": "string"
+                },
+                "group_order": {
+                    "type": "integer"
+                },
+                "location": {
+                    "type": "string"
+                },
+                "order": {
+                    "type": "integer"
+                },
+                "sidebar": {
+                    "type": "boolean"
+                }
+            }
+        },
         "models.ActionPermission": {
             "type": "object",
             "properties": {
@@ -8894,6 +10112,107 @@ const docTemplate = `{
                 },
                 "conditions": {
                     "$ref": "#/definitions/models.PermissionGroup"
+                },
+                "ui": {
+                    "$ref": "#/definitions/models.ActionUI"
+                }
+            }
+        },
+        "models.ActionUI": {
+            "type": "object",
+            "properties": {
+                "filters": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "models.App": {
+            "type": "string",
+            "enum": [
+                "crm",
+                "erp",
+                "analytics"
+            ],
+            "x-enum-varnames": [
+                "AppCRM",
+                "AppERP",
+                "AppAnalytics"
+            ]
+        },
+        "models.Entity": {
+            "type": "object",
+            "properties": {
+                "app": {
+                    "$ref": "#/definitions/models.App"
+                },
+                "base_entity_id": {
+                    "description": "If Override, ID of the global entity",
+                    "type": "string"
+                },
+                "can_override": {
+                    "description": "Can this entity be overridden? (for global entities)",
+                    "type": "boolean"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "deleted_at": {
+                    "type": "string"
+                },
+                "deleted_by": {
+                    "type": "string"
+                },
+                "fields": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.ModuleField"
+                    }
+                },
+                "id": {
+                    "type": "string"
+                },
+                "indexes": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "is_override": {
+                    "description": "Is this a tenant override of a global entity?",
+                    "type": "boolean"
+                },
+                "is_system": {
+                    "type": "boolean"
+                },
+                "label": {
+                    "type": "string"
+                },
+                "name": {
+                    "description": "Slug/Internal Name",
+                    "type": "string"
+                },
+                "readonly": {
+                    "type": "boolean"
+                },
+                "scope": {
+                    "description": "\"global\" or \"tenant\"",
+                    "type": "string"
+                },
+                "sections": {
+                    "description": "New: Sections",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Section"
+                    }
+                },
+                "tenant_id": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
                 }
             }
         },
@@ -8913,7 +10232,33 @@ const docTemplate = `{
                 "select",
                 "multiselect",
                 "currency",
-                "image"
+                "image",
+                "user",
+                "radio",
+                "subform"
+            ],
+            "x-enum-comments": {
+                "FieldTypeRadio": "New: Radio buttons",
+                "FieldTypeSubform": "New: Nested Table/Array"
+            },
+            "x-enum-descriptions": [
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "New: Radio buttons",
+                "New: Nested Table/Array"
             ],
             "x-enum-varnames": [
                 "FieldTypeText",
@@ -8929,8 +10274,24 @@ const docTemplate = `{
                 "FieldTypeSelect",
                 "FieldTypeMultiSelect",
                 "FieldTypeCurrency",
-                "FieldTypeImage"
+                "FieldTypeImage",
+                "FieldTypeUser",
+                "FieldTypeRadio",
+                "FieldTypeSubform"
             ]
+        },
+        "models.Filter": {
+            "type": "object",
+            "properties": {
+                "field": {
+                    "type": "string"
+                },
+                "operator": {
+                    "description": "eq, ne, gt, lt, gte, lte, in, nin, contains, between, starts_with, ends_with",
+                    "type": "string"
+                },
+                "value": {}
+            }
         },
         "models.LookupDef": {
             "type": "object",
@@ -8952,6 +10313,22 @@ const docTemplate = `{
         "models.ModuleField": {
             "type": "object",
             "properties": {
+                "auto_increment": {
+                    "description": "New: Auto-increment for numbers",
+                    "type": "boolean"
+                },
+                "default_value": {
+                    "type": "string"
+                },
+                "filterable": {
+                    "type": "boolean"
+                },
+                "help_text": {
+                    "type": "string"
+                },
+                "hidden": {
+                    "type": "boolean"
+                },
                 "is_system": {
                     "type": "boolean"
                 },
@@ -8970,11 +10347,34 @@ const docTemplate = `{
                         "$ref": "#/definitions/models.SelectOptions"
                     }
                 },
+                "placeholder": {
+                    "type": "string"
+                },
+                "readonly": {
+                    "type": "boolean"
+                },
                 "required": {
                     "type": "boolean"
                 },
+                "section_id": {
+                    "description": "New: Section ID",
+                    "type": "string"
+                },
+                "sortable": {
+                    "type": "boolean"
+                },
+                "sub_fields": {
+                    "description": "New: Schema for subform rows - Removed omitempty to ensure persistence",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.ModuleField"
+                    }
+                },
                 "type": {
                     "$ref": "#/definitions/models.FieldType"
+                },
+                "unique": {
+                    "type": "boolean"
                 }
             }
         },
@@ -9015,21 +10415,6 @@ const docTemplate = `{
                 "value": {}
             }
         },
-        "models.Product": {
-            "type": "string",
-            "enum": [
-                "crm",
-                "erp",
-                "analytics",
-                "reporting"
-            ],
-            "x-enum-varnames": [
-                "ProductCRM",
-                "ProductERP",
-                "ProductAnalytics",
-                "ProductReporting"
-            ]
-        },
         "models.RuleType": {
             "type": "string",
             "enum": [
@@ -9040,6 +10425,20 @@ const docTemplate = `{
                 "RuleTypeStatic",
                 "RuleTypeVariable"
             ]
+        },
+        "models.Section": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "order": {
+                    "type": "integer"
+                }
+            }
         },
         "models.SelectOptions": {
             "type": "object",
@@ -9055,30 +10454,59 @@ const docTemplate = `{
         "models.User": {
             "type": "object",
             "properties": {
+                "app_groups": {
+                    "description": "App-specific group memberships",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.UserAppGroup"
+                    }
+                },
+                "app_roles": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.UserAppRole"
+                    }
+                },
                 "created_at": {
                     "type": "string"
                 },
                 "email": {
                     "type": "string"
                 },
+                "field_permissions": {
+                    "description": "Direct user field overrides",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "string"
+                        }
+                    }
+                },
                 "first_name": {
                     "type": "string"
                 },
-                "groups": {
-                    "description": "User groups for ABAC (e.g., [\"sales_team_west\", \"managers\"])",
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
                 "id": {
                     "type": "string"
+                },
+                "is_platform_admin": {
+                    "type": "boolean"
                 },
                 "last_login": {
                     "type": "string"
                 },
                 "last_name": {
                     "type": "string"
+                },
+                "permissions": {
+                    "description": "Direct user overrides",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "$ref": "#/definitions/models.ActionPermission"
+                        }
+                    }
                 },
                 "phone": {
                     "type": "string"
@@ -9087,69 +10515,36 @@ const docTemplate = `{
                     "description": "Manager ID",
                     "type": "string"
                 },
-                "roles": {
-                    "description": "References to Role IDs",
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
                 "status": {
-                    "description": "active, inactive, suspended",
+                    "description": "active, inactive, suspended, invited",
                     "type": "string"
                 },
                 "tenant_id": {
                     "type": "string"
                 },
                 "updated_at": {
-                    "type": "string"
-                },
-                "username": {
                     "type": "string"
                 }
             }
         },
-        "module.Module": {
+        "models.UserAppGroup": {
             "type": "object",
             "properties": {
-                "created_at": {
+                "app_id": {
+                    "$ref": "#/definitions/models.App"
+                },
+                "group_id": {
                     "type": "string"
+                }
+            }
+        },
+        "models.UserAppRole": {
+            "type": "object",
+            "properties": {
+                "app_id": {
+                    "$ref": "#/definitions/models.App"
                 },
-                "fields": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/models.ModuleField"
-                    }
-                },
-                "id": {
-                    "type": "string"
-                },
-                "indexes": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "is_system": {
-                    "type": "boolean"
-                },
-                "label": {
-                    "type": "string"
-                },
-                "name": {
-                    "description": "Slug/Internal Name",
-                    "type": "string"
-                },
-                "product": {
-                    "$ref": "#/definitions/models.Product"
-                },
-                "slug": {
-                    "type": "string"
-                },
-                "tenant_id": {
-                    "type": "string"
-                },
-                "updated_at": {
+                "role_id": {
                     "type": "string"
                 }
             }
@@ -9175,6 +10570,7 @@ const docTemplate = `{
                     }
                 },
                 "resource_id": {
+                    "description": "Now references Resource Registry",
                     "type": "string"
                 },
                 "role_id": {
@@ -9192,6 +10588,9 @@ const docTemplate = `{
                         "$ref": "#/definitions/models.ActionPermission"
                     }
                 },
+                "app": {
+                    "$ref": "#/definitions/models.App"
+                },
                 "created_at": {
                     "type": "string"
                 },
@@ -9205,29 +10604,21 @@ const docTemplate = `{
                 "id": {
                     "type": "string"
                 },
-                "resource": {
-                    "$ref": "#/definitions/permission.ResourceRef"
+                "resource_id": {
+                    "description": "Reference to Resource Registry (e.g., \"crm.leads\")",
+                    "type": "string"
                 },
                 "role_id": {
+                    "type": "string"
+                },
+                "role_name": {
+                    "description": "For templates",
                     "type": "string"
                 },
                 "tenant_id": {
                     "type": "string"
                 },
                 "updated_at": {
-                    "type": "string"
-                }
-            }
-        },
-        "permission.ResourceRef": {
-            "type": "object",
-            "properties": {
-                "id": {
-                    "description": "Resource identifier (e.g., \"crm.leads\", \"crm.settings\")",
-                    "type": "string"
-                },
-                "type": {
-                    "description": "\"module\", \"page\", \"setting\", \"report\", \"cron\", etc.",
                     "type": "string"
                 }
             }
@@ -9386,79 +10777,56 @@ const docTemplate = `{
                 "ReportTypeCrossModule"
             ]
         },
-        "resource.Resource": {
-            "type": "object",
-            "properties": {
-                "actions": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "configurable": {
-                    "type": "boolean"
-                },
-                "created_at": {
-                    "type": "string"
-                },
-                "icon": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "key": {
-                    "type": "string"
-                },
-                "label": {
-                    "type": "string"
-                },
-                "product": {
-                    "type": "string"
-                },
-                "resource_id": {
-                    "type": "string"
-                },
-                "route": {
-                    "type": "string"
-                },
-                "tenant_id": {
-                    "type": "string"
-                },
-                "type": {
-                    "type": "string"
-                },
-                "ui": {
-                    "$ref": "#/definitions/resource.ResourceUI"
-                },
-                "updated_at": {
-                    "type": "string"
-                }
-            }
+        "resource.ResourceScope": {
+            "type": "string",
+            "enum": [
+                "global",
+                "app",
+                "tenant"
+            ],
+            "x-enum-comments": {
+                "ResourceScopeApp": "Available to all tenants using this app",
+                "ResourceScopeGlobal": "Available to all tenants",
+                "ResourceScopeTenant": "Tenant-specific custom resource"
+            },
+            "x-enum-descriptions": [
+                "Available to all tenants",
+                "Available to all tenants using this app",
+                "Tenant-specific custom resource"
+            ],
+            "x-enum-varnames": [
+                "ResourceScopeGlobal",
+                "ResourceScopeApp",
+                "ResourceScopeTenant"
+            ]
         },
-        "resource.ResourceUI": {
-            "type": "object",
-            "properties": {
-                "group": {
-                    "type": "string"
-                },
-                "group_order": {
-                    "type": "integer"
-                },
-                "location": {
-                    "type": "string"
-                },
-                "order": {
-                    "type": "integer"
-                },
-                "sidebar": {
-                    "type": "boolean"
-                }
-            }
+        "resource.ResourceType": {
+            "type": "string",
+            "enum": [
+                "module",
+                "page",
+                "setting",
+                "system",
+                "report",
+                "cron",
+                "webhook"
+            ],
+            "x-enum-varnames": [
+                "ResourceTypeModule",
+                "ResourceTypePage",
+                "ResourceTypeSetting",
+                "ResourceTypeSystem",
+                "ResourceTypeReport",
+                "ResourceTypeCron",
+                "ResourceTypeWebhook"
+            ]
         },
         "role.Role": {
             "type": "object",
             "properties": {
+                "app": {
+                    "$ref": "#/definitions/models.App"
+                },
                 "created_at": {
                     "type": "string"
                 },
@@ -9484,16 +10852,6 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string"
-                },
-                "permissions": {
-                    "description": "Resource -\u003e Action -\u003e Permission",
-                    "type": "object",
-                    "additionalProperties": {
-                        "type": "object",
-                        "additionalProperties": {
-                            "$ref": "#/definitions/models.ActionPermission"
-                        }
-                    }
                 },
                 "tenant_id": {
                     "type": "string"
@@ -9563,6 +10921,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "name": {
+                    "type": "string"
+                },
+                "tenant_id": {
                     "type": "string"
                 },
                 "updated_at": {
@@ -10049,9 +11410,32 @@ const docTemplate = `{
                 "TicketStatusClosed"
             ]
         },
+        "user.AcceptInviteRequest": {
+            "type": "object",
+            "properties": {
+                "first_name": {
+                    "type": "string"
+                },
+                "last_name": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "token": {
+                    "type": "string"
+                }
+            }
+        },
         "user.CreateUserRequest": {
             "type": "object",
             "properties": {
+                "app_roles": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.UserAppRole"
+                    }
+                },
                 "email": {
                     "type": "string"
                 },
@@ -10070,23 +11454,40 @@ const docTemplate = `{
                 "reports_to": {
                     "type": "string"
                 },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "user.InviteUserRequest": {
+            "type": "object",
+            "properties": {
+                "app_roles": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.UserAppRole"
+                    }
+                },
+                "email": {
+                    "type": "string"
+                },
                 "role_ids": {
                     "type": "array",
                     "items": {
                         "type": "string"
                     }
-                },
-                "status": {
-                    "type": "string"
-                },
-                "username": {
-                    "type": "string"
                 }
             }
         },
         "user.UpdateUserRequest": {
             "type": "object",
             "properties": {
+                "app_roles": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.UserAppRole"
+                    }
+                },
                 "email": {
                     "type": "string"
                 },
@@ -10102,16 +11503,7 @@ const docTemplate = `{
                 "reports_to": {
                     "type": "string"
                 },
-                "role_ids": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
                 "status": {
-                    "type": "string"
-                },
-                "username": {
                     "type": "string"
                 }
             }
@@ -10119,10 +11511,10 @@ const docTemplate = `{
         "user.UpdateUserRolesRequest": {
             "type": "object",
             "properties": {
-                "role_ids": {
+                "app_roles": {
                     "type": "array",
                     "items": {
-                        "type": "string"
+                        "$ref": "#/definitions/models.UserAppRole"
                     }
                 }
             }

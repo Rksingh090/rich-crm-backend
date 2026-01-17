@@ -20,14 +20,16 @@ func NewModuleController(service ModuleService) *ModuleController {
 
 // CreateModule godoc
 // @Summary Create a new module
-// @Description Create a new module definition
-// @Tags modules
+// @Description Creates a new module/entity for the specified application
+// @Tags Modules
 // @Accept json
 // @Produce json
-// @Param module body Module true "Module Definition"
+// @Param X-Rich-App header string true "Application identifier (e.g., crm, erp)"
+// @Param module body models.Entity true "Module data"
 // @Success 201 {object} map[string]string "Module created successfully"
-// @Failure 400 {object} map[string]string "Invalid request body or validation error"
-// @Router /api/modules [post]
+// @Failure 400 {object} map[string]string "Invalid request body or missing product header"
+// @Router /modules [post]
+// @Security BearerAuth
 func (ctrl *ModuleController) CreateModule(c *fiber.Ctx) error {
 	var m models.Entity
 	if err := c.BodyParser(&m); err != nil {
@@ -64,14 +66,15 @@ func (ctrl *ModuleController) CreateModule(c *fiber.Ctx) error {
 
 // ListModules godoc
 // @Summary List all modules
-// @Description List all available modules, filtered by product via X-Rich-App header
-// @Tags modules
+// @Description Retrieves all modules for the current user and application
+// @Tags Modules
 // @Accept json
 // @Produce json
-// @Param X-Rich-App header string true "Product filter (e.g., crm, erp, analytics)"
-// @Success 200 {array} Module "List of modules"
+// @Param X-Rich-App header string false "Application identifier (defaults to 'crm')"
+// @Success 200 {array} models.Entity "List of modules"
 // @Failure 500 {object} map[string]string "Failed to fetch modules"
-// @Router /api/modules [get]
+// @Router /modules [get]
+// @Security BearerAuth
 func (ctrl *ModuleController) ListModules(c *fiber.Ctx) error {
 	var userID primitive.ObjectID
 	if idStr, ok := c.Locals("user_id").(string); ok && idStr != "" {
@@ -97,14 +100,15 @@ func (ctrl *ModuleController) ListModules(c *fiber.Ctx) error {
 
 // GetModule godoc
 // @Summary Get a module by name
-// @Description Get a module definition by its name
-// @Tags modules
+// @Description Retrieves a specific module by its name
+// @Tags Modules
 // @Accept json
 // @Produce json
-// @Param name path string true "Module Name"
-// @Success 200 {object} Module "Module details"
+// @Param name path string true "Module name"
+// @Success 200 {object} models.Entity "Module details"
 // @Failure 404 {object} map[string]string "Module not found"
-// @Router /api/modules/{name} [get]
+// @Router /modules/{name} [get]
+// @Security BearerAuth
 func (ctrl *ModuleController) GetModule(c *fiber.Ctx) error {
 	name := c.Params("name")
 
@@ -125,16 +129,17 @@ func (ctrl *ModuleController) GetModule(c *fiber.Ctx) error {
 
 // UpdateModule godoc
 // @Summary Update a module
-// @Description Update an existing module definition
-// @Tags modules
+// @Description Updates an existing module by name
+// @Tags Modules
 // @Accept json
 // @Produce json
-// @Param name path string true "Module Name"
-// @Param module body Module true "Module Definition"
+// @Param name path string true "Module name"
+// @Param module body models.Entity true "Updated module data"
 // @Success 200 {object} map[string]string "Module updated successfully"
 // @Failure 400 {object} map[string]string "Invalid request body"
-// @Failure 500 {object} map[string]string "Internal server error"
-// @Router /api/modules/{name} [put]
+// @Failure 500 {object} map[string]string "Failed to update module"
+// @Router /modules/{name} [put]
+// @Security BearerAuth
 func (ctrl *ModuleController) UpdateModule(c *fiber.Ctx) error {
 	name := c.Params("name")
 
@@ -163,14 +168,15 @@ func (ctrl *ModuleController) UpdateModule(c *fiber.Ctx) error {
 
 // DeleteModule godoc
 // @Summary Delete a module
-// @Description Delete a module definition
-// @Tags modules
+// @Description Deletes a module by name
+// @Tags Modules
 // @Accept json
 // @Produce json
-// @Param name path string true "Module Name"
+// @Param name path string true "Module name"
 // @Success 200 {object} map[string]string "Module deleted successfully"
-// @Failure 500 {object} map[string]string "Internal server error"
-// @Router /api/modules/{name} [delete]
+// @Failure 500 {object} map[string]string "Failed to delete module"
+// @Router /modules/{name} [delete]
+// @Security BearerAuth
 func (ctrl *ModuleController) DeleteModule(c *fiber.Ctx) error {
 	name := c.Params("name")
 

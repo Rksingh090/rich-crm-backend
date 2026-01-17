@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"go-crm/internal/common/models"
 	common_models "go-crm/internal/common/models"
 	"go-crm/internal/core/audit"
 	"go-crm/internal/core/permission"
@@ -55,10 +56,6 @@ func (s *RoleServiceImpl) CreateRole(ctx context.Context, role *Role) (*Role, er
 	role.CreatedAt = time.Now()
 	role.UpdatedAt = time.Now()
 
-	if role.Permissions == nil {
-		role.Permissions = make(map[string]map[string]common_models.ActionPermission)
-	}
-
 	if err := s.RoleRepo.Create(ctx, role); err != nil {
 		return nil, err
 	}
@@ -90,7 +87,7 @@ func (s *RoleServiceImpl) UpdateRole(ctx context.Context, id string, role *Role)
 	}
 
 	_ = s.AuditService.LogChange(ctx, common_models.AuditActionUpdate, "role", id, map[string]common_models.Change{
-		"permissions": {New: role.Permissions},
+		"field_permissions": {New: role.FieldPermissions},
 	})
 
 	return nil
@@ -287,14 +284,14 @@ func (s *RoleServiceImpl) GetAccessFilter(ctx context.Context, userID primitive.
 
 	// Prepared Context Data for Variables
 	tenantID := user.TenantID
-	userGroups := user.Groups
-	if userGroups == nil {
-		userGroups = []primitive.ObjectID{}
+	userAppGroups := user.AppGroups
+	if userAppGroups == nil {
+		userAppGroups = []models.UserAppGroup{}
 	}
 
 	var userGroupStrings []string
-	for _, oid := range userGroups {
-		userGroupStrings = append(userGroupStrings, oid.Hex())
+	for _, appGroup := range userAppGroups {
+		userGroupStrings = append(userGroupStrings, appGroup.GroupID.Hex())
 	}
 
 	contextData := PrepareContextData(userID, tenantID, userGroupStrings)

@@ -3,7 +3,6 @@ package role
 import (
 	"context"
 	"fmt"
-	"slices"
 
 	"go-crm/internal/common/models"
 	"go-crm/internal/database"
@@ -146,7 +145,6 @@ func (r *RoleRepositoryImpl) Update(ctx context.Context, id string, role *Role) 
 		"$set": bson.M{
 			"name":              role.Name,
 			"description":       role.Description,
-			"permissions":       role.Permissions,
 			"field_permissions": role.FieldPermissions,
 			"updated_at":        role.UpdatedAt,
 		},
@@ -188,21 +186,9 @@ func (r *RoleRepositoryImpl) FindPermissionsByRoleIDs(ctx context.Context, roleI
 		return nil, err
 	}
 
-	// Collect all unique permissions from all resources
-	var permissions []string
-	for _, role := range roles {
-		for resourceID, actions := range role.Permissions {
-			for action, perm := range actions {
-				if perm.Allowed {
-					p := resourceID + ":" + action
-					if !slices.Contains(permissions, p) {
-						permissions = append(permissions, p)
-					}
-				}
-			}
-		}
-	}
-	return permissions, nil
+	// Note: Permissions are now managed via the Permission collection, not embedded in roles
+	// This method returns an empty list as roles no longer have embedded permissions
+	return []string{}, nil
 }
 
 func (r *RoleRepositoryImpl) EnsureIndexes(ctx context.Context) error {

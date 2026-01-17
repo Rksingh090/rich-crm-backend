@@ -274,9 +274,9 @@ func (s *AuthServiceImpl) Login(ctx context.Context, email, password string) (st
 
 	// Generate JWT with user groups
 	var userGroupStrings []string
-	if usr.Groups != nil {
-		for _, oid := range usr.Groups {
-			userGroupStrings = append(userGroupStrings, oid.Hex())
+	if usr.AppGroups != nil {
+		for _, appGroup := range usr.AppGroups {
+			userGroupStrings = append(userGroupStrings, appGroup.GroupID.Hex())
 		}
 	}
 
@@ -531,9 +531,6 @@ func (s *AuthServiceImpl) seedTenant(ctx context.Context, tenantID primitive.Obj
 			TenantID:    tenantID,
 			CreatedAt:   time.Now(),
 			UpdatedAt:   time.Now(),
-			Permissions: map[string]map[string]models.ActionPermission{
-				"*": {"*": {Allowed: true}},
-			},
 		}
 		if err := s.RoleRepo.Create(tenantCtx, adminRole); err != nil {
 			return primitive.NilObjectID, err

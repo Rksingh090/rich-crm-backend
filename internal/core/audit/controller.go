@@ -6,6 +6,7 @@ import (
 
 	"go-crm/internal/common/models"
 	"go-crm/internal/middleware"
+	"go-crm/pkg/utils"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
@@ -52,30 +53,38 @@ func (ctrl *AuditController) ListLogs(c *fiber.Ctx) error {
 	// Permission Check
 	// 1. If filtering by module, check if user has access to that module
 	// 2. Otherwise/If failed, check for global audit log permission
+
+	// Get user claims from context
+	claimsInterface := c.Locals(utils.UserClaimsKey)
+	if claimsInterface == nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Authentication required",
+		})
+	}
+
+	claims, ok := claimsInterface.(*utils.UserClaims)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Invalid authentication claims",
+		})
+	}
+
 	hasAccess := false
 	moduleName := c.Query("module")
 
-	if moduleName != "" {
-		rolesInterface := c.Locals("roles")
-		if rolesInterface != nil {
-			if roles, ok := rolesInterface.([]string); ok {
-				hasPermission, err := ctrl.RoleService.CheckModulePermission(c.UserContext(), roles, moduleName, "read")
-				if err == nil && hasPermission {
-					hasAccess = true
-				}
-			}
+	if moduleName != "" && len(claims.Roles) > 0 {
+		// Try with app prefix (e.g., "crm.leads")
+		resourceName := "crm." + moduleName
+		hasPermission, err := ctrl.RoleService.CheckModulePermission(c.UserContext(), claims.Roles, resourceName, "read")
+		if err == nil && hasPermission {
+			hasAccess = true
 		}
 	}
 
-	if !hasAccess {
-		rolesInterface := c.Locals("roles")
-		if rolesInterface != nil {
-			if roles, ok := rolesInterface.([]string); ok {
-				hasPermission, err := ctrl.RoleService.CheckModulePermission(c.UserContext(), roles, "crm.settings_audit_logs", "read")
-				if err == nil && hasPermission {
-					hasAccess = true
-				}
-			}
+	if !hasAccess && len(claims.Roles) > 0 {
+		hasPermission, err := ctrl.RoleService.CheckModulePermission(c.UserContext(), claims.Roles, "crm.settings_audit_logs", "read")
+		if err == nil && hasPermission {
+			hasAccess = true
 		}
 	}
 

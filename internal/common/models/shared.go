@@ -225,6 +225,11 @@ type UserAppRole struct {
 	RoleID primitive.ObjectID `bson:"role_id" json:"role_id"`
 }
 
+type UserAppGroup struct {
+	AppID   App                `bson:"app_id" json:"app_id"`
+	GroupID primitive.ObjectID `bson:"group_id" json:"group_id"`
+}
+
 type User struct {
 	ID       primitive.ObjectID `bson:"_id,omitempty" json:"id"`
 	TenantID primitive.ObjectID `bson:"tenant_id,omitempty" json:"tenant_id,omitempty"`
@@ -237,7 +242,7 @@ type User struct {
 	Status    string `bson:"status" json:"status"` // active, inactive, suspended, invited
 
 	AppRoles         []UserAppRole                          `bson:"app_roles,omitempty" json:"app_roles,omitempty"`
-	Groups           []primitive.ObjectID                   `bson:"groups,omitempty" json:"groups,omitempty"`                       // References to Group IDs
+	AppGroups        []UserAppGroup                         `bson:"app_groups,omitempty" json:"app_groups,omitempty"`               // App-specific group memberships
 	Permissions      map[string]map[string]ActionPermission `bson:"permissions,omitempty" json:"permissions,omitempty"`             // Direct user overrides
 	FieldPermissions map[string]map[string]string           `bson:"field_permissions,omitempty" json:"field_permissions,omitempty"` // Direct user field overrides
 	ReportsTo        *primitive.ObjectID                    `bson:"reports_to,omitempty" json:"reports_to,omitempty"`               // Manager ID

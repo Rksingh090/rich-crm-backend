@@ -87,8 +87,16 @@ func (r *PermissionRepositoryImpl) FindByRoleID(ctx context.Context, roleID stri
 		return nil, err
 	}
 
+	// Build filter with role_id
+	filter := bson.M{"role_id": oid}
+
+	// Strict app filtering - only return permissions for the current app
+	if app, ok := ctx.Value(models.AppIDKey).(string); ok && app != "" {
+		filter["app"] = app
+	}
+
 	coll := r.getCollection(ctx)
-	cursor, err := coll.Find(ctx, bson.M{"role_id": oid})
+	cursor, err := coll.Find(ctx, filter)
 	if err != nil {
 		return nil, err
 	}
@@ -156,6 +164,7 @@ func (r *PermissionRepositoryImpl) Update(ctx context.Context, id string, permis
 
 	update := bson.M{
 		"$set": bson.M{
+			"app":         permission.App,
 			"actions":     permission.Actions,
 			"field_rules": permission.FieldRules,
 			"updated_at":  permission.UpdatedAt,

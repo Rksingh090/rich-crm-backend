@@ -353,6 +353,31 @@
     "is_override": false
   },
   {
+    "resource_id": "crm.settings_blueprints",
+    "app": "crm",
+    "type": "setting",
+    "key": "blueprints",
+    "label": "Blueprints",
+    "icon": "Workflow",
+    "route": "/settings/blueprints",
+    "actions": [
+      "read",
+      "create",
+      "update",
+      "delete"
+    ],
+    "configurable": false,
+    "ui": {
+      "sidebar": true,
+      "location": "settings",
+      "group": "Automation",
+      "order": 6
+    },
+    "scope": "global",
+    "is_system": true,
+    "is_override": false
+  },
+  {
     "resource_id": "crm.settings_workflows",
     "app": "crm",
     "type": "setting",

@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"log"
 	"os"
 	"time"
@@ -61,8 +60,8 @@ func Seed(
 					"default_modules",
 					"default_resources",
 					"apps",
-					"organizations",
-					"users",
+					// "organizations", // Preserved
+					// "users",         // Preserved
 					// Cleanup potential garbage from previous runs/bugs
 					"modules",
 					"resources",
@@ -176,118 +175,118 @@ func Seed(
 				logger.Info("Global Modules synced successfully", zap.Int("count", len(modules)))
 
 				// --- 3. SEED DEMO TENANT & DATA ---
-
-				// 3a. Create Tenant
-				tenantID := primitive.NewObjectID()
-				demoOrg := &common_models.Organization{
-					ID:                 tenantID,
-					Name:               "Demo Corp",
-					Slug:               "demo-corp",
-					Plan:               "enterprise",
-					SubscriptionStatus: common_models.SubscriptionStatusActive,
-					Currency:           "USD",
-					ValidationStatus:   common_models.ValidationStatusVerified,
-					EnabledApps:        []common_models.App{common_models.AppCRM, common_models.AppERP},
-					CreatedAt:          time.Now(),
-					UpdatedAt:          time.Now(),
-				}
-
-				// Check if exists
-				existingOrg, err := orgRepo.FindByName(ctx, "Demo Corp")
-				if err == nil && existingOrg != nil {
-					logger.Info("Demo Tenant already exists, using existing.", zap.String("id", existingOrg.ID.Hex()))
-					tenantID = existingOrg.ID
-					demoOrg = existingOrg
-				} else {
-					if err := orgRepo.Create(ctx, demoOrg); err != nil {
-						logger.Error("Failed to create demo tenant", zap.Error(err))
-						return
+				/*
+					// 3a. Create Tenant
+					tenantID := primitive.NewObjectID()
+					demoOrg := &common_models.Organization{
+						ID:                 tenantID,
+						Name:               "Demo Corp",
+						Slug:               "demo-corp",
+						Plan:               "enterprise",
+						SubscriptionStatus: common_models.SubscriptionStatusActive,
+						Currency:           "USD",
+						ValidationStatus:   common_models.ValidationStatusVerified,
+						EnabledApps:        []common_models.App{common_models.AppCRM, common_models.AppERP},
+						CreatedAt:          time.Now(),
+						UpdatedAt:          time.Now(),
 					}
-					logger.Info("Created Demo Tenant", zap.String("id", tenantID.Hex()))
-				}
 
-				// --- 3x. CLEANUP TENANT DATA (Reset Tenant Modules) ---
-				tenantDB := db.GetTenantDB(tenantID.Hex())
-				tenantDeletes := []string{"modules", "resources", "roles", "permissions", "crm_leads", "crm_contacts", "crm_tasks"}
-				for _, collName := range tenantDeletes {
-					_ = tenantDB.Collection(collName).Drop(ctx)
-					logger.Info("Dropped Tenant Collection", zap.String("tenant", "demo"), zap.String("collection", collName))
-				}
-
-				// 3b. Create User (Admin)
-				userID := primitive.NewObjectID()
-				adminUser := &common_models.User{
-					ID:        userID,
-					TenantID:  tenantID,
-					Email:     "admin@demo.com",
-					FirstName: "Admin",
-					LastName:  "User",
-					Status:    "active",
-					// Password: "password" (hashed ideally, skipping hash logic for simplicity or using auth service if available)
-					// In real scenario, use authService.Signup
-					CreatedAt:       time.Now(),
-					UpdatedAt:       time.Now(),
-					IsPlatformAdmin: true,
-					Password:        "password", // Plain text for now as per AuthServiceImpl
-				}
-				// Mock password (bcrypt cost 10 for "password")
-				// $2a$10$X7h.m/FzQ/x.P.P.P.P.P.P.P.P.P.P.P. (dummy)
-				// Actually let's assume no auth or simple check for now.
-
-				// Context with Tenant
-				tenantCtx := context.WithValue(ctx, common_models.TenantIDKey, tenantID.Hex())
-
-				existingUser, err := userRepo.FindByEmail(tenantCtx, adminUser.Email)
-				if err == nil && existingUser != nil {
-					logger.Info("Admin User already exists", zap.String("id", existingUser.ID.Hex()))
-					userID = existingUser.ID
-				} else {
-					// Need to ensure userRepo.Create uses tenant ID from context
-					if err := userRepo.Create(tenantCtx, adminUser); err != nil {
-						logger.Error("Failed to create admin user", zap.Error(err))
+					// Check if exists
+					existingOrg, err := orgRepo.FindByName(ctx, "Demo Corp")
+					if err == nil && existingOrg != nil {
+						logger.Info("Demo Tenant already exists, using existing.", zap.String("id", existingOrg.ID.Hex()))
+						tenantID = existingOrg.ID
+						demoOrg = existingOrg
 					} else {
-						logger.Info("Created Admin User", zap.String("email", adminUser.Email))
+						if err := orgRepo.Create(ctx, demoOrg); err != nil {
+							logger.Error("Failed to create demo tenant", zap.Error(err))
+							return
+						}
+						logger.Info("Created Demo Tenant", zap.String("id", tenantID.Hex()))
 					}
-				}
 
-				// 3c. Seed Sample Records (Leads & Contacts)
-				logger.Info("Seeding Sample Records...")
-
-				// Context with User ID for CreatedBy
-				recordCtx := context.WithValue(tenantCtx, "user_id", userID.Hex())
-
-				// Leads
-				leads := []map[string]interface{}{
-					{"first_name": "John", "last_name": "Doe", "email": "john@example.com", "company": "Acme Inc", "status": "New"},
-					{"first_name": "Jane", "last_name": "Smith", "email": "jane@test.com", "company": "Test Corp", "status": "Contacted"},
-					{"first_name": "Bob", "last_name": "Brown", "email": "bob@start.up", "company": "Startup Hub", "status": "Qualified"},
-					{"first_name": "Alice", "last_name": "Green", "email": "alice@nature.org", "company": "Nature LLC", "status": "New"},
-					{"first_name": "Charlie", "last_name": "White", "email": "charlie@cloud.net", "company": "Cloud Sys", "status": "Lost"},
-				}
-
-				for _, data := range leads {
-					// Use RecordRepo directly to bypass complex service checks if needed
-					// But ensure we target 'leads' module and 'crm' app
-					if _, err := recordRepo.Create(recordCtx, "leads", common_models.AppCRM, data); err != nil {
-						logger.Warn("Failed to create sample lead", zap.String("email", fmt.Sprintf("%v", data["email"])), zap.Error(err))
+					// --- 3x. CLEANUP TENANT DATA (Reset Tenant Modules) ---
+					tenantDB := db.GetTenantDB(tenantID.Hex())
+					tenantDeletes := []string{"modules", "resources", "roles", "permissions", "crm_leads", "crm_contacts", "crm_tasks"}
+					for _, collName := range tenantDeletes {
+						_ = tenantDB.Collection(collName).Drop(ctx)
+						logger.Info("Dropped Tenant Collection", zap.String("tenant", "demo"), zap.String("collection", collName))
 					}
-				}
-				logger.Info("Seeded Leads")
 
-				// Contacts
-				contacts := []map[string]interface{}{
-					{"first_name": "Sarah", "last_name": "Connor", "email": "sarah@sky.net", "phone": "555-0101"},
-					{"first_name": "Kyle", "last_name": "Reese", "email": "kyle@resistance.org", "phone": "555-0102"},
-					{"first_name": "Tony", "last_name": "Stark", "email": "tony@stark.com", "phone": "555-0199"},
-				}
-
-				for _, data := range contacts {
-					if _, err := recordRepo.Create(recordCtx, "contacts", common_models.AppCRM, data); err != nil {
-						logger.Warn("Failed to create sample contact", zap.String("email", fmt.Sprintf("%v", data["email"])), zap.Error(err))
+					// 3b. Create User (Admin)
+					userID := primitive.NewObjectID()
+					adminUser := &common_models.User{
+						ID:        userID,
+						TenantID:  tenantID,
+						Email:     "admin@demo.com",
+						FirstName: "Admin",
+						LastName:  "User",
+						Status:    "active",
+						// Password: "password" (hashed ideally, skipping hash logic for simplicity or using auth service if available)
+						// In real scenario, use authService.Signup
+						CreatedAt:       time.Now(),
+						UpdatedAt:       time.Now(),
+						IsPlatformAdmin: true,
+						Password:        "password", // Plain text for now as per AuthServiceImpl
 					}
-				}
-				logger.Info("Seeded Contacts")
+					// Mock password (bcrypt cost 10 for "password")
+					// $2a$10$X7h.m/FzQ/x.P.P.P.P.P.P.P.P.P.P.P. (dummy)
+					// Actually let's assume no auth or simple check for now.
 
+					// Context with Tenant
+					tenantCtx := context.WithValue(ctx, common_models.TenantIDKey, tenantID.Hex())
+
+					existingUser, err := userRepo.FindByEmail(tenantCtx, adminUser.Email)
+					if err == nil && existingUser != nil {
+						logger.Info("Admin User already exists", zap.String("id", existingUser.ID.Hex()))
+						userID = existingUser.ID
+					} else {
+						// Need to ensure userRepo.Create uses tenant ID from context
+						if err := userRepo.Create(tenantCtx, adminUser); err != nil {
+							logger.Error("Failed to create admin user", zap.Error(err))
+						} else {
+							logger.Info("Created Admin User", zap.String("email", adminUser.Email))
+						}
+					}
+
+					// 3c. Seed Sample Records (Leads & Contacts)
+					logger.Info("Seeding Sample Records...")
+
+					// Context with User ID for CreatedBy
+					recordCtx := context.WithValue(tenantCtx, "user_id", userID.Hex())
+
+					// Leads
+					leads := []map[string]interface{}{
+						{"first_name": "John", "last_name": "Doe", "email": "john@example.com", "company": "Acme Inc", "status": "New"},
+						{"first_name": "Jane", "last_name": "Smith", "email": "jane@test.com", "company": "Test Corp", "status": "Contacted"},
+						{"first_name": "Bob", "last_name": "Brown", "email": "bob@start.up", "company": "Startup Hub", "status": "Qualified"},
+						{"first_name": "Alice", "last_name": "Green", "email": "alice@nature.org", "company": "Nature LLC", "status": "New"},
+						{"first_name": "Charlie", "last_name": "White", "email": "charlie@cloud.net", "company": "Cloud Sys", "status": "Lost"},
+					}
+
+					for _, data := range leads {
+						// Use RecordRepo directly to bypass complex service checks if needed
+						// But ensure we target 'leads' module and 'crm' app
+						if _, err := recordRepo.Create(recordCtx, "leads", common_models.AppCRM, data); err != nil {
+							logger.Warn("Failed to create sample lead", zap.String("email", fmt.Sprintf("%v", data["email"])), zap.Error(err))
+						}
+					}
+					logger.Info("Seeded Leads")
+
+					// Contacts
+					contacts := []map[string]interface{}{
+						{"first_name": "Sarah", "last_name": "Connor", "email": "sarah@sky.net", "phone": "555-0101"},
+						{"first_name": "Kyle", "last_name": "Reese", "email": "kyle@resistance.org", "phone": "555-0102"},
+						{"first_name": "Tony", "last_name": "Stark", "email": "tony@stark.com", "phone": "555-0199"},
+					}
+
+					for _, data := range contacts {
+						if _, err := recordRepo.Create(recordCtx, "contacts", common_models.AppCRM, data); err != nil {
+							logger.Warn("Failed to create sample contact", zap.String("email", fmt.Sprintf("%v", data["email"])), zap.Error(err))
+						}
+					}
+					logger.Info("Seeded Contacts")
+				*/
 				logger.Info("✅ Seeding Complete! Demo environment ready.")
 			}()
 			return nil

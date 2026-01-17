@@ -148,20 +148,24 @@ definitions:
     type: object
   auth.LoginRequest:
     properties:
-      password:
+      email:
         type: string
-      username:
+      password:
         type: string
     type: object
   auth.RegisterRequest:
     properties:
+      apps:
+        items:
+          type: string
+        type: array
       email:
         type: string
       org_name:
         type: string
       password:
         type: string
-      username:
+      plan:
         type: string
     type: object
   automation.ActionType:
@@ -245,6 +249,128 @@ definitions:
     - OperatorContains
     - OperatorGreaterThan
     - OperatorLessThan
+  blueprint.ActionType:
+    enum:
+    - email
+    - field_update
+    - webhook
+    - script
+    type: string
+    x-enum-varnames:
+    - ActionTypeEmail
+    - ActionTypeFieldUpdate
+    - ActionTypeWebhook
+    - ActionTypeScript
+  blueprint.Blueprint:
+    properties:
+      active:
+        type: boolean
+      app:
+        allOf:
+        - $ref: '#/definitions/models.App'
+        description: crm, erp, etc.
+      created_at:
+        type: string
+      id:
+        type: string
+      layout:
+        additionalProperties: true
+        description: 'Node positions: key=stateName, val={x,y}'
+        type: object
+      module:
+        description: Target Module Name
+        type: string
+      name:
+        type: string
+      target_field:
+        description: The select field this blueprint controls
+        type: string
+      tenant_id:
+        type: string
+      transitions:
+        items:
+          $ref: '#/definitions/blueprint.Transition'
+        type: array
+      updated_at:
+        type: string
+    type: object
+  blueprint.BlueprintAction:
+    properties:
+      config:
+        additionalProperties: true
+        description: Config depends on Type
+        type: object
+      id:
+        type: string
+      order:
+        type: integer
+      type:
+        $ref: '#/definitions/blueprint.ActionType'
+    type: object
+  blueprint.ExecuteTransitionRequest:
+    properties:
+      data:
+        additionalProperties: {}
+        type: object
+      transition_id:
+        type: string
+    type: object
+  blueprint.Transition:
+    properties:
+      after:
+        items:
+          $ref: '#/definitions/blueprint.BlueprintAction'
+        type: array
+      before:
+        items:
+          $ref: '#/definitions/blueprint.BlueprintAction'
+        type: array
+      criteria:
+        description: Conditions to trigger or allow transition
+        items:
+          $ref: '#/definitions/models.Filter'
+        type: array
+      during:
+        items:
+          $ref: '#/definitions/blueprint.BlueprintAction'
+        type: array
+      from_state:
+        type: string
+      id:
+        type: string
+      is_common:
+        type: boolean
+      name:
+        type: string
+      roles:
+        description: Allowed roles (if manual)
+        items:
+          type: string
+        type: array
+      source_handle:
+        description: ID of the source handle (e.g. "source-right")
+        type: string
+      target_handle:
+        description: ID of the target handle (e.g. "target-left")
+        type: string
+      to_state:
+        type: string
+      trigger_type:
+        $ref: '#/definitions/blueprint.TransitionTriggerType'
+    type: object
+  blueprint.TransitionTriggerType:
+    enum:
+    - manual
+    - condition
+    type: string
+    x-enum-comments:
+      TriggerTypeCondition: Automatic based on criteria
+    x-enum-descriptions:
+    - ""
+    - Automatic based on criteria
+    x-enum-varnames:
+    - TriggerTypeManual
+    - TriggerTypeCondition
   bulk_operation.BulkError:
     properties:
       message:
@@ -265,8 +391,9 @@ definitions:
           $ref: '#/definitions/bulk_operation.BulkError'
         type: array
       filters:
-        additionalProperties: true
-        type: object
+        items:
+          $ref: '#/definitions/models.Filter'
+        type: array
       id:
         type: string
       module_name:
@@ -277,6 +404,8 @@ definitions:
         $ref: '#/definitions/bulk_operation.BulkOperationStatus'
       success_count:
         type: integer
+      tenant_id:
+        type: string
       total_records:
         type: integer
       type:
@@ -614,6 +743,9 @@ definitions:
         type: string
       description:
         type: string
+      design:
+        items: {}
+        type: array
       id:
         type: string
       is_active:
@@ -623,6 +755,8 @@ definitions:
       name:
         type: string
       subject:
+        type: string
+      tenant_id:
         type: string
       updated_at:
         type: string
@@ -729,10 +863,19 @@ definitions:
     type: object
   group.Group:
     properties:
+      app:
+        $ref: '#/definitions/models.App'
       created_at:
         type: string
       description:
         type: string
+      field_permissions:
+        additionalProperties:
+          additionalProperties:
+            type: string
+          type: object
+        description: Module -> Field -> "read_write" | "read_only" | "none"
+        type: object
       id:
         type: string
       is_system:
@@ -751,6 +894,8 @@ definitions:
             $ref: '#/definitions/models.ActionPermission'
           type: object
         type: object
+      tenant_id:
+        type: string
       updated_at:
         type: string
     type: object
@@ -813,12 +958,216 @@ definitions:
     - ImportStatusProcessing
     - ImportStatusCompleted
     - ImportStatusFailed
+  internal_core_resource.Resource:
+    properties:
+      app:
+        $ref: '#/definitions/models.App'
+      available_actions:
+        description: Available actions for this resource
+        items:
+          type: string
+        type: array
+      created_at:
+        description: Lifecycle
+        type: string
+      deleted_at:
+        type: string
+      icon:
+        type: string
+      id:
+        type: string
+      is_configurable:
+        description: Can permissions be configured
+        type: boolean
+      is_system:
+        description: System resources cannot be deleted
+        type: boolean
+      key:
+        description: Internal key (e.g., "leads")
+        type: string
+      label:
+        description: Display name (e.g., "Leads")
+        type: string
+      resource_id:
+        description: e.g., "crm.leads", "erp.inventory"
+        type: string
+      route:
+        type: string
+      scope:
+        allOf:
+        - $ref: '#/definitions/resource.ResourceScope'
+        description: Scope determines visibility
+      tenant_id:
+        description: null for global/app-level
+        type: string
+      type:
+        $ref: '#/definitions/resource.ResourceType'
+      ui:
+        allOf:
+        - $ref: '#/definitions/internal_core_resource.ResourceUI'
+        description: UI metadata for rendering in frontend
+      updated_at:
+        type: string
+    type: object
+  internal_core_resource.ResourceUI:
+    properties:
+      group:
+        type: string
+      group_order:
+        type: integer
+      location:
+        description: '"main", "settings"'
+        type: string
+      order:
+        type: integer
+      sidebar:
+        type: boolean
+    type: object
+  internal_features_resource.Resource:
+    properties:
+      actions:
+        items:
+          type: string
+        type: array
+      app:
+        $ref: '#/definitions/models.App'
+      base_resource_id:
+        description: For overrides, points to global resource
+        type: string
+      can_override:
+        description: Can this resource be overridden?
+        type: boolean
+      configurable:
+        type: boolean
+      created_at:
+        type: string
+      deleted_at:
+        type: string
+      deleted_by:
+        type: string
+      fields:
+        items:
+          $ref: '#/definitions/models.ModuleField'
+        type: array
+      icon:
+        type: string
+      id:
+        type: string
+      is_override:
+        description: True if this is a tenant override
+        type: boolean
+      is_system:
+        type: boolean
+      key:
+        type: string
+      label:
+        type: string
+      resource_id:
+        type: string
+      route:
+        type: string
+      scope:
+        description: '"global" or "tenant"'
+        type: string
+      tenant_id:
+        description: Empty for global resources
+        type: string
+      type:
+        type: string
+      ui:
+        $ref: '#/definitions/internal_features_resource.ResourceUI'
+      updated_at:
+        type: string
+    type: object
+  internal_features_resource.ResourceUI:
+    properties:
+      group:
+        type: string
+      group_order:
+        type: integer
+      location:
+        type: string
+      order:
+        type: integer
+      sidebar:
+        type: boolean
+    type: object
   models.ActionPermission:
     properties:
       allowed:
         type: boolean
       conditions:
         $ref: '#/definitions/models.PermissionGroup'
+      ui:
+        $ref: '#/definitions/models.ActionUI'
+    type: object
+  models.ActionUI:
+    properties:
+      filters:
+        items:
+          type: string
+        type: array
+    type: object
+  models.App:
+    enum:
+    - crm
+    - erp
+    - analytics
+    type: string
+    x-enum-varnames:
+    - AppCRM
+    - AppERP
+    - AppAnalytics
+  models.Entity:
+    properties:
+      app:
+        $ref: '#/definitions/models.App'
+      base_entity_id:
+        description: If Override, ID of the global entity
+        type: string
+      can_override:
+        description: Can this entity be overridden? (for global entities)
+        type: boolean
+      created_at:
+        type: string
+      deleted_at:
+        type: string
+      deleted_by:
+        type: string
+      fields:
+        items:
+          $ref: '#/definitions/models.ModuleField'
+        type: array
+      id:
+        type: string
+      indexes:
+        items:
+          type: string
+        type: array
+      is_override:
+        description: Is this a tenant override of a global entity?
+        type: boolean
+      is_system:
+        type: boolean
+      label:
+        type: string
+      name:
+        description: Slug/Internal Name
+        type: string
+      readonly:
+        type: boolean
+      scope:
+        description: '"global" or "tenant"'
+        type: string
+      sections:
+        description: 'New: Sections'
+        items:
+          $ref: '#/definitions/models.Section'
+        type: array
+      tenant_id:
+        type: string
+      updated_at:
+        type: string
     type: object
   models.FieldType:
     enum:
@@ -836,7 +1185,31 @@ definitions:
     - multiselect
     - currency
     - image
+    - user
+    - radio
+    - subform
     type: string
+    x-enum-comments:
+      FieldTypeRadio: 'New: Radio buttons'
+      FieldTypeSubform: 'New: Nested Table/Array'
+    x-enum-descriptions:
+    - ""
+    - ""
+    - ""
+    - ""
+    - ""
+    - ""
+    - ""
+    - ""
+    - ""
+    - ""
+    - ""
+    - ""
+    - ""
+    - ""
+    - ""
+    - 'New: Radio buttons'
+    - 'New: Nested Table/Array'
     x-enum-varnames:
     - FieldTypeText
     - FieldTypeNumber
@@ -852,6 +1225,19 @@ definitions:
     - FieldTypeMultiSelect
     - FieldTypeCurrency
     - FieldTypeImage
+    - FieldTypeUser
+    - FieldTypeRadio
+    - FieldTypeSubform
+  models.Filter:
+    properties:
+      field:
+        type: string
+      operator:
+        description: eq, ne, gt, lt, gte, lte, in, nin, contains, between, starts_with,
+          ends_with
+        type: string
+      value: {}
+    type: object
   models.LookupDef:
     properties:
       lookup_label:
@@ -866,6 +1252,17 @@ definitions:
     type: object
   models.ModuleField:
     properties:
+      auto_increment:
+        description: 'New: Auto-increment for numbers'
+        type: boolean
+      default_value:
+        type: string
+      filterable:
+        type: boolean
+      help_text:
+        type: string
+      hidden:
+        type: boolean
       is_system:
         type: boolean
       label:
@@ -878,10 +1275,26 @@ definitions:
         items:
           $ref: '#/definitions/models.SelectOptions'
         type: array
+      placeholder:
+        type: string
+      readonly:
+        type: boolean
       required:
         type: boolean
+      section_id:
+        description: 'New: Section ID'
+        type: string
+      sortable:
+        type: boolean
+      sub_fields:
+        description: 'New: Schema for subform rows - Removed omitempty to ensure persistence'
+        items:
+          $ref: '#/definitions/models.ModuleField'
+        type: array
       type:
         $ref: '#/definitions/models.FieldType'
+      unique:
+        type: boolean
     type: object
   models.PermissionGroup:
     properties:
@@ -908,18 +1321,6 @@ definitions:
         $ref: '#/definitions/models.RuleType'
       value: {}
     type: object
-  models.Product:
-    enum:
-    - crm
-    - erp
-    - analytics
-    - reporting
-    type: string
-    x-enum-varnames:
-    - ProductCRM
-    - ProductERP
-    - ProductAnalytics
-    - ProductReporting
   models.RuleType:
     enum:
     - static
@@ -928,6 +1329,15 @@ definitions:
     x-enum-varnames:
     - RuleTypeStatic
     - RuleTypeVariable
+  models.Section:
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+      order:
+        type: integer
+    type: object
   models.SelectOptions:
     properties:
       label:
@@ -937,71 +1347,68 @@ definitions:
     type: object
   models.User:
     properties:
+      app_groups:
+        description: App-specific group memberships
+        items:
+          $ref: '#/definitions/models.UserAppGroup'
+        type: array
+      app_roles:
+        items:
+          $ref: '#/definitions/models.UserAppRole'
+        type: array
       created_at:
         type: string
       email:
         type: string
+      field_permissions:
+        additionalProperties:
+          additionalProperties:
+            type: string
+          type: object
+        description: Direct user field overrides
+        type: object
       first_name:
         type: string
-      groups:
-        description: User groups for ABAC (e.g., ["sales_team_west", "managers"])
-        items:
-          type: string
-        type: array
       id:
         type: string
+      is_platform_admin:
+        type: boolean
       last_login:
         type: string
       last_name:
         type: string
+      permissions:
+        additionalProperties:
+          additionalProperties:
+            $ref: '#/definitions/models.ActionPermission'
+          type: object
+        description: Direct user overrides
+        type: object
       phone:
         type: string
       reports_to:
         description: Manager ID
         type: string
-      roles:
-        description: References to Role IDs
-        items:
-          type: string
-        type: array
       status:
-        description: active, inactive, suspended
+        description: active, inactive, suspended, invited
         type: string
       tenant_id:
         type: string
       updated_at:
-        type: string
-      username:
         type: string
     type: object
-  module.Module:
+  models.UserAppGroup:
     properties:
-      created_at:
+      app_id:
+        $ref: '#/definitions/models.App'
+      group_id:
         type: string
-      fields:
-        items:
-          $ref: '#/definitions/models.ModuleField'
-        type: array
-      id:
-        type: string
-      indexes:
-        items:
-          type: string
-        type: array
-      is_system:
-        type: boolean
-      label:
-        type: string
-      name:
-        description: Slug/Internal Name
-        type: string
-      product:
-        $ref: '#/definitions/models.Product'
-      slug:
-        type: string
-      tenant_id:
-        type: string
-      updated_at:
+    type: object
+  models.UserAppRole:
+    properties:
+      app_id:
+        $ref: '#/definitions/models.App'
+      role_id:
         type: string
     type: object
   permission.AssignResourceRequest:
@@ -1015,6 +1422,7 @@ definitions:
           type: string
         type: object
       resource_id:
+        description: Now references Resource Registry
         type: string
       role_id:
         type: string
@@ -1030,6 +1438,8 @@ definitions:
           $ref: '#/definitions/models.ActionPermission'
         description: Action -> Permission with conditions
         type: object
+      app:
+        $ref: '#/definitions/models.App'
       created_at:
         type: string
       field_rules:
@@ -1039,22 +1449,17 @@ definitions:
         type: object
       id:
         type: string
-      resource:
-        $ref: '#/definitions/permission.ResourceRef'
+      resource_id:
+        description: Reference to Resource Registry (e.g., "crm.leads")
+        type: string
       role_id:
+        type: string
+      role_name:
+        description: For templates
         type: string
       tenant_id:
         type: string
       updated_at:
-        type: string
-    type: object
-  permission.ResourceRef:
-    properties:
-      id:
-        description: Resource identifier (e.g., "crm.leads", "crm.settings")
-        type: string
-      type:
-        description: '"module", "page", "setting", "report", "cron", etc.'
         type: string
     type: object
   permission.RevokeResourceRequest:
@@ -1163,54 +1568,46 @@ definitions:
     - ReportTypeStandard
     - ReportTypePivot
     - ReportTypeCrossModule
-  resource.Resource:
-    properties:
-      actions:
-        items:
-          type: string
-        type: array
-      configurable:
-        type: boolean
-      created_at:
-        type: string
-      icon:
-        type: string
-      id:
-        type: string
-      key:
-        type: string
-      label:
-        type: string
-      product:
-        type: string
-      resource_id:
-        type: string
-      route:
-        type: string
-      tenant_id:
-        type: string
-      type:
-        type: string
-      ui:
-        $ref: '#/definitions/resource.ResourceUI'
-      updated_at:
-        type: string
-    type: object
-  resource.ResourceUI:
-    properties:
-      group:
-        type: string
-      group_order:
-        type: integer
-      location:
-        type: string
-      order:
-        type: integer
-      sidebar:
-        type: boolean
-    type: object
+  resource.ResourceScope:
+    enum:
+    - global
+    - app
+    - tenant
+    type: string
+    x-enum-comments:
+      ResourceScopeApp: Available to all tenants using this app
+      ResourceScopeGlobal: Available to all tenants
+      ResourceScopeTenant: Tenant-specific custom resource
+    x-enum-descriptions:
+    - Available to all tenants
+    - Available to all tenants using this app
+    - Tenant-specific custom resource
+    x-enum-varnames:
+    - ResourceScopeGlobal
+    - ResourceScopeApp
+    - ResourceScopeTenant
+  resource.ResourceType:
+    enum:
+    - module
+    - page
+    - setting
+    - system
+    - report
+    - cron
+    - webhook
+    type: string
+    x-enum-varnames:
+    - ResourceTypeModule
+    - ResourceTypePage
+    - ResourceTypeSetting
+    - ResourceTypeSystem
+    - ResourceTypeReport
+    - ResourceTypeCron
+    - ResourceTypeWebhook
   role.Role:
     properties:
+      app:
+        $ref: '#/definitions/models.App'
       created_at:
         type: string
       description:
@@ -1229,13 +1626,6 @@ definitions:
         type: boolean
       name:
         type: string
-      permissions:
-        additionalProperties:
-          additionalProperties:
-            $ref: '#/definitions/models.ActionPermission'
-          type: object
-        description: Resource -> Action -> Permission
-        type: object
       tenant_id:
         type: string
       updated_at:
@@ -1282,6 +1672,8 @@ definitions:
       module_name:
         type: string
       name:
+        type: string
+      tenant_id:
         type: string
       updated_at:
         type: string
@@ -1608,8 +2000,23 @@ definitions:
     - TicketStatusPending
     - TicketStatusResolved
     - TicketStatusClosed
+  user.AcceptInviteRequest:
+    properties:
+      first_name:
+        type: string
+      last_name:
+        type: string
+      password:
+        type: string
+      token:
+        type: string
+    type: object
   user.CreateUserRequest:
     properties:
+      app_roles:
+        items:
+          $ref: '#/definitions/models.UserAppRole'
+        type: array
       email:
         type: string
       first_name:
@@ -1622,17 +2029,28 @@ definitions:
         type: string
       reports_to:
         type: string
+      status:
+        type: string
+    type: object
+  user.InviteUserRequest:
+    properties:
+      app_roles:
+        items:
+          $ref: '#/definitions/models.UserAppRole'
+        type: array
+      email:
+        type: string
       role_ids:
         items:
           type: string
         type: array
-      status:
-        type: string
-      username:
-        type: string
     type: object
   user.UpdateUserRequest:
     properties:
+      app_roles:
+        items:
+          $ref: '#/definitions/models.UserAppRole'
+        type: array
       email:
         type: string
       first_name:
@@ -1643,20 +2061,14 @@ definitions:
         type: string
       reports_to:
         type: string
-      role_ids:
-        items:
-          type: string
-        type: array
       status:
-        type: string
-      username:
         type: string
     type: object
   user.UpdateUserRolesRequest:
     properties:
-      role_ids:
+      app_roles:
         items:
-          type: string
+          $ref: '#/definitions/models.UserAppRole'
         type: array
     type: object
   user.UpdateUserStatusRequest:
@@ -1742,6 +2154,32 @@ paths:
               type: string
             type: object
       summary: Get calendar events
+      tags:
+      - activity
+  /api/activities/timeline:
+    get:
+      description: Retrieve chronological timeline of activities (calls, meetings,
+        tasks) for a record
+      parameters:
+      - description: Module Name (e.g. contacts)
+        in: query
+        name: module
+        required: true
+        type: string
+      - description: Record ID
+        in: query
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items: {}
+            type: array
+      summary: Get activity timeline
       tags:
       - activity
   /api/admin:
@@ -2228,7 +2666,9 @@ paths:
     get:
       consumes:
       - application/json
-      description: Retrieve a list of audit logs with optional filtering
+      description: Retrieve a list of audit logs with optional filtering. Requires
+        'crm.settings_audit_logs' permission OR 'read' permission for the specific
+        module being filtered.
       parameters:
       - description: Page number
         in: query
@@ -2262,6 +2702,32 @@ paths:
       summary: List audit logs
       tags:
       - audit
+  /api/auth/control-plane-login:
+    post:
+      consumes:
+      - application/json
+      description: Login for control plane admins
+      parameters:
+      - description: Login Input
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/auth.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/auth.AuthResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+      summary: Control Plane Login
+      tags:
+      - auth
   /api/automation/rules:
     get:
       description: List all automation rules, optionally filtered by module
@@ -4248,7 +4714,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: Login with username and password
+      description: Login with email and password
       parameters:
       - description: Login Input
         in: body
@@ -4274,158 +4740,6 @@ paths:
       summary: Login
       tags:
       - auth
-  /api/modules:
-    get:
-      consumes:
-      - application/json
-      description: List all available modules, optionally filtered by product
-      parameters:
-      - description: Filter by product
-        in: query
-        name: product
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: List of modules
-          schema:
-            items:
-              $ref: '#/definitions/module.Module'
-            type: array
-        "500":
-          description: Failed to fetch modules
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: List all modules
-      tags:
-      - modules
-    post:
-      consumes:
-      - application/json
-      description: Create a new module definition
-      parameters:
-      - description: Module Definition
-        in: body
-        name: module
-        required: true
-        schema:
-          $ref: '#/definitions/module.Module'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Module created successfully
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "400":
-          description: Invalid request body or validation error
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Create a new module
-      tags:
-      - modules
-  /api/modules/{name}:
-    delete:
-      consumes:
-      - application/json
-      description: Delete a module definition
-      parameters:
-      - description: Module Name
-        in: path
-        name: name
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Module deleted successfully
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "500":
-          description: Internal server error
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Delete a module
-      tags:
-      - modules
-    get:
-      consumes:
-      - application/json
-      description: Get a module definition by its name
-      parameters:
-      - description: Module Name
-        in: path
-        name: name
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Module details
-          schema:
-            $ref: '#/definitions/module.Module'
-        "404":
-          description: Module not found
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Get a module by name
-      tags:
-      - modules
-    put:
-      consumes:
-      - application/json
-      description: Update an existing module definition
-      parameters:
-      - description: Module Name
-        in: path
-        name: name
-        required: true
-        type: string
-      - description: Module Definition
-        in: body
-        name: module
-        required: true
-        schema:
-          $ref: '#/definitions/module.Module'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Module updated successfully
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "400":
-          description: Invalid request body
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "500":
-          description: Internal server error
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Update a module
-      tags:
-      - modules
   /api/notifications:
     get:
       description: List user notifications with pagination
@@ -4945,6 +5259,40 @@ paths:
       summary: Update record
       tags:
       - records
+  /api/records/query:
+    post:
+      consumes:
+      - application/json
+      description: Query records based on resource, action, and filters
+      parameters:
+      - description: Query Request
+        in: body
+        name: query
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Query records with strict permission checks
+      tags:
+      - records
   /api/reports:
     get:
       description: List all reports
@@ -5234,63 +5582,6 @@ paths:
       summary: Run pivot report
       tags:
       - reports
-  /api/resources:
-    get:
-      consumes:
-      - application/json
-      description: Get all resources for the current tenant (admin only)
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: List of all resources
-          schema:
-            items:
-              $ref: '#/definitions/resource.Resource'
-            type: array
-        "500":
-          description: Internal server error
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      security:
-      - BearerAuth: []
-      summary: List all resources
-      tags:
-      - Resources
-  /api/resources/sidebar:
-    get:
-      consumes:
-      - application/json
-      description: Get resources filtered for sidebar display, optionally filtered
-        by product (crm, erp, analytics)
-      parameters:
-      - default: crm
-        description: Product filter (e.g., crm, erp, analytics)
-        in: query
-        name: product
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: List of sidebar resources grouped by category
-          schema:
-            items:
-              $ref: '#/definitions/resource.Resource'
-            type: array
-        "500":
-          description: Internal server error
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Get sidebar resources
-      tags:
-      - Resources
   /api/saved-filters:
     post:
       consumes:
@@ -6319,6 +6610,258 @@ paths:
       summary: Get my tickets
       tags:
       - tickets
+  /api/v1/resources:
+    get:
+      consumes:
+      - application/json
+      description: Get all resources for the current tenant, filtered by app via X-Rich-App
+        header
+      parameters:
+      - description: App filter (e.g., crm, erp, analytics)
+        in: header
+        name: X-Rich-App
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of all resources
+          schema:
+            items:
+              $ref: '#/definitions/internal_features_resource.Resource'
+            type: array
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List all resources
+      tags:
+      - Resources
+    post:
+      consumes:
+      - application/json
+      description: Creates a new tenant-specific resource (typically called by Module
+        Builder)
+      parameters:
+      - description: Resource to register
+        in: body
+        name: resource
+        required: true
+        schema:
+          $ref: '#/definitions/internal_core_resource.Resource'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/internal_core_resource.Resource'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Register a new resource
+      tags:
+      - resources
+  /api/v1/resources/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Soft deletes a tenant-specific resource (system resources cannot
+        be deleted)
+      parameters:
+      - description: Resource ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete a resource
+      tags:
+      - resources
+    put:
+      consumes:
+      - application/json
+      description: Updates an existing resource (only non-system resources can be
+        updated)
+      parameters:
+      - description: Resource ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Updated resource
+        in: body
+        name: resource
+        required: true
+        schema:
+          $ref: '#/definitions/internal_core_resource.Resource'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_core_resource.Resource'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Update a resource
+      tags:
+      - resources
+  /api/v1/resources/{resource_id}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a resource by its resource_id
+      parameters:
+      - description: Resource ID (e.g., crm.leads)
+        in: path
+        name: resource_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_core_resource.Resource'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get a specific resource by ID
+      tags:
+      - resources
+  /api/v1/resources/discover:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves all resources of a specific type for the authenticated
+        tenant
+      parameters:
+      - description: App filter (crm, erp, analytics)
+        in: query
+        name: app
+        type: string
+      - description: Resource type (module, page, setting, etc.)
+        in: query
+        name: type
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/internal_core_resource.Resource'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Discover resources by type
+      tags:
+      - resources
+  /api/v1/resources/sidebar:
+    get:
+      consumes:
+      - application/json
+      description: Get resources filtered for sidebar display, filtered by app from
+        X-Rich-App header
+      parameters:
+      - description: Location filter (e.g., main, settings)
+        in: query
+        name: location
+        type: string
+      - description: App filter (e.g., crm, erp, analytics)
+        in: header
+        name: X-Rich-App
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of sidebar resources grouped by category
+          schema:
+            items:
+              $ref: '#/definitions/internal_features_resource.Resource'
+            type: array
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get sidebar resources
+      tags:
+      - Resources
   /api/webhooks:
     get:
       description: List all webhooks
@@ -6445,6 +6988,105 @@ paths:
       summary: Update webhook
       tags:
       - webhooks
+  /blueprints:
+    get:
+      parameters:
+      - description: Module Name
+        in: query
+        name: module
+        type: string
+      - description: Search Term
+        in: query
+        name: search
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/blueprint.Blueprint'
+            type: array
+      summary: List blueprints by module
+      tags:
+      - Blueprint
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Blueprint
+        in: body
+        name: blueprint
+        required: true
+        schema:
+          $ref: '#/definitions/blueprint.Blueprint'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/blueprint.Blueprint'
+      summary: Create a new blueprint
+      tags:
+      - Blueprint
+  /blueprints/{id}:
+    delete:
+      parameters:
+      - description: Blueprint ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+      summary: Delete a blueprint
+      tags:
+      - Blueprint
+    get:
+      parameters:
+      - description: Blueprint ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/blueprint.Blueprint'
+      summary: Get a blueprint by ID
+      tags:
+      - Blueprint
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Blueprint ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Blueprint
+        in: body
+        name: blueprint
+        required: true
+        schema:
+          $ref: '#/definitions/blueprint.Blueprint'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/blueprint.Blueprint'
+      summary: Update an existing blueprint
+      tags:
+      - Blueprint
   /debug/user:
     get:
       description: Get the current user's info from JWT
@@ -6472,11 +7114,250 @@ paths:
       summary: Health Check
       tags:
       - health
+  /me/resources/{resource}:
+    get:
+      consumes:
+      - application/json
+      description: Get resource schema and allowed filters based on permissions
+      parameters:
+      - description: Resource ID (e.g., crm.leads)
+        in: path
+        name: resource
+        required: true
+        type: string
+      - description: 'Action to check (default: read)'
+        in: query
+        name: action
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get resource metadata
+      tags:
+      - Resources
+  /modules:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves all modules for the current user and application
+      parameters:
+      - description: Application identifier (defaults to 'crm')
+        in: header
+        name: X-Rich-App
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of modules
+          schema:
+            items:
+              $ref: '#/definitions/models.Entity'
+            type: array
+        "500":
+          description: Failed to fetch modules
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List all modules
+      tags:
+      - Modules
+    post:
+      consumes:
+      - application/json
+      description: Creates a new module/entity for the specified application
+      parameters:
+      - description: Application identifier (e.g., crm, erp)
+        in: header
+        name: X-Rich-App
+        required: true
+        type: string
+      - description: Module data
+        in: body
+        name: module
+        required: true
+        schema:
+          $ref: '#/definitions/models.Entity'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Module created successfully
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid request body or missing product header
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create a new module
+      tags:
+      - Modules
+  /modules/{module}/records/{id}/transition:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Module Name
+        in: path
+        name: module
+        required: true
+        type: string
+      - description: Record ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Transition Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/blueprint.ExecuteTransitionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Execute a transition on a record
+      tags:
+      - Blueprint
+  /modules/{name}:
+    delete:
+      consumes:
+      - application/json
+      description: Deletes a module by name
+      parameters:
+      - description: Module name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Module deleted successfully
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Failed to delete module
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete a module
+      tags:
+      - Modules
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a specific module by its name
+      parameters:
+      - description: Module name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Module details
+          schema:
+            $ref: '#/definitions/models.Entity'
+        "404":
+          description: Module not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get a module by name
+      tags:
+      - Modules
+    put:
+      consumes:
+      - application/json
+      description: Updates an existing module by name
+      parameters:
+      - description: Module name
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: Updated module data
+        in: body
+        name: module
+        required: true
+        schema:
+          $ref: '#/definitions/models.Entity'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Module updated successfully
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid request body
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Failed to update module
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update a module
+      tags:
+      - Modules
   /register:
     post:
       consumes:
       - application/json
-      description: Register a new user with username, password, and email
+      description: Register a new user with password and email
       parameters:
       - description: Register Input
         in: body
@@ -6868,6 +7749,70 @@ paths:
           schema:
             type: string
       summary: Update user status
+      tags:
+      - users
+  /users/accept-invite:
+    post:
+      consumes:
+      - application/json
+      description: Complete user signup via invite token
+      parameters:
+      - description: Accept Invite Input
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/user.AcceptInviteRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid request body
+          schema:
+            type: string
+        "500":
+          description: Failed to accept invite
+          schema:
+            type: string
+      summary: Accept user invite
+      tags:
+      - users
+  /users/invite:
+    post:
+      consumes:
+      - application/json
+      description: Invite a new user to the tenant
+      parameters:
+      - description: Invite User Input
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/user.InviteUserRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid request body
+          schema:
+            type: string
+        "500":
+          description: Failed to invite user
+          schema:
+            type: string
+      summary: Invite a new user
       tags:
       - users
 swagger: "2.0"

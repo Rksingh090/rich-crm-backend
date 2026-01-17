@@ -40,7 +40,7 @@ func (ctrl *SLAMetricsController) GetOverview(c *fiber.Ctx) error {
 		})
 	}
 
-	return c.JSON(metrics)
+	return c.JSON(fiber.Map{"data": metrics})
 }
 
 // GetViolations godoc
@@ -52,7 +52,7 @@ func (ctrl *SLAMetricsController) GetViolations(c *fiber.Ctx) error {
 		})
 	}
 
-	return c.JSON(violations)
+	return c.JSON(fiber.Map{"data": violations})
 }
 
 // GetTrends godoc
@@ -65,7 +65,7 @@ func (ctrl *SLAMetricsController) GetTrends(c *fiber.Ctx) error {
 		})
 	}
 
-	return c.JSON(trends)
+	return c.JSON(fiber.Map{"data": trends})
 }
 
 // GetTicketSLAStatus godoc
@@ -86,5 +86,12 @@ func (ctrl *SLAMetricsController) GetTicketSLAStatus(c *fiber.Ctx) error {
 	}
 
 	status := ctrl.SLAService.CalculateSLAStatus(c.UserContext(), ticket, policy)
-	return c.JSON(status)
+
+	// Return response with both status and policy
+	return c.JSON(fiber.Map{
+		"data": fiber.Map{
+			"sla_status": status,
+			"policy":     policy,
+		},
+	})
 }

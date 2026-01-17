@@ -28,7 +28,7 @@ func NewResourceController(service ResourceService) *ResourceController {
 // @Success 200 {array} Resource "List of sidebar resources grouped by category"
 // @Failure 500 {object} map[string]string "Internal server error"
 // @Security BearerAuth
-// @Router /api/resources/sidebar [get]
+// @Router /api/v1/resources/sidebar [get]
 func (c *ResourceController) GetSidebarResources(ctx *fiber.Ctx) error {
 	app := ctx.Get("X-Rich-App", "")
 	location := ctx.Query("location", "")
@@ -51,7 +51,7 @@ func (c *ResourceController) GetSidebarResources(ctx *fiber.Ctx) error {
 // @Success 200 {array} Resource "List of all resources"
 // @Failure 500 {object} map[string]string "Internal server error"
 // @Security BearerAuth
-// @Router /api/resources [get]
+// @Router /api/v1/resources [get]
 func (c *ResourceController) ListResources(ctx *fiber.Ctx) error {
 	// Get app from header and add to context
 	userCtx := ctx.UserContext()

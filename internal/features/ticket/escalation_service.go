@@ -8,6 +8,7 @@ import (
 
 	common_models "go-crm/internal/common/models"
 	"go-crm/internal/core/audit"
+	"go-crm/internal/features/email"
 	"go-crm/internal/features/notification"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -32,6 +33,7 @@ type EscalationServiceImpl struct {
 	TicketRepo          TicketRepository
 	AuditService        audit.AuditService
 	NotificationService notification.NotificationService
+	EmailService        email.EmailService
 }
 
 // NewEscalationService creates a new escalation service
@@ -40,12 +42,14 @@ func NewEscalationService(
 	ticketRepo TicketRepository,
 	auditService audit.AuditService,
 	notificationService notification.NotificationService,
+	emailService email.EmailService,
 ) EscalationService {
 	return &EscalationServiceImpl{
 		EscalationRuleRepo:  escalationRuleRepo,
 		TicketRepo:          ticketRepo,
 		AuditService:        auditService,
 		NotificationService: notificationService,
+		EmailService:        emailService,
 	}
 }
 
@@ -155,6 +159,41 @@ func (s *EscalationServiceImpl) ExecuteEscalation(ctx context.Context, ticket *T
 
 	// Send notifications to escalated_to user
 	_ = s.NotificationService.CreateNotification(ctx, rule.EscalateTo, "Ticket Escalated", fmt.Sprintf("Ticket %s has been escalated to you due to rule: %s", ticket.TicketNumber, rule.Name), notification.NotificationTypeSLA, fmt.Sprintf("/dashboard/modules/tickets/%s", ticket.ID.Hex()))
+
+	// Send email notifications if configured
+	if len(rule.NotifyEmails) > 0 && s.EmailService != nil {
+		subject := fmt.Sprintf("Ticket Escalated: %s", ticket.TicketNumber)
+		body := fmt.Sprintf(`
+			<html>
+			<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+				<h2 style="color: #d9534f;">Ticket Escalated</h2>
+				<p>A ticket has been escalated and requires your attention.</p>
+				<div style="background-color: #f8f9fa; padding: 15px; border-left: 4px solid #d9534f; margin: 20px 0;">
+					<p><strong>Ticket Number:</strong> %s</p>
+					<p><strong>Subject:</strong> %s</p>
+					<p><strong>Priority:</strong> <span style="color: #d9534f;">%s</span></p>
+					<p><strong>Status:</strong> %s</p>
+					<p><strong>Customer:</strong> %s (%s)</p>
+				</div>
+				<div style="margin: 20px 0;">
+					<p><strong>Escalation Details:</strong></p>
+					<p>Rule: %s</p>
+					<p>Reason: %s</p>
+					<p>Escalation Level: %d</p>
+				</div>
+				<p style="margin-top: 20px;">Please review and take appropriate action.</p>
+			</body>
+			</html>
+		`, ticket.TicketNumber, ticket.Subject, ticket.Priority, ticket.Status,
+			ticket.CustomerName, ticket.CustomerEmail, rule.Name,
+			fmt.Sprintf("Escalated by rule: %s", rule.Name), ticket.EscalationLevel+1)
+
+		// Send email (don't fail escalation if email fails)
+		if err := s.EmailService.SendEmail(ctx, rule.NotifyEmails, subject, body); err != nil {
+			// Log error but don't return it - escalation should succeed even if email fails
+			fmt.Printf("Warning: Failed to send escalation email: %v\n", err)
+		}
+	}
 
 	return nil
 }

@@ -11,6 +11,8 @@ import (
 // Group represents a user group with permissions
 type Group struct {
 	ID               primitive.ObjectID                            `json:"id" bson:"_id,omitempty"`
+	TenantID         primitive.ObjectID                            `json:"tenant_id" bson:"tenant_id"`
+	App              models.App                                    `json:"app" bson:"app"`
 	Name             string                                        `json:"name" bson:"name"`
 	Description      string                                        `json:"description" bson:"description"`
 	Permissions      map[string]map[string]models.ActionPermission `json:"permissions" bson:"permissions"`

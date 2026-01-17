@@ -24,12 +24,12 @@ func NewResourceApi(controller *ResourceController, cfg *config.Config, roleServ
 // Setup registers resource routes
 func (h *ResourceApi) Setup(app *fiber.App) {
 	// Public resource routes (with auth middleware only)
-	resources := app.Group("/api/resources", middleware.AuthMiddleware(h.config.SkipAuth))
+	resources := app.Group("/api/v1/resources", middleware.AuthMiddleware(h.config.SkipAuth))
 
-	// GET /api/resources/sidebar - Get sidebar resources (public for authenticated users)
+	// GET /api/v1/resources/sidebar - Get sidebar resources (public for authenticated users)
 	resources.Get("/sidebar", h.controller.GetSidebarResources)
 
-	// GET /api/resources - List all resources (admin only)
+	// GET /api/v1/resources - List all resources (admin only)
 	resources.Get("/", middleware.RequirePermission(h.roleService, "resources", "read"), h.controller.ListResources)
 
 	// GET /me/resources/:resource - Get resource metadata for UI

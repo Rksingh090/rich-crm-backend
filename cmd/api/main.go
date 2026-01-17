@@ -19,6 +19,7 @@ import (
 	"go-crm/internal/features/app"
 	"go-crm/internal/features/approval"
 	"go-crm/internal/features/automation"
+	"go-crm/internal/features/blueprint"
 	"go-crm/internal/features/bulk_operation"
 	"go-crm/internal/features/chart"
 	cron_feature "go-crm/internal/features/cron"
@@ -310,6 +311,7 @@ func main() {
 			analytics.NewDataSourceRepository,
 			resource.NewResourceRepository,
 			permission.NewPermissionRepository,
+			blueprint.NewRepository,
 
 			audit.NewAuditService,
 			app.NewAppService,
@@ -348,6 +350,7 @@ func main() {
 			permission.NewPermissionService,
 			inventory.NewInventoryService,
 			organization.NewOrganizationService,
+			blueprint.NewService,
 
 			// Interface Adapters to break circular dependencies and satisfy Fx
 			func(r record.RecordRepository) inventory.RecordRepository { return r },
@@ -400,6 +403,7 @@ func main() {
 			resource.NewResourceController,
 			permission.NewPermissionController,
 			organization.NewOrganizationController,
+			blueprint.NewController,
 
 			// Initialize API Routes
 			AsRoute(admin.NewAdminApi),
@@ -439,6 +443,7 @@ func main() {
 			AsRoute(permission.NewPermissionApi),
 			AsRoute(system.NewWebSocketApi),
 			AsRoute(organization.NewOrganizationApi),
+			AsRoute(blueprint.NewBlueprintApi),
 		),
 		fx.WithLogger(func(log *zap.Logger) fxevent.Logger {
 			return &fxevent.ZapLogger{Logger: log}
