@@ -206,7 +206,7 @@ func (s *UserServiceImpl) DeleteUser(ctx context.Context, id string) error {
 
 	// Audit log
 	changes := map[string]models.Change{
-		"deleted": {Old: false, New: true},
+		"__deleted": {Old: false, New: true},
 	}
 	_ = s.AuditService.LogChange(ctx, models.AuditActionDelete, "user", id, changes)
 

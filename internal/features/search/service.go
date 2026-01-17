@@ -6,11 +6,11 @@ import (
 	"strings"
 
 	"go-crm/internal/common/models"
+	"go-crm/internal/core/role"
 	"go-crm/internal/database"
 	"go-crm/internal/features/module"
 	"go-crm/internal/features/record"
 	"go-crm/internal/features/resource"
-	"go-crm/internal/core/role"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -132,9 +132,9 @@ func (s *SearchServiceImpl) GlobalSearch(ctx context.Context, query string, user
 
 			// Add filters for unified collection
 			filter := bson.M{
-				"entity":  moduleEntity.Name,
-				"deleted": bson.M{"$ne": true},
-				"$or":     orConditions,
+				"entity":    moduleEntity.Name,
+				"__deleted": bson.M{"$ne": true},
+				"$or":       orConditions,
 			}
 			if !tenantOID.IsZero() {
 				filter["tenant_id"] = tenantOID

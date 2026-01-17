@@ -17,6 +17,7 @@ const (
 type Email struct {
 	ID         primitive.ObjectID `bson:"_id,omitempty" json:"id"`
 	TenantID   primitive.ObjectID `bson:"tenant_id" json:"tenant_id"`
+	App        string             `bson:"app" json:"app"`
 	From       string             `bson:"from" json:"from"`
 	To         []string           `bson:"to" json:"to"`
 	Cc         []string           `bson:"cc,omitempty" json:"cc,omitempty"`

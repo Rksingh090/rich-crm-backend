@@ -10,6 +10,7 @@ import (
 type Webhook struct {
 	ID          primitive.ObjectID `json:"id" bson:"_id,omitempty"`
 	TenantID    primitive.ObjectID `json:"tenant_id" bson:"tenant_id"`
+	App         string             `json:"app" bson:"app"`
 	URL         string             `json:"url" bson:"url"`
 	Secret      string             `json:"secret,omitempty" bson:"secret,omitempty"` // For HMCA signature
 	Events      []string           `json:"events" bson:"events"`
@@ -27,6 +28,7 @@ type Webhook struct {
 type WebhookLog struct {
 	ID         primitive.ObjectID `json:"id" bson:"_id,omitempty"`
 	TenantID   primitive.ObjectID `json:"tenant_id" bson:"tenant_id"`
+	App        string             `json:"app" bson:"app"`
 	WebhookID  primitive.ObjectID `json:"webhook_id" bson:"webhook_id"`
 	URL        string             `json:"url" bson:"url"`
 	Event      string             `json:"event" bson:"event"`

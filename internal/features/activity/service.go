@@ -138,8 +138,8 @@ func (s *ActivityServiceImpl) GetTimeline(ctx context.Context, moduleName, recor
 	}
 
 	filter := bson.M{
-		"deleted": bson.M{"$ne": true},
-		"$or":     orConditions,
+		"__deleted": bson.M{"$ne": true},
+		"$or":       orConditions,
 	}
 
 	for collName, typeLabel := range sources {

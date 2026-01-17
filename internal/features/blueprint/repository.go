@@ -52,8 +52,12 @@ func (r *RepositoryImpl) Create(ctx context.Context, blueprint *Blueprint) error
 	blueprint.CreatedAt = time.Now()
 	blueprint.UpdatedAt = time.Now()
 
-	_, err = coll.InsertOne(ctx, blueprint)
-	return err
+	result, err := coll.InsertOne(ctx, blueprint)
+	if err != nil {
+		return err
+	}
+	blueprint.ID = result.InsertedID.(primitive.ObjectID)
+	return nil
 }
 
 func (r *RepositoryImpl) Update(ctx context.Context, blueprint *Blueprint) error {
@@ -81,7 +85,15 @@ func (r *RepositoryImpl) Delete(ctx context.Context, id string) error {
 		return err
 	}
 
-	_, err = coll.DeleteOne(ctx, bson.M{"_id": oid})
+	// Soft delete: set deleted=true
+	update := bson.M{
+		"$set": bson.M{
+			"__deleted":  true,
+			"updated_at": time.Now(),
+		},
+	}
+
+	_, err = coll.UpdateOne(ctx, bson.M{"_id": oid}, update)
 	return err
 }
 
@@ -97,7 +109,14 @@ func (r *RepositoryImpl) FindByID(ctx context.Context, id string) (*Blueprint, e
 	}
 
 	var blueprint Blueprint
-	err = coll.FindOne(ctx, bson.M{"_id": oid}).Decode(&blueprint)
+	// Exclude soft-deleted records
+	err = coll.FindOne(ctx, bson.M{
+		"_id": oid,
+		"$or": []bson.M{
+			{"__deleted": bson.M{"$exists": false}},
+			{"__deleted": false},
+		},
+	}).Decode(&blueprint)
 	if err != nil {
 		return nil, err
 	}
@@ -110,7 +129,13 @@ func (r *RepositoryImpl) List(ctx context.Context, filter BlueprintFilter) ([]Bl
 		return nil, err
 	}
 
-	query := bson.M{}
+	// Exclude soft-deleted records
+	query := bson.M{
+		"$or": []bson.M{
+			{"__deleted": bson.M{"$exists": false}},
+			{"__deleted": false},
+		},
+	}
 	if filter.Module != "" {
 		query["module"] = filter.Module
 	}
@@ -146,7 +171,15 @@ func (r *RepositoryImpl) FindActiveByModule(ctx context.Context, module string) 
 	// But usually one main blueprint per module is a good start.
 
 	var blueprint Blueprint
-	err = coll.FindOne(ctx, bson.M{"module": module, "active": true}).Decode(&blueprint)
+	// Exclude soft-deleted records
+	err = coll.FindOne(ctx, bson.M{
+		"module": module,
+		"active": true,
+		"$or": []bson.M{
+			{"__deleted": bson.M{"$exists": false}},
+			{"__deleted": false},
+		},
+	}).Decode(&blueprint)
 	if err != nil {
 		return nil, err
 	}

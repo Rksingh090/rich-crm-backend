@@ -14,6 +14,8 @@ type ModuleSyncConfig struct {
 
 type SyncSetting struct {
 	ID             primitive.ObjectID `json:"id" bson:"_id,omitempty"`
+	TenantID       primitive.ObjectID `json:"tenant_id" bson:"tenant_id"`
+	App            string             `json:"app" bson:"app"`
 	Name           string             `json:"name" bson:"name"`
 	Modules        []ModuleSyncConfig `json:"modules" bson:"modules"`
 	TargetDBType   string             `json:"target_db_type" bson:"target_db_type"` // "postgres", "mysql", "sqlserver", "mongodb"
@@ -26,6 +28,8 @@ type SyncSetting struct {
 
 type SyncLog struct {
 	ID             primitive.ObjectID `json:"id" bson:"_id,omitempty"`
+	TenantID       primitive.ObjectID `json:"tenant_id" bson:"tenant_id"`
+	App            string             `json:"app" bson:"app"`
 	SyncSettingID  primitive.ObjectID `json:"sync_setting_id" bson:"sync_setting_id"`
 	StartTime      time.Time          `json:"start_time" bson:"start_time"`
 	EndTime        time.Time          `json:"end_time" bson:"end_time"`

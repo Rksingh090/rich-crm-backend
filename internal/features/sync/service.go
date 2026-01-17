@@ -113,12 +113,10 @@ func (s *SyncServiceImpl) RunSync(ctx context.Context, id string) error {
 		return err
 	}
 
-	return s.executeSync(setting)
+	return s.executeSync(ctx, setting)
 }
 
-func (s *SyncServiceImpl) executeSync(setting *SyncSetting) error {
-	ctx := context.Background()
-
+func (s *SyncServiceImpl) executeSync(ctx context.Context, setting *SyncSetting) error {
 	log := &SyncLog{
 		SyncSettingID: setting.ID,
 		StartTime:     time.Now(),

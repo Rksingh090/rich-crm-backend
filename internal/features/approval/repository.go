@@ -13,7 +13,7 @@ import (
 )
 
 type ApprovalRepository interface {
-	Create(ctx context.Context, workflow ApprovalWorkflow) error
+	Create(ctx context.Context, workflow *ApprovalWorkflow) error
 	GetByModuleID(ctx context.Context, moduleID string) (*ApprovalWorkflow, error)
 	ListActiveByModuleID(ctx context.Context, moduleID string) ([]ApprovalWorkflow, error)
 	GetByID(ctx context.Context, id string) (*ApprovalWorkflow, error)
@@ -40,13 +40,17 @@ func (r *ApprovalRepositoryImpl) getCollection(ctx context.Context) (*mongo.Coll
 	return r.DB.GetTenantDB(tenantID).Collection("approval_workflows"), nil
 }
 
-func (r *ApprovalRepositoryImpl) Create(ctx context.Context, workflow ApprovalWorkflow) error {
+func (r *ApprovalRepositoryImpl) Create(ctx context.Context, workflow *ApprovalWorkflow) error {
 	coll, err := r.getCollection(ctx)
 	if err != nil {
 		return err
 	}
-	_, err = coll.InsertOne(ctx, workflow)
-	return err
+	result, err := coll.InsertOne(ctx, workflow)
+	if err != nil {
+		return err
+	}
+	workflow.ID = result.InsertedID.(primitive.ObjectID)
+	return nil
 }
 
 func (r *ApprovalRepositoryImpl) GetByModuleID(ctx context.Context, moduleID string) (*ApprovalWorkflow, error) {

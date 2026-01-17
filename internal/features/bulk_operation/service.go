@@ -47,19 +47,24 @@ func (s *BulkOperationServiceImpl) PreviewBulkOperation(ctx context.Context, mod
 }
 
 func (s *BulkOperationServiceImpl) CreateBulkOperation(ctx context.Context, op *BulkOperation) error {
-	return s.BulkRepo.Create(ctx, op)
+	tenantID := ctx.Value(models.TenantIDKey).(string)
+	return s.BulkRepo.Create(ctx, tenantID, op)
 }
 
 func (s *BulkOperationServiceImpl) GetOperation(ctx context.Context, id string) (*BulkOperation, error) {
-	return s.BulkRepo.Get(ctx, id)
+	tenantID := ctx.Value(models.TenantIDKey).(string)
+	return s.BulkRepo.Get(ctx, tenantID, id)
 }
 
 func (s *BulkOperationServiceImpl) GetUserOperations(ctx context.Context, userID primitive.ObjectID) ([]BulkOperation, error) {
-	return s.BulkRepo.FindByUserID(ctx, userID.Hex(), 50)
+	tenantID := ctx.Value(models.TenantIDKey).(string)
+	return s.BulkRepo.FindByUserID(ctx, tenantID, userID.Hex(), 50)
 }
 
 func (s *BulkOperationServiceImpl) ExecuteBulkOperation(ctx context.Context, opID string, userID primitive.ObjectID) error {
-	op, err := s.BulkRepo.Get(ctx, opID)
+	tenantID := ctx.Value(models.TenantIDKey).(string)
+
+	op, err := s.BulkRepo.Get(ctx, tenantID, opID)
 	if err != nil {
 		return err
 	}
@@ -68,15 +73,13 @@ func (s *BulkOperationServiceImpl) ExecuteBulkOperation(ctx context.Context, opI
 		return fmt.Errorf("unauthorized")
 	}
 
-	// Inject tenant context
-	ctx = context.WithValue(ctx, models.TenantIDKey, op.TenantID.Hex())
-	s.BulkRepo.UpdateStatus(ctx, opID, BulkStatusProcessing)
+	s.BulkRepo.UpdateStatus(ctx, tenantID, opID, BulkStatusProcessing)
 
 	records, total, err := s.RecordService.ListRecords(ctx, op.ModuleName, op.Filters, 1, 10000, "created_at", "desc", userID)
 	if err != nil {
 		op.Status = BulkStatusFailed
 		op.Errors = []BulkError{{RecordID: "", Message: err.Error()}}
-		s.BulkRepo.Update(ctx, op)
+		s.BulkRepo.Update(ctx, tenantID, op)
 		return err
 	}
 
@@ -120,7 +123,7 @@ func (s *BulkOperationServiceImpl) ExecuteBulkOperation(ctx context.Context, opI
 		op.ErrorCount = errorCount
 
 		if op.ProcessedCount%10 == 0 {
-			s.BulkRepo.Update(ctx, op)
+			s.BulkRepo.Update(ctx, tenantID, op)
 		}
 	}
 
@@ -131,5 +134,5 @@ func (s *BulkOperationServiceImpl) ExecuteBulkOperation(ctx context.Context, opI
 	now := time.Now()
 	op.CompletedAt = &now
 
-	return s.BulkRepo.Update(ctx, op)
+	return s.BulkRepo.Update(ctx, tenantID, op)
 }

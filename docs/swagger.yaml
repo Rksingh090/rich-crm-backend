@@ -251,6 +251,8 @@ definitions:
     - OperatorLessThan
   blueprint.Blueprint:
     properties:
+      __deleted:
+        type: boolean
       active:
         type: boolean
       app:
@@ -693,6 +695,8 @@ definitions:
     type: object
   email_template.EmailTemplate:
     properties:
+      app:
+        type: string
       body:
         type: string
       created_at:
@@ -1705,6 +1709,8 @@ definitions:
     type: object
   sync.SyncSetting:
     properties:
+      app:
+        type: string
       created_at:
         type: string
       id:
@@ -1725,6 +1731,8 @@ definitions:
         type: object
       target_db_type:
         description: '"postgres", "mysql", "sqlserver", "mongodb"'
+        type: string
+      tenant_id:
         type: string
       updated_at:
         type: string
@@ -2036,6 +2044,8 @@ definitions:
     type: object
   webhook.Webhook:
     properties:
+      app:
+        type: string
       created_at:
         type: string
       created_by:

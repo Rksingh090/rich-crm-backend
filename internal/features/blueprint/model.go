@@ -50,6 +50,7 @@ type Blueprint struct {
 	Layout      map[string]interface{} `bson:"layout" json:"layout"` // Node positions: key=stateName, val={x,y}
 	CreatedAt   time.Time              `bson:"created_at" json:"created_at"`
 	UpdatedAt   time.Time              `bson:"updated_at" json:"updated_at"`
+	Deleted     bool                   `bson:"__deleted" json:"__deleted"`
 }
 
 type BlueprintFilter struct {

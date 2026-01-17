@@ -170,8 +170,15 @@ func (c *BulkOperationController) ExecuteBulkOperation(ctx *fiber.Ctx) error {
 	}
 	userID, _ := primitive.ObjectIDFromHex(userIDStr)
 
+	// Get tenant ID from context
+	tenantIDStr, ok := ctx.Locals("tenant_id").(string)
+	if !ok || tenantIDStr == "" {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Tenant ID required"})
+	}
+
 	go func() {
-		bgCtx := context.Background()
+		// Create a new context with tenant ID for the background operation
+		bgCtx := context.WithValue(context.Background(), common_models.TenantIDKey, tenantIDStr)
 		c.BulkService.ExecuteBulkOperation(bgCtx, opID, userID)
 	}()
 

@@ -61,8 +61,18 @@ func (s *EmailTemplateServiceImpl) CreateTemplate(ctx context.Context, template 
 		}
 	}
 
-	if tenantID, ok := ctx.Value(common_models.TenantIDKey).(primitive.ObjectID); ok {
-		template.TenantID = tenantID
+	if val := ctx.Value(common_models.TenantIDKey); val != nil {
+		if id, ok := val.(string); ok {
+			if oid, err := primitive.ObjectIDFromHex(id); err == nil {
+				template.TenantID = oid
+			}
+		} else if oid, ok := val.(primitive.ObjectID); ok {
+			template.TenantID = oid
+		}
+	}
+
+	if appID, ok := ctx.Value(common_models.AppIDKey).(string); ok {
+		template.App = appID
 	}
 
 	err := s.Repo.Create(ctx, template)

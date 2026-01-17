@@ -56,13 +56,21 @@ func (s *EmailServiceImpl) SendEmail(ctx context.Context, to []string, subject, 
 		from = config.SMTPUser
 	}
 
-	// Try to get TenantID from context
+	// Try to get TenantID and AppID from context
 	var tenantID primitive.ObjectID
+	var appID string
 	if val := ctx.Value(common_models.TenantIDKey); val != nil {
 		if id, ok := val.(string); ok {
 			if oid, err := primitive.ObjectIDFromHex(id); err == nil {
 				tenantID = oid
 			}
+		} else if oid, ok := val.(primitive.ObjectID); ok {
+			tenantID = oid
+		}
+	}
+	if val := ctx.Value(common_models.AppIDKey); val != nil {
+		if id, ok := val.(string); ok {
+			appID = id
 		}
 	}
 
@@ -70,6 +78,7 @@ func (s *EmailServiceImpl) SendEmail(ctx context.Context, to []string, subject, 
 	emailRecord := &Email{
 		ID:       primitive.NewObjectID(),
 		TenantID: tenantID,
+		App:      appID,
 		From:     from,
 		To:       to,
 		Subject:  subject,
@@ -137,13 +146,21 @@ func (s *EmailServiceImpl) SendEmailWithOptions(ctx context.Context, opts EmailO
 		}
 	}
 
-	// Try to get TenantID from context
+	// Try to get TenantID and AppID from context
 	var tenantID primitive.ObjectID
+	var appID string
 	if val := ctx.Value(common_models.TenantIDKey); val != nil {
 		if id, ok := val.(string); ok {
 			if oid, err := primitive.ObjectIDFromHex(id); err == nil {
 				tenantID = oid
 			}
+		} else if oid, ok := val.(primitive.ObjectID); ok {
+			tenantID = oid
+		}
+	}
+	if val := ctx.Value(common_models.AppIDKey); val != nil {
+		if id, ok := val.(string); ok {
+			appID = id
 		}
 	}
 
@@ -151,6 +168,7 @@ func (s *EmailServiceImpl) SendEmailWithOptions(ctx context.Context, opts EmailO
 	emailRecord := &Email{
 		ID:       primitive.NewObjectID(),
 		TenantID: tenantID,
+		App:      appID,
 		From:     from,
 		To:       opts.To,
 		Cc:       opts.Cc,

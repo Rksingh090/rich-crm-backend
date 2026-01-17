@@ -104,9 +104,12 @@ func (e *ActionExecutorImpl) executeSendEmail(ctx context.Context, config map[st
 	from, _ := config["from"].(string)
 	subject, _ := config["subject"].(string)
 	body, _ := config["body"].(string)
-	templateID, _ := config["template_id"].(string)
+	templateID := ""
+	if tid, ok := config["template_id"]; ok {
+		templateID = fmt.Sprintf("%v", tid)
+	}
 
-	if templateID != "" {
+	if templateID != "" && templateID != "none" {
 		renderedSubject, renderedBody, err := e.emailTemplateService.RenderTemplate(ctx, templateID, rec)
 		if err != nil {
 			return fmt.Errorf("failed to render email template: %w", err)

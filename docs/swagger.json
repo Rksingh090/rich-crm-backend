@@ -8884,6 +8884,9 @@
         "blueprint.Blueprint": {
             "type": "object",
             "properties": {
+                "__deleted": {
+                    "type": "boolean"
+                },
                 "active": {
                     "type": "boolean"
                 },
@@ -9524,6 +9527,9 @@
         "email_template.EmailTemplate": {
             "type": "object",
             "properties": {
+                "app": {
+                    "type": "string"
+                },
                 "body": {
                     "type": "string"
                 },
@@ -10982,6 +10988,9 @@
         "sync.SyncSetting": {
             "type": "object",
             "properties": {
+                "app": {
+                    "type": "string"
+                },
                 "created_at": {
                     "type": "string"
                 },
@@ -11011,6 +11020,9 @@
                 },
                 "target_db_type": {
                     "description": "\"postgres\", \"mysql\", \"sqlserver\", \"mongodb\"",
+                    "type": "string"
+                },
+                "tenant_id": {
                     "type": "string"
                 },
                 "updated_at": {
@@ -11477,6 +11489,9 @@
         "webhook.Webhook": {
             "type": "object",
             "properties": {
+                "app": {
+                    "type": "string"
+                },
                 "created_at": {
                     "type": "string"
                 },

@@ -2,8 +2,10 @@ package webhook
 
 import (
 	"context"
+	"fmt"
 	"time"
 
+	"go-crm/internal/common/models"
 	"go-crm/internal/database"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -27,35 +29,66 @@ type WebhookLogRepository interface {
 }
 
 type WebhookRepositoryImpl struct {
-	collection *mongo.Collection
+	DB *database.MongodbDB
 }
 
 func NewWebhookRepository(db *database.MongodbDB) WebhookRepository {
 	return &WebhookRepositoryImpl{
-		collection: db.DB.Collection("webhooks"),
+		DB: db,
 	}
 }
 
+func (r *WebhookRepositoryImpl) getCollection(ctx context.Context) (*mongo.Collection, error) {
+	tenantID, ok := ctx.Value(models.TenantIDKey).(string)
+	if !ok || tenantID == "" {
+		return nil, fmt.Errorf("organization context missing")
+	}
+	return r.DB.GetTenantDB(tenantID).Collection("webhooks"), nil
+}
+
 func (r *WebhookRepositoryImpl) Create(ctx context.Context, webhook *Webhook) error {
+	coll, err := r.getCollection(ctx)
+	if err != nil {
+		return err
+	}
+
 	if webhook.ID.IsZero() {
 		webhook.ID = primitive.NewObjectID()
 	}
+
+	// Populate TenantID and App from context
+	if tenantID, ok := ctx.Value(models.TenantIDKey).(string); ok {
+		if oid, err := primitive.ObjectIDFromHex(tenantID); err == nil {
+			webhook.TenantID = oid
+		}
+	}
+	if appID, ok := ctx.Value(models.AppIDKey).(string); ok {
+		webhook.App = appID
+	} else {
+		webhook.App = string(models.AppCRM) // Default to CRM if not specified
+	}
+
 	webhook.CreatedAt = time.Now()
 	webhook.UpdatedAt = time.Now()
 	webhook.IsActive = true // Default to true
 
-	_, err := r.collection.InsertOne(ctx, webhook)
+	_, err = coll.InsertOne(ctx, webhook)
 	return err
 }
 
 func (r *WebhookRepositoryImpl) Get(ctx context.Context, id string) (*Webhook, error) {
+	coll, err := r.getCollection(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return nil, err
 	}
 
 	var webhook Webhook
-	err = r.collection.FindOne(ctx, bson.M{"_id": oid}).Decode(&webhook)
+	err = coll.FindOne(ctx, bson.M{"_id": oid}).Decode(&webhook)
 	if err != nil {
 		return nil, err
 	}
@@ -64,8 +97,13 @@ func (r *WebhookRepositoryImpl) Get(ctx context.Context, id string) (*Webhook, e
 }
 
 func (r *WebhookRepositoryImpl) List(ctx context.Context) ([]Webhook, error) {
+	coll, err := r.getCollection(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	opts := options.Find().SetSort(bson.D{{Key: "created_at", Value: -1}})
-	cursor, err := r.collection.Find(ctx, bson.M{}, opts)
+	cursor, err := coll.Find(ctx, bson.M{}, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -80,12 +118,17 @@ func (r *WebhookRepositoryImpl) List(ctx context.Context) ([]Webhook, error) {
 }
 
 func (r *WebhookRepositoryImpl) ListByEvent(ctx context.Context, event string) ([]Webhook, error) {
+	coll, err := r.getCollection(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	filter := bson.M{
 		"events":    event,
 		"is_active": true,
 	}
 
-	cursor, err := r.collection.Find(ctx, filter)
+	cursor, err := coll.Find(ctx, filter)
 	if err != nil {
 		return nil, err
 	}
@@ -100,13 +143,18 @@ func (r *WebhookRepositoryImpl) ListByEvent(ctx context.Context, event string) (
 }
 
 func (r *WebhookRepositoryImpl) Update(ctx context.Context, id string, updates map[string]interface{}) error {
+	coll, err := r.getCollection(ctx)
+	if err != nil {
+		return err
+	}
+
 	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return err
 	}
 
 	updates["updated_at"] = time.Now()
-	_, err = r.collection.UpdateOne(
+	_, err = coll.UpdateOne(
 		ctx,
 		bson.M{"_id": oid},
 		bson.M{"$set": updates},
@@ -115,36 +163,72 @@ func (r *WebhookRepositoryImpl) Update(ctx context.Context, id string, updates m
 }
 
 func (r *WebhookRepositoryImpl) Delete(ctx context.Context, id string) error {
+	coll, err := r.getCollection(ctx)
+	if err != nil {
+		return err
+	}
+
 	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return err
 	}
 
-	_, err = r.collection.DeleteOne(ctx, bson.M{"_id": oid})
+	_, err = coll.DeleteOne(ctx, bson.M{"_id": oid})
 	return err
 }
 
 type WebhookLogRepositoryImpl struct {
-	collection *mongo.Collection
+	DB *database.MongodbDB
 }
 
 func NewWebhookLogRepository(db *database.MongodbDB) WebhookLogRepository {
 	return &WebhookLogRepositoryImpl{
-		collection: db.DB.Collection("webhook_logs"),
+		DB: db,
 	}
 }
 
+func (r *WebhookLogRepositoryImpl) getCollection(ctx context.Context) (*mongo.Collection, error) {
+	tenantID, ok := ctx.Value(models.TenantIDKey).(string)
+	if !ok || tenantID == "" {
+		return nil, fmt.Errorf("organization context missing")
+	}
+	return r.DB.GetTenantDB(tenantID).Collection("webhook_logs"), nil
+}
+
 func (r *WebhookLogRepositoryImpl) Create(ctx context.Context, log *WebhookLog) error {
+	coll, err := r.getCollection(ctx)
+	if err != nil {
+		return err
+	}
+
 	if log.ID.IsZero() {
 		log.ID = primitive.NewObjectID()
 	}
+
+	// Populate TenantID and App from context
+	if tenantID, ok := ctx.Value(models.TenantIDKey).(string); ok {
+		if oid, err := primitive.ObjectIDFromHex(tenantID); err == nil {
+			log.TenantID = oid
+		}
+	}
+	if appID, ok := ctx.Value(models.AppIDKey).(string); ok {
+		log.App = appID
+	} else {
+		log.App = string(models.AppCRM) // Default to CRM if not specified
+	}
+
 	log.CreatedAt = time.Now()
 
-	_, err := r.collection.InsertOne(ctx, log)
+	_, err = coll.InsertOne(ctx, log)
 	return err
 }
 
 func (r *WebhookLogRepositoryImpl) ListByWebhookID(ctx context.Context, webhookID string) ([]WebhookLog, error) {
+	coll, err := r.getCollection(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	oid, err := primitive.ObjectIDFromHex(webhookID)
 	if err != nil {
 		return nil, err
@@ -153,7 +237,7 @@ func (r *WebhookLogRepositoryImpl) ListByWebhookID(ctx context.Context, webhookI
 	filter := bson.M{"webhook_id": oid}
 	opts := options.Find().SetSort(bson.D{{Key: "created_at", Value: -1}}).SetLimit(50)
 
-	cursor, err := r.collection.Find(ctx, filter, opts)
+	cursor, err := coll.Find(ctx, filter, opts)
 	if err != nil {
 		return nil, err
 	}

@@ -2,6 +2,7 @@ package email_template
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"go-crm/internal/common/models"
@@ -21,13 +22,29 @@ type EmailTemplateRepository interface {
 }
 
 type EmailTemplateRepositoryImpl struct {
-	collection *mongo.Collection
+	db *database.MongodbDB
 }
 
 func NewEmailTemplateRepository(db *database.MongodbDB) EmailTemplateRepository {
 	return &EmailTemplateRepositoryImpl{
-		collection: db.DB.Collection("email_templates"),
+		db: db,
 	}
+}
+
+func (r *EmailTemplateRepositoryImpl) getCollection(ctx context.Context) (*mongo.Collection, error) {
+	tenantID, ok := ctx.Value(models.TenantIDKey).(string)
+	if !ok || tenantID == "" {
+		// Try primitive.ObjectID
+		if oid, ok := ctx.Value(models.TenantIDKey).(primitive.ObjectID); ok {
+			tenantID = oid.Hex()
+		}
+	}
+
+	if tenantID == "" {
+		return nil, fmt.Errorf("tenant context missing")
+	}
+
+	return r.db.GetTenantDB(tenantID).Collection("email_templates"), nil
 }
 
 func (r *EmailTemplateRepositoryImpl) Create(ctx context.Context, template *EmailTemplate) error {
@@ -38,7 +55,12 @@ func (r *EmailTemplateRepositoryImpl) Create(ctx context.Context, template *Emai
 		template.ID = primitive.NewObjectID()
 	}
 
-	_, err := r.collection.InsertOne(ctx, template)
+	col, err := r.getCollection(ctx)
+	if err != nil {
+		return err
+	}
+
+	_, err = col.InsertOne(ctx, template)
 	return err
 }
 
@@ -48,15 +70,24 @@ func (r *EmailTemplateRepositoryImpl) GetByID(ctx context.Context, id string) (*
 		return nil, err
 	}
 
+	col, err := r.getCollection(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	filter := bson.M{"_id": oid}
 
-	// Add tenant check
-	if tenantID, ok := ctx.Value(models.TenantIDKey).(primitive.ObjectID); ok {
-		filter["tenant_id"] = tenantID
+	// Add app check if present in context, but allow templates with no app field
+	if appID, ok := ctx.Value(models.AppIDKey).(string); ok && appID != "" {
+		filter["$or"] = []bson.M{
+			{"app": appID},
+			{"app": ""},
+			{"app": bson.M{"$exists": false}},
+		}
 	}
 
 	var template EmailTemplate
-	err = r.collection.FindOne(ctx, filter).Decode(&template)
+	err = col.FindOne(ctx, filter).Decode(&template)
 	if err != nil {
 		return nil, err
 	}
@@ -65,30 +96,42 @@ func (r *EmailTemplateRepositoryImpl) GetByID(ctx context.Context, id string) (*
 }
 
 func (r *EmailTemplateRepositoryImpl) List(ctx context.Context, moduleName string) ([]EmailTemplate, error) {
-	filter := bson.M{}
-
-	// Add tenant check
-	if tenantID, ok := ctx.Value(models.TenantIDKey).(primitive.ObjectID); ok {
-		filter["tenant_id"] = tenantID
+	col, err := r.getCollection(ctx)
+	if err != nil {
+		return nil, err
 	}
 
+	filter := bson.M{}
+
 	if moduleName != "" {
-		if _, ok := filter["tenant_id"]; ok {
-			// If we have tenant_id, we can just add module_name to the filter
-			filter["module_name"] = moduleName
-		} else {
-			// Original logic for when tenant_id might not be present (though it should be)
-			// Retaining logic but combining with tenant check if present
-			orFilter := []bson.M{
-				{"module_name": moduleName},
-				{"module_name": ""},
-				{"module_name": bson.M{"$exists": false}},
-			}
-			filter["$or"] = orFilter
+		filter["$or"] = []bson.M{
+			{"module_name": moduleName},
+			{"module_name": ""},
+			{"module_name": bson.M{"$exists": false}},
 		}
 	}
 
-	cursor, err := r.collection.Find(ctx, filter)
+	// Add app check
+	if appID, ok := ctx.Value(models.AppIDKey).(string); ok && appID != "" {
+		appFilter := []bson.M{
+			{"app": appID},
+			{"app": ""},
+			{"app": bson.M{"$exists": false}},
+		}
+		if existingOr, ok := filter["$or"]; ok {
+			// If we already have an OR for module_name, we need to AND it with the app OR
+			filter = bson.M{
+				"$and": []bson.M{
+					{"$or": existingOr},
+					{"$or": appFilter},
+				},
+			}
+		} else {
+			filter["$or"] = appFilter
+		}
+	}
+
+	cursor, err := col.Find(ctx, filter)
 	if err != nil {
 		return nil, err
 	}
@@ -105,16 +148,15 @@ func (r *EmailTemplateRepositoryImpl) List(ctx context.Context, moduleName strin
 func (r *EmailTemplateRepositoryImpl) Update(ctx context.Context, template *EmailTemplate) error {
 	template.UpdatedAt = time.Now()
 
-	filter := bson.M{"_id": template.ID}
-
-	// Add tenant check
-	if tenantID, ok := ctx.Value(models.TenantIDKey).(primitive.ObjectID); ok {
-		filter["tenant_id"] = tenantID
+	col, err := r.getCollection(ctx)
+	if err != nil {
+		return err
 	}
 
+	filter := bson.M{"_id": template.ID}
 	update := bson.M{"$set": template}
 
-	_, err := r.collection.UpdateOne(ctx, filter, update)
+	_, err = col.UpdateOne(ctx, filter, update)
 	return err
 }
 
@@ -124,13 +166,11 @@ func (r *EmailTemplateRepositoryImpl) Delete(ctx context.Context, id string) err
 		return err
 	}
 
-	filter := bson.M{"_id": oid}
-
-	// Add tenant check
-	if tenantID, ok := ctx.Value(models.TenantIDKey).(primitive.ObjectID); ok {
-		filter["tenant_id"] = tenantID
+	col, err := r.getCollection(ctx)
+	if err != nil {
+		return err
 	}
 
-	_, err = r.collection.DeleteOne(ctx, filter)
+	_, err = col.DeleteOne(ctx, bson.M{"_id": oid})
 	return err
 }

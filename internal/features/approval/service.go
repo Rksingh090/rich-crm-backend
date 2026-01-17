@@ -6,9 +6,9 @@ import (
 	"fmt"
 	common_models "go-crm/internal/common/models"
 	"go-crm/internal/core/audit"
+	"go-crm/internal/core/user"
 	"go-crm/internal/features/module"
 	"go-crm/internal/features/record"
-	"go-crm/internal/core/user"
 	"slices"
 	"time"
 
@@ -70,7 +70,7 @@ func (s *ApprovalServiceImpl) CreateWorkflow(ctx context.Context, workflow Appro
 	workflow.CreatedAt = time.Now()
 	workflow.UpdatedAt = time.Now()
 
-	return s.Repo.Create(ctx, workflow)
+	return s.Repo.Create(ctx, &workflow)
 }
 
 func (s *ApprovalServiceImpl) UpdateWorkflow(ctx context.Context, id string, workflow ApprovalWorkflow) error {

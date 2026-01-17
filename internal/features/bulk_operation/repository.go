@@ -7,48 +7,69 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type BulkOperationRepository interface {
-	Create(ctx context.Context, op *BulkOperation) error
-	Get(ctx context.Context, id string) (*BulkOperation, error)
-	Update(ctx context.Context, op *BulkOperation) error
-	FindByUserID(ctx context.Context, userID string, limit int) ([]BulkOperation, error)
-	UpdateStatus(ctx context.Context, id string, status BulkOperationStatus) error
+	Create(ctx context.Context, tenantID string, op *BulkOperation) error
+	Get(ctx context.Context, tenantID string, id string) (*BulkOperation, error)
+	Update(ctx context.Context, tenantID string, op *BulkOperation) error
+	FindByUserID(ctx context.Context, tenantID string, userID string, limit int) ([]BulkOperation, error)
+	UpdateStatus(ctx context.Context, tenantID string, id string, status BulkOperationStatus) error
 }
 
 type BulkOperationRepositoryImpl struct {
-	collection *mongo.Collection
+	dbManager *database.MongodbDB
 }
 
-func NewBulkOperationRepository(db *database.MongodbDB) BulkOperationRepository {
+func NewBulkOperationRepository(dbManager *database.MongodbDB) BulkOperationRepository {
 	return &BulkOperationRepositoryImpl{
-		collection: db.DB.Collection("bulk_operations"),
+		dbManager: dbManager,
 	}
 }
 
-func (r *BulkOperationRepositoryImpl) Create(ctx context.Context, op *BulkOperation) error {
+func (r *BulkOperationRepositoryImpl) Create(ctx context.Context, tenantID string, op *BulkOperation) error {
+	db := r.dbManager.GetTenantDB(tenantID)
+	collection := db.Collection("bulk_operations")
+
 	if op.ID.IsZero() {
 		op.ID = primitive.NewObjectID()
 	}
+
+	// Set TenantID
+	tenantObjID, err := primitive.ObjectIDFromHex(tenantID)
+	if err != nil {
+		return err
+	}
+	op.TenantID = tenantObjID
+
 	op.CreatedAt = time.Now()
 	op.UpdatedAt = time.Now()
 	op.Status = BulkStatusPending
 
-	_, err := r.collection.InsertOne(ctx, op)
+	_, err = collection.InsertOne(ctx, op)
 	return err
 }
 
-func (r *BulkOperationRepositoryImpl) Get(ctx context.Context, id string) (*BulkOperation, error) {
+func (r *BulkOperationRepositoryImpl) Get(ctx context.Context, tenantID string, id string) (*BulkOperation, error) {
+	db := r.dbManager.GetTenantDB(tenantID)
+	collection := db.Collection("bulk_operations")
+
 	objID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return nil, err
 	}
 
+	tenantObjID, err := primitive.ObjectIDFromHex(tenantID)
+	if err != nil {
+		return nil, err
+	}
+
 	var op BulkOperation
-	err = r.collection.FindOne(ctx, bson.M{"_id": objID}).Decode(&op)
+	err = collection.FindOne(ctx, bson.M{
+		"_id":       objID,
+		"tenant_id": tenantObjID,
+	}).Decode(&op)
 	if err != nil {
 		return nil, err
 	}
@@ -56,20 +77,43 @@ func (r *BulkOperationRepositoryImpl) Get(ctx context.Context, id string) (*Bulk
 	return &op, nil
 }
 
-func (r *BulkOperationRepositoryImpl) Update(ctx context.Context, op *BulkOperation) error {
+func (r *BulkOperationRepositoryImpl) Update(ctx context.Context, tenantID string, op *BulkOperation) error {
+	db := r.dbManager.GetTenantDB(tenantID)
+	collection := db.Collection("bulk_operations")
+
 	op.UpdatedAt = time.Now()
-	_, err := r.collection.ReplaceOne(ctx, bson.M{"_id": op.ID}, op)
+
+	tenantObjID, err := primitive.ObjectIDFromHex(tenantID)
+	if err != nil {
+		return err
+	}
+
+	_, err = collection.ReplaceOne(ctx, bson.M{
+		"_id":       op.ID,
+		"tenant_id": tenantObjID,
+	}, op)
 	return err
 }
 
-func (r *BulkOperationRepositoryImpl) FindByUserID(ctx context.Context, userID string, limit int) ([]BulkOperation, error) {
+func (r *BulkOperationRepositoryImpl) FindByUserID(ctx context.Context, tenantID string, userID string, limit int) ([]BulkOperation, error) {
+	db := r.dbManager.GetTenantDB(tenantID)
+	collection := db.Collection("bulk_operations")
+
 	objID, err := primitive.ObjectIDFromHex(userID)
 	if err != nil {
 		return nil, err
 	}
 
+	tenantObjID, err := primitive.ObjectIDFromHex(tenantID)
+	if err != nil {
+		return nil, err
+	}
+
 	opts := options.Find().SetLimit(int64(limit)).SetSort(bson.D{{Key: "created_at", Value: -1}})
-	cursor, err := r.collection.Find(ctx, bson.M{"user_id": objID}, opts)
+	cursor, err := collection.Find(ctx, bson.M{
+		"user_id":   objID,
+		"tenant_id": tenantObjID,
+	}, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -83,8 +127,16 @@ func (r *BulkOperationRepositoryImpl) FindByUserID(ctx context.Context, userID s
 	return ops, nil
 }
 
-func (r *BulkOperationRepositoryImpl) UpdateStatus(ctx context.Context, id string, status BulkOperationStatus) error {
+func (r *BulkOperationRepositoryImpl) UpdateStatus(ctx context.Context, tenantID string, id string, status BulkOperationStatus) error {
+	db := r.dbManager.GetTenantDB(tenantID)
+	collection := db.Collection("bulk_operations")
+
 	objID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return err
+	}
+
+	tenantObjID, err := primitive.ObjectIDFromHex(tenantID)
 	if err != nil {
 		return err
 	}
@@ -107,6 +159,9 @@ func (r *BulkOperationRepositoryImpl) UpdateStatus(ctx context.Context, id strin
 		}
 	}
 
-	_, err = r.collection.UpdateOne(ctx, bson.M{"_id": objID}, update)
+	_, err = collection.UpdateOne(ctx, bson.M{
+		"_id":       objID,
+		"tenant_id": tenantObjID,
+	}, update)
 	return err
 }

@@ -173,7 +173,7 @@ type EntityRecord struct {
 	UpdatedBy string                 `json:"updated_by" bson:"updated_by"` // User ID
 	CreatedAt time.Time              `json:"created_at" bson:"created_at"`
 	UpdatedAt time.Time              `json:"updated_at" bson:"updated_at"`
-	Deleted   bool                   `json:"__deleted" bson:"deleted"`
+	Deleted   bool                   `json:"__deleted" bson:"__deleted"`
 	DeletedAt *time.Time             `json:"deleted_at,omitempty" bson:"deleted_at,omitempty"`
 	DeletedBy string                 `json:"deleted_by,omitempty" bson:"deleted_by,omitempty"` // User ID
 }

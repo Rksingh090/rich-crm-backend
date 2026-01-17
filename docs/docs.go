@@ -8890,6 +8890,9 @@ const docTemplate = `{
         "blueprint.Blueprint": {
             "type": "object",
             "properties": {
+                "__deleted": {
+                    "type": "boolean"
+                },
                 "active": {
                     "type": "boolean"
                 },
@@ -9530,6 +9533,9 @@ const docTemplate = `{
         "email_template.EmailTemplate": {
             "type": "object",
             "properties": {
+                "app": {
+                    "type": "string"
+                },
                 "body": {
                     "type": "string"
                 },
@@ -10988,6 +10994,9 @@ const docTemplate = `{
         "sync.SyncSetting": {
             "type": "object",
             "properties": {
+                "app": {
+                    "type": "string"
+                },
                 "created_at": {
                     "type": "string"
                 },
@@ -11017,6 +11026,9 @@ const docTemplate = `{
                 },
                 "target_db_type": {
                     "description": "\"postgres\", \"mysql\", \"sqlserver\", \"mongodb\"",
+                    "type": "string"
+                },
+                "tenant_id": {
                     "type": "string"
                 },
                 "updated_at": {
@@ -11483,6 +11495,9 @@ const docTemplate = `{
         "webhook.Webhook": {
             "type": "object",
             "properties": {
+                "app": {
+                    "type": "string"
+                },
                 "created_at": {
                     "type": "string"
                 },
