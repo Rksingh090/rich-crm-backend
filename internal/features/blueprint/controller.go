@@ -145,3 +145,23 @@ func (c *Controller) ExecuteTransition(ctx *fiber.Ctx) error {
 
 	return ctx.JSON(fiber.Map{"status": "success"})
 }
+
+// GetTransitions godoc
+// @Summary Get available transitions for a record
+// @Tags Blueprint
+// @Produce json
+// @Param module path string true "Module Name"
+// @Param id path string true "Record ID"
+// @Success 200 {array} Transition
+// @Router /modules/{module}/records/{id}/transitions [get]
+func (c *Controller) GetTransitions(ctx *fiber.Ctx) error {
+	moduleName := ctx.Params("module")
+	recordID := ctx.Params("id")
+
+	transitions, err := c.service.GetAvailableTransitions(ctx.UserContext(), moduleName, recordID)
+	if err != nil {
+		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	return ctx.JSON(transitions)
+}

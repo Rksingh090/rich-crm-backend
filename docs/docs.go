@@ -7668,6 +7668,44 @@ const docTemplate = `{
                 }
             }
         },
+        "/modules/{module}/records/{id}/transitions": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Blueprint"
+                ],
+                "summary": "Get available transitions for a record",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Module Name",
+                        "name": "module",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Record ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/blueprint.Transition"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/modules/{name}": {
             "get": {
                 "security": [

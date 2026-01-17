@@ -38,4 +38,5 @@ func (h *BlueprintApi) Setup(app *fiber.App) {
 	// Execution Endpoint
 	// This is a dedicated endpoint for testing or manual triggers.
 	api.Post("/execute/:module/:id", h.controller.ExecuteTransition)
+	api.Get("/transitions/:module/:id", h.controller.GetTransitions)
 }

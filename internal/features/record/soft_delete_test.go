@@ -57,6 +57,9 @@ func (m *MockRecordRepo) Aggregate(ctx context.Context, moduleName string, pipel
 func (m *MockRecordRepo) GetNextSequence(ctx context.Context, moduleName, fieldName string) (int64, error) {
 	return 1, nil
 }
+func (m *MockRecordRepo) EnsureIndexes(ctx context.Context, module *common_models.Entity) error {
+	return nil
+}
 
 type MockAuditService struct {
 }
