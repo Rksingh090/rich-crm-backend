@@ -218,6 +218,8 @@ definitions:
         type: string
       updated_at:
         type: string
+      visual_layout:
+        $ref: '#/definitions/automation.VisualLayout'
     type: object
   automation.RuleCondition:
     properties:
@@ -241,6 +243,54 @@ definitions:
     - OperatorContains
     - OperatorGreaterThan
     - OperatorLessThan
+  automation.Viewport:
+    properties:
+      x:
+        type: number
+      "y":
+        type: number
+      zoom:
+        type: number
+    type: object
+  automation.VisualEdge:
+    properties:
+      id:
+        type: string
+      source:
+        type: string
+      sourceHandle:
+        type: string
+      target:
+        type: string
+    type: object
+  automation.VisualLayout:
+    properties:
+      edges:
+        items:
+          $ref: '#/definitions/automation.VisualEdge'
+        type: array
+      nodes:
+        items:
+          $ref: '#/definitions/automation.VisualNode'
+        type: array
+      viewport:
+        $ref: '#/definitions/automation.Viewport'
+    type: object
+  automation.VisualNode:
+    properties:
+      data:
+        additionalProperties: true
+        type: object
+      id:
+        type: string
+      position:
+        additionalProperties:
+          format: float64
+          type: number
+        type: object
+      type:
+        type: string
+    type: object
   blueprint.Blueprint:
     properties:
       __deleted:

@@ -9104,6 +9104,9 @@ const docTemplate = `{
                 },
                 "updated_at": {
                     "type": "string"
+                },
+                "visual_layout": {
+                    "$ref": "#/definitions/automation.VisualLayout"
                 }
             }
         },
@@ -9135,6 +9138,79 @@ const docTemplate = `{
                 "OperatorGreaterThan",
                 "OperatorLessThan"
             ]
+        },
+        "automation.Viewport": {
+            "type": "object",
+            "properties": {
+                "x": {
+                    "type": "number"
+                },
+                "y": {
+                    "type": "number"
+                },
+                "zoom": {
+                    "type": "number"
+                }
+            }
+        },
+        "automation.VisualEdge": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "source": {
+                    "type": "string"
+                },
+                "sourceHandle": {
+                    "type": "string"
+                },
+                "target": {
+                    "type": "string"
+                }
+            }
+        },
+        "automation.VisualLayout": {
+            "type": "object",
+            "properties": {
+                "edges": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/automation.VisualEdge"
+                    }
+                },
+                "nodes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/automation.VisualNode"
+                    }
+                },
+                "viewport": {
+                    "$ref": "#/definitions/automation.Viewport"
+                }
+            }
+        },
+        "automation.VisualNode": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "id": {
+                    "type": "string"
+                },
+                "position": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "number",
+                        "format": "float64"
+                    }
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
         },
         "blueprint.Blueprint": {
             "type": "object",
