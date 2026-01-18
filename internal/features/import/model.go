@@ -44,8 +44,8 @@ type ImportError struct {
 
 // ImportPreview represents a preview of import data
 type ImportPreview struct {
-	Headers      []string                 `json:"headers"`
-	SampleData   []map[string]interface{} `json:"sample_data"`
-	TotalRows    int                      `json:"total_rows"`
-	ModuleFields []common_models.ModuleField     `json:"module_fields"`
+	Headers      []string                    `json:"headers"`
+	SampleData   []map[string]any            `json:"sample_data"`
+	TotalRows    int                         `json:"total_rows"`
+	ModuleFields []common_models.ModuleField `json:"module_fields"`
 }

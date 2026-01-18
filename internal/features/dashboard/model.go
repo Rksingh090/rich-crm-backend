@@ -7,12 +7,12 @@ import (
 )
 
 type DashboardWidget struct {
-	ID         string                 `json:"id" bson:"id"`
-	Type       string                 `json:"type" bson:"type"`
-	Title      string                 `json:"title" bson:"title"`
-	ModuleName string                 `json:"module_name" bson:"module_name"`
-	Position   WidgetPosition         `json:"position" bson:"position"`
-	Config     map[string]interface{} `json:"config" bson:"config"`
+	ID         string         `json:"id" bson:"id"`
+	Type       string         `json:"type" bson:"type"`
+	Title      string         `json:"title" bson:"title"`
+	ModuleName string         `json:"module_name" bson:"module_name"`
+	Position   WidgetPosition `json:"position" bson:"position"`
+	Config     map[string]any `json:"config" bson:"config"`
 }
 
 type WidgetPosition struct {

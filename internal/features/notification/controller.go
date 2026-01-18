@@ -25,9 +25,9 @@ func NewNotificationController(service NotificationService) *NotificationControl
 // @Produce json
 // @Param page query int false "Page number"
 // @Param limit query int false "Items per page"
-// @Success 200 {object} map[string]interface{}
-// @Failure 401 {object} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
+// @Success 200 {object} map[string]any
+// @Failure 401 {object} map[string]any
+// @Failure 500 {object} map[string]any
 // @Router /api/notifications [get]
 func (c *NotificationController) List(ctx *fiber.Ctx) error {
 	userIDStr := ctx.Locals("user_id").(string)
@@ -58,9 +58,9 @@ func (c *NotificationController) List(ctx *fiber.Ctx) error {
 // @Description Get the count of unread notifications
 // @Tags notifications
 // @Produce json
-// @Success 200 {object} map[string]interface{}
-// @Failure 401 {object} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
+// @Success 200 {object} map[string]any
+// @Failure 401 {object} map[string]any
+// @Failure 500 {object} map[string]any
 // @Router /api/notifications/unread-count [get]
 func (c *NotificationController) GetUnreadCount(ctx *fiber.Ctx) error {
 	userIDStr := ctx.Locals("user_id").(string)
@@ -84,9 +84,9 @@ func (c *NotificationController) GetUnreadCount(ctx *fiber.Ctx) error {
 // @Tags notifications
 // @Produce json
 // @Param id path string true "Notification ID"
-// @Success 200 {object} map[string]interface{}
-// @Failure 401 {object} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
+// @Success 200 {object} map[string]any
+// @Failure 401 {object} map[string]any
+// @Failure 500 {object} map[string]any
 // @Router /api/notifications/{id}/read [put]
 func (c *NotificationController) MarkAsRead(ctx *fiber.Ctx) error {
 	userIDStr := ctx.Locals("user_id").(string)
@@ -109,9 +109,9 @@ func (c *NotificationController) MarkAsRead(ctx *fiber.Ctx) error {
 // @Description Mark all notifications as read for the user
 // @Tags notifications
 // @Produce json
-// @Success 200 {object} map[string]interface{}
-// @Failure 401 {object} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
+// @Success 200 {object} map[string]any
+// @Failure 401 {object} map[string]any
+// @Failure 500 {object} map[string]any
 // @Router /api/notifications/read-all [put]
 func (c *NotificationController) MarkAllAsRead(ctx *fiber.Ctx) error {
 	userIDStr := ctx.Locals("user_id").(string)

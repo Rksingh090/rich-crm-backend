@@ -8,7 +8,7 @@ import (
 type OrganizationService interface {
 	CreateOrganization(ctx context.Context, org *models.Organization) error
 	GetOrganization(ctx context.Context, id string) (*models.Organization, error)
-	ListOrganizations(ctx context.Context, filter map[string]interface{}) ([]models.Organization, error)
+	ListOrganizations(ctx context.Context, filter map[string]any) ([]models.Organization, error)
 	UpdateOrganization(ctx context.Context, org *models.Organization) error
 	DeleteOrganization(ctx context.Context, id string) error
 }
@@ -31,7 +31,7 @@ func (s *OrganizationServiceImpl) GetOrganization(ctx context.Context, id string
 	return s.repo.FindByID(ctx, id)
 }
 
-func (s *OrganizationServiceImpl) ListOrganizations(ctx context.Context, filter map[string]interface{}) ([]models.Organization, error) {
+func (s *OrganizationServiceImpl) ListOrganizations(ctx context.Context, filter map[string]any) ([]models.Organization, error) {
 	return s.repo.List(ctx, filter)
 }
 

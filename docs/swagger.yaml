@@ -27,7 +27,7 @@ definitions:
   analytics.DataSource:
     properties:
       config:
-        additionalProperties: true
+        additionalProperties: {}
         type: object
       created_at:
         type: string
@@ -66,7 +66,7 @@ definitions:
         description: Field to aggregate
         type: string
       filters:
-        additionalProperties: true
+        additionalProperties: {}
         type: object
       group_by:
         items:
@@ -96,7 +96,7 @@ definitions:
       data:
         description: Raw data if needed
         items:
-          additionalProperties: true
+          additionalProperties: {}
           type: object
         type: array
       metric_id:
@@ -256,7 +256,7 @@ definitions:
       id:
         type: string
       layout:
-        additionalProperties: true
+        additionalProperties: {}
         description: 'Node positions: key=stateName, val={x,y}'
         type: object
       module:
@@ -279,7 +279,7 @@ definitions:
   blueprint.BlueprintAction:
     properties:
       config:
-        additionalProperties: true
+        additionalProperties: {}
         description: Config depends on Type
         type: object
       id:
@@ -395,7 +395,7 @@ definitions:
       updated_at:
         type: string
       updates:
-        additionalProperties: true
+        additionalProperties: {}
         type: object
       user_id:
         type: string
@@ -531,7 +531,7 @@ definitions:
           type: string
         type: array
       filters:
-        additionalProperties: true
+        additionalProperties: {}
         description: Filter conditions
         type: object
       limit:
@@ -556,7 +556,7 @@ definitions:
     properties:
       data:
         items:
-          additionalProperties: true
+          additionalProperties: {}
           type: object
         type: array
       timestamp:
@@ -661,7 +661,7 @@ definitions:
   dashboard.DashboardWidget:
     properties:
       config:
-        additionalProperties: true
+        additionalProperties: {}
         type: object
       id:
         type: string
@@ -718,7 +718,7 @@ definitions:
   email_template.TestEmailRequest:
     properties:
       test_data:
-        additionalProperties: true
+        additionalProperties: {}
         type: object
       to:
         type: string
@@ -752,7 +752,7 @@ definitions:
       publisher:
         type: string
       settings:
-        additionalProperties: true
+        additionalProperties: {}
         type: object
       status:
         $ref: '#/definitions/extension.ExtensionStatus'
@@ -832,11 +832,8 @@ definitions:
       is_active:
         type: boolean
       language:
-        allOf:
-        - $ref: '#/definitions/function.FunctionLanguage'
-        description: '"tengo" or "javascript"'
+        $ref: '#/definitions/function.FunctionLanguage'
       module_name:
-        description: Empty for global
         type: string
       name:
         type: string
@@ -851,11 +848,9 @@ definitions:
     type: object
   function.FunctionLanguage:
     enum:
-    - tengo
     - javascript
     type: string
     x-enum-varnames:
-    - LanguageTengo
     - LanguageJavaScript
   function.FunctionParameter:
     properties:
@@ -869,8 +864,10 @@ definitions:
     type: object
   function.TestFunctionRequest:
     properties:
+      code:
+        type: string
       test_data:
-        additionalProperties: true
+        additionalProperties: {}
         type: object
     type: object
   group.Group:
@@ -1771,7 +1768,7 @@ definitions:
   ticket.SLAPolicy:
     properties:
       business_hours:
-        additionalProperties: true
+        additionalProperties: {}
         type: object
       created_at:
         type: string
@@ -1824,7 +1821,7 @@ definitions:
         - $ref: '#/definitions/ticket.TicketChannel'
         description: Channel Information
       channel_metadata:
-        additionalProperties: true
+        additionalProperties: {}
         type: object
       closed_at:
         type: string

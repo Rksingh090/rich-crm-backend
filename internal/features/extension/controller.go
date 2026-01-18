@@ -22,7 +22,7 @@ func NewExtensionController(service ExtensionService) *ExtensionController {
 // @Produce json
 // @Param installed query boolean false "Filter by installed status"
 // @Success 200 {array} Extension
-// @Failure 500 {object} map[string]interface{}
+// @Failure 500 {object} map[string]any
 // @Router /api/extensions [get]
 func (ctrl *ExtensionController) ListExtensions(c *fiber.Ctx) error {
 	installed := c.Query("installed") == "true"
@@ -41,7 +41,7 @@ func (ctrl *ExtensionController) ListExtensions(c *fiber.Ctx) error {
 // @Produce json
 // @Param id path string true "Extension ID"
 // @Success 200 {object} Extension
-// @Failure 404 {object} map[string]interface{}
+// @Failure 404 {object} map[string]any
 // @Router /api/extensions/{id} [get]
 func (ctrl *ExtensionController) GetExtension(c *fiber.Ctx) error {
 	id := c.Params("id")
@@ -62,8 +62,8 @@ func (ctrl *ExtensionController) GetExtension(c *fiber.Ctx) error {
 // @Tags extensions
 // @Produce json
 // @Param id path string true "Extension ID"
-// @Success 200 {object} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
+// @Success 200 {object} map[string]any
+// @Failure 500 {object} map[string]any
 // @Router /api/extensions/{id}/install [post]
 func (ctrl *ExtensionController) InstallExtension(c *fiber.Ctx) error {
 	id := c.Params("id")
@@ -80,8 +80,8 @@ func (ctrl *ExtensionController) InstallExtension(c *fiber.Ctx) error {
 // @Tags extensions
 // @Produce json
 // @Param id path string true "Extension ID"
-// @Success 200 {object} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
+// @Success 200 {object} map[string]any
+// @Failure 500 {object} map[string]any
 // @Router /api/extensions/{id}/uninstall [post]
 func (ctrl *ExtensionController) UninstallExtension(c *fiber.Ctx) error {
 	id := c.Params("id")
@@ -100,7 +100,7 @@ func (ctrl *ExtensionController) UninstallExtension(c *fiber.Ctx) error {
 // @Produce json
 // @Param extension body Extension true "Extension Details"
 // @Success 201 {object} Extension
-// @Failure 500 {object} map[string]interface{}
+// @Failure 500 {object} map[string]any
 // @Router /api/extensions [post]
 func (ctrl *ExtensionController) CreateExtension(c *fiber.Ctx) error {
 	var ext Extension

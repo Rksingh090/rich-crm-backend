@@ -23,7 +23,7 @@ type EscalationService interface {
 	CreateRule(ctx context.Context, rule *EscalationRule) error
 	GetRule(ctx context.Context, id string) (*EscalationRule, error)
 	ListRules(ctx context.Context) ([]EscalationRule, error)
-	UpdateRule(ctx context.Context, id string, updates map[string]interface{}) error
+	UpdateRule(ctx context.Context, id string, updates map[string]any) error
 	DeleteRule(ctx context.Context, id string) error
 }
 
@@ -219,7 +219,7 @@ func (s *EscalationServiceImpl) ListRules(ctx context.Context) ([]EscalationRule
 }
 
 // UpdateRule updates an escalation rule
-func (s *EscalationServiceImpl) UpdateRule(ctx context.Context, id string, updates map[string]interface{}) error {
+func (s *EscalationServiceImpl) UpdateRule(ctx context.Context, id string, updates map[string]any) error {
 	objID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return errors.New("invalid rule ID")

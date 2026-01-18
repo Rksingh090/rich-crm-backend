@@ -13,7 +13,7 @@ type MetricRepository interface {
 	Create(ctx context.Context, metric *Metric) error
 	Get(ctx context.Context, id string) (*Metric, error)
 	List(ctx context.Context) ([]Metric, error)
-	Update(ctx context.Context, id string, updates map[string]interface{}) error
+	Update(ctx context.Context, id string, updates map[string]any) error
 	Delete(ctx context.Context, id string) error
 	FindByDataSource(ctx context.Context, dataSourceID string) ([]Metric, error)
 	FindByModule(ctx context.Context, module string) ([]Metric, error)
@@ -65,7 +65,7 @@ func (r *MetricRepositoryImpl) List(ctx context.Context) ([]Metric, error) {
 	return metrics, nil
 }
 
-func (r *MetricRepositoryImpl) Update(ctx context.Context, id string, updates map[string]interface{}) error {
+func (r *MetricRepositoryImpl) Update(ctx context.Context, id string, updates map[string]any) error {
 	objectID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return err

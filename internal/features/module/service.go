@@ -235,24 +235,44 @@ func (s *ModuleServiceImpl) ListModules(ctx context.Context, userID primitive.Ob
 }
 
 func (s *ModuleServiceImpl) appendSystemFields(m *common_models.Entity) {
-	// Add Virtual System Fields
-	systemFields := []common_models.ModuleField{
-		{
+	// Check existing fields
+	hasCreatedAt := false
+	hasUpdatedAt := false
+	for _, f := range m.Fields {
+		if f.Name == "created_at" {
+			hasCreatedAt = true
+		}
+		if f.Name == "updated_at" {
+			hasUpdatedAt = true
+		}
+	}
+
+	// Add Virtual System Fields if they don't exist
+	var systemFields []common_models.ModuleField
+
+	if !hasCreatedAt {
+		systemFields = append(systemFields, common_models.ModuleField{
 			Name:     "created_at",
 			Label:    "Created At",
 			Type:     common_models.FieldTypeDate,
 			Required: false,
 			IsSystem: true,
-		},
-		{
+		})
+	}
+
+	if !hasUpdatedAt {
+		systemFields = append(systemFields, common_models.ModuleField{
 			Name:     "updated_at",
 			Label:    "Updated At",
 			Type:     common_models.FieldTypeDate,
 			Required: false,
 			IsSystem: true,
-		},
+		})
 	}
-	m.Fields = append(m.Fields, systemFields...)
+
+	if len(systemFields) > 0 {
+		m.Fields = append(m.Fields, systemFields...)
+	}
 }
 
 func (s *ModuleServiceImpl) UpdateModule(ctx context.Context, m *common_models.Entity, userID primitive.ObjectID) error {

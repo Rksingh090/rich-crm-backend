@@ -19,7 +19,7 @@ type DataSourceService interface {
 	CreateDataSource(ctx context.Context, ds *DataSource) error
 	GetDataSource(ctx context.Context, id string) (*DataSource, error)
 	ListDataSources(ctx context.Context) ([]DataSource, error)
-	UpdateDataSource(ctx context.Context, id string, updates map[string]interface{}) error
+	UpdateDataSource(ctx context.Context, id string, updates map[string]any) error
 	DeleteDataSource(ctx context.Context, id string) error
 	TestDataSource(ctx context.Context, id string) error
 
@@ -151,7 +151,7 @@ func (s *DataSourceServiceImpl) ListDataSources(ctx context.Context) ([]DataSour
 	return s.dataSourceRepo.List(ctx)
 }
 
-func (s *DataSourceServiceImpl) UpdateDataSource(ctx context.Context, id string, updates map[string]interface{}) error {
+func (s *DataSourceServiceImpl) UpdateDataSource(ctx context.Context, id string, updates map[string]any) error {
 	oldDS, _ := s.GetDataSource(ctx, id)
 
 	updates["updated_at"] = time.Now()

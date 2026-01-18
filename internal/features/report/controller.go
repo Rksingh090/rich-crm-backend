@@ -24,8 +24,8 @@ func NewReportController(reportService ReportService) *ReportController {
 // @Produce json
 // @Param report body Report true "Report Config"
 // @Success 201 {object} Report
-// @Failure 400 {object} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
+// @Failure 400 {object} map[string]any
+// @Failure 500 {object} map[string]any
 // @Router /api/reports [post]
 func (c *ReportController) Create(ctx *fiber.Ctx) error {
 	var report Report
@@ -47,7 +47,7 @@ func (c *ReportController) Create(ctx *fiber.Ctx) error {
 // @Tags reports
 // @Produce json
 // @Success 200 {array} Report
-// @Failure 500 {object} map[string]interface{}
+// @Failure 500 {object} map[string]any
 // @Router /api/reports [get]
 func (c *ReportController) List(ctx *fiber.Ctx) error {
 	reports, err := c.ReportService.ListReports(ctx.UserContext())
@@ -65,7 +65,7 @@ func (c *ReportController) List(ctx *fiber.Ctx) error {
 // @Produce json
 // @Param id path string true "Report ID"
 // @Success 200 {object} Report
-// @Failure 404 {object} map[string]interface{}
+// @Failure 404 {object} map[string]any
 // @Router /api/reports/{id} [get]
 func (c *ReportController) Get(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
@@ -86,8 +86,8 @@ func (c *ReportController) Get(ctx *fiber.Ctx) error {
 // @Param id path string true "Report ID"
 // @Param report body Report true "Report Config"
 // @Success 200 {object} Report
-// @Failure 400 {object} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
+// @Failure 400 {object} map[string]any
+// @Failure 500 {object} map[string]any
 // @Router /api/reports/{id} [put]
 func (c *ReportController) Update(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
@@ -110,7 +110,7 @@ func (c *ReportController) Update(ctx *fiber.Ctx) error {
 // @Tags reports
 // @Param id path string true "Report ID"
 // @Success 204 {object} nil
-// @Failure 500 {object} map[string]interface{}
+// @Failure 500 {object} map[string]any
 // @Router /api/reports/{id} [delete]
 func (c *ReportController) Delete(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
@@ -127,8 +127,8 @@ func (c *ReportController) Delete(ctx *fiber.Ctx) error {
 // @Tags reports
 // @Produce json
 // @Param id path string true "Report ID"
-// @Success 200 {array} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
+// @Success 200 {array} map[string]any
+// @Failure 500 {object} map[string]any
 // @Router /api/reports/{id}/run [post]
 func (c *ReportController) Run(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
@@ -158,7 +158,7 @@ func (c *ReportController) Run(ctx *fiber.Ctx) error {
 // @Param id path string true "Report ID"
 // @Param format query string false "Export format (default: csv)"
 // @Success 200 {file} file "Report file"
-// @Failure 500 {object} map[string]interface{}
+// @Failure 500 {object} map[string]any
 // @Router /api/reports/{id}/export [get]
 func (c *ReportController) Export(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
@@ -192,9 +192,9 @@ func (c *ReportController) Export(ctx *fiber.Ctx) error {
 // @Produce json
 // @Param module query string true "Module Name"
 // @Param config body PivotConfig true "Pivot Configuration"
-// @Success 200 {object} map[string]interface{}
-// @Failure 400 {object} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
+// @Success 200 {object} map[string]any
+// @Failure 400 {object} map[string]any
+// @Failure 500 {object} map[string]any
 // @Router /api/reports/pivot [post]
 func (c *ReportController) RunPivot(ctx *fiber.Ctx) error {
 	var config PivotConfig
@@ -233,9 +233,9 @@ func (c *ReportController) RunPivot(ctx *fiber.Ctx) error {
 // @Accept json
 // @Produce json
 // @Param config body CrossModuleConfig true "Cross-Module Configuration"
-// @Success 200 {object} map[string]interface{}
-// @Failure 400 {object} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
+// @Success 200 {object} map[string]any
+// @Failure 400 {object} map[string]any
+// @Failure 500 {object} map[string]any
 // @Router /api/reports/cross-module [post]
 func (c *ReportController) RunCrossModule(ctx *fiber.Ctx) error {
 	var config CrossModuleConfig
@@ -268,10 +268,10 @@ func (c *ReportController) RunCrossModule(ctx *fiber.Ctx) error {
 // @Tags reports
 // @Accept json
 // @Produce application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
-// @Param request body map[string]interface{} true "Excel Export Request (data, columns)"
+// @Param request body map[string]any true "Excel Export Request (data, columns)"
 // @Success 200 {file} file "Excel file"
-// @Failure 400 {object} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
+// @Failure 400 {object} map[string]any
+// @Failure 500 {object} map[string]any
 // @Router /api/reports/export/excel [post]
 func (c *ReportController) ExportExcel(ctx *fiber.Ctx) error {
 	var request struct {

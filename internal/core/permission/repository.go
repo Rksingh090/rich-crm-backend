@@ -229,7 +229,7 @@ func (r *PermissionRepositoryImpl) BulkUpsertForRole(ctx context.Context, roleID
 	defer session.EndSession(ctx)
 
 	// Execute in transaction
-	_, err = session.WithTransaction(ctx, func(sessCtx mongo.SessionContext) (interface{}, error) {
+	_, err = session.WithTransaction(ctx, func(sessCtx mongo.SessionContext) (any, error) {
 		// Delete existing permissions for this role
 		coll := r.getCollection(sessCtx)
 		_, err := coll.DeleteMany(sessCtx, bson.M{"role_id": oid})
@@ -239,7 +239,7 @@ func (r *PermissionRepositoryImpl) BulkUpsertForRole(ctx context.Context, roleID
 
 		// Insert new permissions
 		if len(permissions) > 0 {
-			docs := make([]interface{}, len(permissions))
+			docs := make([]any, len(permissions))
 			for i := range permissions {
 				docs[i] = permissions[i]
 			}

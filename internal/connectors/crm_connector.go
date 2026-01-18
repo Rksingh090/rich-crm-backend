@@ -48,7 +48,7 @@ func NewCRMConnector(recordProvider RecordProvider, moduleProvider ModuleProvide
 }
 
 // Connect is a no-op for CRM connector as it uses internal services
-func (c *CRMConnector) Connect(ctx context.Context, config map[string]interface{}) error {
+func (c *CRMConnector) Connect(ctx context.Context, config map[string]any) error {
 	return nil
 }
 
@@ -152,11 +152,11 @@ func (c *CRMConnector) GetType() string {
 }
 
 // selectFields applies field selection to records
-func (c *CRMConnector) selectFields(records []map[string]interface{}, fields []string) []map[string]interface{} {
-	result := make([]map[string]interface{}, 0, len(records))
+func (c *CRMConnector) selectFields(records []map[string]any, fields []string) []map[string]any {
+	result := make([]map[string]any, 0, len(records))
 
 	for _, record := range records {
-		filteredRecord := make(map[string]interface{})
+		filteredRecord := make(map[string]any)
 		for _, field := range fields {
 			if val, ok := record[field]; ok {
 				filteredRecord[field] = val
@@ -169,27 +169,27 @@ func (c *CRMConnector) selectFields(records []map[string]interface{}, fields []s
 }
 
 // performAggregation performs aggregation on records
-func (c *CRMConnector) performAggregation(records []map[string]interface{}, agg *AggregationConfig) []map[string]interface{} {
+func (c *CRMConnector) performAggregation(records []map[string]any, agg *AggregationConfig) []map[string]any {
 	if len(agg.GroupBy) == 0 {
 		// No grouping, just calculate metrics across all records
-		result := make(map[string]interface{})
+		result := make(map[string]any)
 		for _, metric := range agg.Metrics {
 			result[metric.Alias] = c.calculateMetric(records, metric)
 		}
-		return []map[string]interface{}{result}
+		return []map[string]any{result}
 	}
 
 	// Group records
-	groups := make(map[string][]map[string]interface{})
+	groups := make(map[string][]map[string]any)
 	for _, record := range records {
 		key := c.buildGroupKey(record, agg.GroupBy)
 		groups[key] = append(groups[key], record)
 	}
 
 	// Calculate metrics for each group
-	result := make([]map[string]interface{}, 0, len(groups))
+	result := make([]map[string]any, 0, len(groups))
 	for _, groupRecords := range groups {
-		groupResult := make(map[string]interface{})
+		groupResult := make(map[string]any)
 
 		// Add group by fields
 		for i, field := range agg.GroupBy {
@@ -210,7 +210,7 @@ func (c *CRMConnector) performAggregation(records []map[string]interface{}, agg 
 }
 
 // buildGroupKey creates a unique key for grouping
-func (c *CRMConnector) buildGroupKey(record map[string]interface{}, fields []string) string {
+func (c *CRMConnector) buildGroupKey(record map[string]any, fields []string) string {
 	key := ""
 	for _, field := range fields {
 		if val, ok := record[field]; ok {
@@ -221,7 +221,7 @@ func (c *CRMConnector) buildGroupKey(record map[string]interface{}, fields []str
 }
 
 // calculateMetric calculates a metric value
-func (c *CRMConnector) calculateMetric(records []map[string]interface{}, metric MetricConfig) interface{} {
+func (c *CRMConnector) calculateMetric(records []map[string]any, metric MetricConfig) any {
 	switch metric.Function {
 	case "count":
 		return len(records)

@@ -22,7 +22,7 @@ func NewGroupController(service GroupService) *GroupController {
 // @Produce json
 // @Param group body Group true "Group Details"
 // @Success 201 {object} Group
-// @Failure 400 {object} map[string]interface{}
+// @Failure 400 {object} map[string]any
 // @Router /api/groups [post]
 func (c *GroupController) CreateGroup(ctx *fiber.Ctx) error {
 	var group Group
@@ -48,7 +48,7 @@ func (c *GroupController) CreateGroup(ctx *fiber.Ctx) error {
 // @Tags groups
 // @Produce json
 // @Success 200 {array} Group
-// @Failure 500 {object} map[string]interface{}
+// @Failure 500 {object} map[string]any
 // @Router /api/groups [get]
 func (c *GroupController) GetAllGroups(ctx *fiber.Ctx) error {
 	groups, err := c.Service.GetAllGroups(ctx.UserContext())
@@ -69,8 +69,8 @@ func (c *GroupController) GetAllGroups(ctx *fiber.Ctx) error {
 // @Produce json
 // @Param id path string true "Group ID"
 // @Success 200 {object} Group
-// @Failure 400 {object} map[string]interface{}
-// @Failure 404 {object} map[string]interface{}
+// @Failure 400 {object} map[string]any
+// @Failure 404 {object} map[string]any
 // @Router /api/groups/{id} [get]
 func (c *GroupController) GetGroup(ctx *fiber.Ctx) error {
 	id, err := primitive.ObjectIDFromHex(ctx.Params("id"))
@@ -99,8 +99,8 @@ func (c *GroupController) GetGroup(ctx *fiber.Ctx) error {
 // @Produce json
 // @Param id path string true "Group ID"
 // @Param group body Group true "Group Details"
-// @Success 200 {object} map[string]interface{}
-// @Failure 400 {object} map[string]interface{}
+// @Success 200 {object} map[string]any
+// @Failure 400 {object} map[string]any
 // @Router /api/groups/{id} [put]
 func (c *GroupController) UpdateGroup(ctx *fiber.Ctx) error {
 	id, err := primitive.ObjectIDFromHex(ctx.Params("id"))
@@ -134,8 +134,8 @@ func (c *GroupController) UpdateGroup(ctx *fiber.Ctx) error {
 // @Description Delete a group by ID
 // @Tags groups
 // @Param id path string true "Group ID"
-// @Success 200 {object} map[string]interface{}
-// @Failure 400 {object} map[string]interface{}
+// @Success 200 {object} map[string]any
+// @Failure 400 {object} map[string]any
 // @Router /api/groups/{id} [delete]
 func (c *GroupController) DeleteGroup(ctx *fiber.Ctx) error {
 	id, err := primitive.ObjectIDFromHex(ctx.Params("id"))
@@ -165,8 +165,8 @@ func (c *GroupController) DeleteGroup(ctx *fiber.Ctx) error {
 // @Produce json
 // @Param id path string true "Group ID"
 // @Param body body map[string]string true "User ID Object {user_id: ...}"
-// @Success 200 {object} map[string]interface{}
-// @Failure 400 {object} map[string]interface{}
+// @Success 200 {object} map[string]any
+// @Failure 400 {object} map[string]any
 // @Router /api/groups/{id}/members [post]
 func (c *GroupController) AddMember(ctx *fiber.Ctx) error {
 	groupID, err := primitive.ObjectIDFromHex(ctx.Params("id"))
@@ -211,8 +211,8 @@ func (c *GroupController) AddMember(ctx *fiber.Ctx) error {
 // @Produce json
 // @Param id path string true "Group ID"
 // @Param user_id path string true "User ID"
-// @Success 200 {object} map[string]interface{}
-// @Failure 400 {object} map[string]interface{}
+// @Success 200 {object} map[string]any
+// @Failure 400 {object} map[string]any
 // @Router /api/groups/{id}/members/{user_id} [delete]
 func (c *GroupController) RemoveMember(ctx *fiber.Ctx) error {
 	groupID, err := primitive.ObjectIDFromHex(ctx.Params("id"))

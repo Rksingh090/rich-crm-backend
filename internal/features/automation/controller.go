@@ -25,8 +25,8 @@ func NewAutomationController(service AutomationService) *AutomationController {
 // @Produce json
 // @Param rule body AutomationRule true "Automation Rule"
 // @Success 201 {object} AutomationRule
-// @Failure 400 {object} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
+// @Failure 400 {object} map[string]any
+// @Failure 500 {object} map[string]any
 // @Router /api/automation/rules [post]
 func (ctrl *AutomationController) CreateRule(c *fiber.Ctx) error {
 	var rule AutomationRule
@@ -59,7 +59,7 @@ func (ctrl *AutomationController) CreateRule(c *fiber.Ctx) error {
 // @Produce json
 // @Param id path string true "Rule ID"
 // @Success 200 {object} AutomationRule
-// @Failure 404 {object} map[string]interface{}
+// @Failure 404 {object} map[string]any
 // @Router /api/automation/rules/{id} [get]
 func (ctrl *AutomationController) GetRule(c *fiber.Ctx) error {
 	id := c.Params("id")
@@ -77,7 +77,7 @@ func (ctrl *AutomationController) GetRule(c *fiber.Ctx) error {
 // @Produce json
 // @Param module_id query string false "Filter by Module ID"
 // @Success 200 {array} AutomationRule
-// @Failure 500 {object} map[string]interface{}
+// @Failure 500 {object} map[string]any
 // @Router /api/automation/rules [get]
 func (ctrl *AutomationController) ListRules(c *fiber.Ctx) error {
 	moduleID := c.Query("module_id")
@@ -97,8 +97,8 @@ func (ctrl *AutomationController) ListRules(c *fiber.Ctx) error {
 // @Param id path string true "Rule ID"
 // @Param rule body AutomationRule true "Automation Rule"
 // @Success 200 {object} AutomationRule
-// @Failure 400 {object} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
+// @Failure 400 {object} map[string]any
+// @Failure 500 {object} map[string]any
 // @Router /api/automation/rules/{id} [put]
 func (ctrl *AutomationController) UpdateRule(c *fiber.Ctx) error {
 	var rule AutomationRule
@@ -138,7 +138,7 @@ func (ctrl *AutomationController) UpdateRule(c *fiber.Ctx) error {
 // @Tags automation
 // @Param id path string true "Rule ID"
 // @Success 204 {object} nil
-// @Failure 500 {object} map[string]interface{}
+// @Failure 500 {object} map[string]any
 // @Router /api/automation/rules/{id} [delete]
 func (ctrl *AutomationController) DeleteRule(c *fiber.Ctx) error {
 	id := c.Params("id")

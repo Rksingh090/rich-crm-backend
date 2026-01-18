@@ -195,11 +195,11 @@ func seedDefaultResources(ctx context.Context, db *mongo.Database) {
 }
 
 type DefaultPermission struct {
-	RoleName   string                 `json:"role_name" bson:"role_name"`
-	App        models.App             `json:"app" bson:"app"`
-	ResourceID string                 `json:"resource_id" bson:"resource_id"` // Changed from ResourceRef to string
-	Actions    map[string]interface{} `json:"actions" bson:"actions"`
-	FieldRules map[string]string      `json:"field_rules,omitempty" bson:"field_rules,omitempty"`
+	RoleName   string            `json:"role_name" bson:"role_name"`
+	App        models.App        `json:"app" bson:"app"`
+	ResourceID string            `json:"resource_id" bson:"resource_id"` // Changed from ResourceRef to string
+	Actions    map[string]any    `json:"actions" bson:"actions"`
+	FieldRules map[string]string `json:"field_rules,omitempty" bson:"field_rules,omitempty"`
 }
 
 func seedDefaultPermissions(ctx context.Context, db *mongo.Database) {
@@ -230,7 +230,7 @@ func seedPlans(ctx context.Context, db *mongo.Database) {
 	coll := db.Collection("subscriptions")
 	_ = coll.Drop(ctx)
 
-	plans := []map[string]interface{}{
+	plans := []map[string]any{
 		{
 			"code":          "free",
 			"name":          "Free Plan",

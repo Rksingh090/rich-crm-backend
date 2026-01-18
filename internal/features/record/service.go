@@ -29,21 +29,21 @@ import (
 )
 
 type RecordService interface {
-	CreateRecord(ctx context.Context, moduleName string, data map[string]interface{}, userID primitive.ObjectID) (interface{}, error)
+	CreateRecord(ctx context.Context, moduleName string, data map[string]any, userID primitive.ObjectID) (any, error)
 	GetRecord(ctx context.Context, moduleName, id string, userID primitive.ObjectID) (map[string]any, error)
 	ListRecords(ctx context.Context, moduleName string, filters []common_models.Filter, page, limit int64, sortBy string, sortOrder string, userID primitive.ObjectID) ([]map[string]any, int64, error)
 	QueryRecords(ctx context.Context, moduleName string, action string, filters []common_models.Filter, page, limit int64, sortBy string, sortOrder string, userID primitive.ObjectID) ([]map[string]any, int64, error)
-	UpdateRecord(ctx context.Context, moduleName, id string, data map[string]interface{}, userID primitive.ObjectID) error
+	UpdateRecord(ctx context.Context, moduleName, id string, data map[string]any, userID primitive.ObjectID) error
 	DeleteRecord(ctx context.Context, moduleName, id string, userID primitive.ObjectID) error
 }
 
 // Internal interfaces to break circular dependencies
 type AutomationTrigger interface {
-	ExecuteFromTrigger(ctx context.Context, moduleName string, record map[string]interface{}, triggerType string) error
+	ExecuteFromTrigger(ctx context.Context, moduleName string, record map[string]any, triggerType string) error
 }
 
 type ApprovalTrigger interface {
-	InitializeApproval(ctx context.Context, moduleName string, record map[string]interface{}) (*common_models.ApprovalRecordState, error)
+	InitializeApproval(ctx context.Context, moduleName string, record map[string]any) (*common_models.ApprovalRecordState, error)
 }
 
 type BlueprintValidator interface {
@@ -98,7 +98,7 @@ func NewRecordService(
 	}
 }
 
-func (s *RecordServiceImpl) CreateRecord(ctx context.Context, moduleName string, data map[string]interface{}, userID primitive.ObjectID) (interface{}, error) {
+func (s *RecordServiceImpl) CreateRecord(ctx context.Context, moduleName string, data map[string]any, userID primitive.ObjectID) (any, error) {
 	// 1. Fetch Schema
 	m, err := s.ModuleRepo.FindByName(ctx, moduleName)
 	if err != nil {
@@ -106,7 +106,7 @@ func (s *RecordServiceImpl) CreateRecord(ctx context.Context, moduleName string,
 	}
 
 	// 2. Validate Data
-	validatedData := make(map[string]interface{})
+	validatedData := make(map[string]any)
 	validatedData["_id"] = primitive.NewObjectID()
 	validatedData["created_at"] = time.Now()
 	validatedData["updated_at"] = time.Now()
@@ -185,7 +185,7 @@ func (s *RecordServiceImpl) CreateRecord(ctx context.Context, moduleName string,
 
 		// 5. Automation Trigger
 		go func() {
-			mergedRecord := make(map[string]interface{})
+			mergedRecord := make(map[string]any)
 			for k, v := range validatedData {
 				mergedRecord[k] = v
 			}
@@ -355,7 +355,7 @@ func (s *RecordServiceImpl) QueryRecords(ctx context.Context, moduleName string,
 	// For now using tenantID as path or empty if not applicable.
 	userPath = user.TenantID.Hex()
 
-	compilerCtx := map[string]interface{}{
+	compilerCtx := map[string]any{
 		"user.id":   userID,
 		"user.path": userPath,
 	}
@@ -541,13 +541,13 @@ func (s *RecordServiceImpl) QueryRecords(ctx context.Context, moduleName string,
 	return records, totalCount, nil
 }
 
-func (s *RecordServiceImpl) UpdateRecord(ctx context.Context, moduleName, id string, data map[string]interface{}, userID primitive.ObjectID) error {
+func (s *RecordServiceImpl) UpdateRecord(ctx context.Context, moduleName, id string, data map[string]any, userID primitive.ObjectID) error {
 	m, err := s.ModuleRepo.FindByName(ctx, moduleName)
 	if err != nil {
 		return errors.New("module not found")
 	}
 
-	validatedData := make(map[string]interface{})
+	validatedData := make(map[string]any)
 	validatedData["updated_at"] = time.Now()
 
 	if ownerVal, exists := data["owner"]; exists {
@@ -609,7 +609,7 @@ func (s *RecordServiceImpl) UpdateRecord(ctx context.Context, moduleName, id str
 	}
 
 	if val, ok := oldRecord["_approval"]; ok {
-		if stateMap, ok := val.(map[string]interface{}); ok {
+		if stateMap, ok := val.(map[string]any); ok {
 			if status, ok := stateMap["status"].(string); ok && status == "pending" {
 				return errors.New("record is locked for approval and cannot be edited")
 			}
@@ -636,7 +636,7 @@ func (s *RecordServiceImpl) UpdateRecord(ctx context.Context, moduleName, id str
 		_ = s.AuditService.LogChange(ctx, common_models.AuditActionUpdate, moduleName, id, changes)
 
 		go func() {
-			mergedRecord := make(map[string]interface{})
+			mergedRecord := make(map[string]any)
 			for k, v := range oldRecord {
 				mergedRecord[k] = v
 			}
@@ -670,7 +670,7 @@ func (s *RecordServiceImpl) DeleteRecord(ctx context.Context, moduleName, id str
 	}
 
 	if val, ok := oldRecord["_approval"]; ok {
-		if stateMap, ok := val.(map[string]interface{}); ok {
+		if stateMap, ok := val.(map[string]any); ok {
 			if status, ok := stateMap["status"].(string); ok && status == "pending" {
 				return errors.New("record is locked for approval and cannot be deleted")
 			}
@@ -702,7 +702,7 @@ func (s *RecordServiceImpl) populateFiles(ctx context.Context, fields []models.M
 				if idStr != "" {
 					file, err := s.FileRepo.Get(ctx, idStr)
 					if err == nil {
-						record[field.Name] = map[string]interface{}{
+						record[field.Name] = map[string]any{
 							"id":                file.ID,
 							"original_filename": file.OriginalFilename,
 							"url":               file.URL,
@@ -736,7 +736,7 @@ func (s *RecordServiceImpl) populateLookups(ctx context.Context, fields []models
 
 						displayValue, _ := refRecord[displayField]
 
-						record[field.Name] = map[string]interface{}{
+						record[field.Name] = map[string]any{
 							"id":   idStr,
 							"name": displayValue,
 						}
@@ -748,7 +748,7 @@ func (s *RecordServiceImpl) populateLookups(ctx context.Context, fields []models
 	return nil
 }
 
-func (s *RecordServiceImpl) validateAndConvert(ctx context.Context, field models.ModuleField, val interface{}) (interface{}, error) {
+func (s *RecordServiceImpl) validateAndConvert(ctx context.Context, field models.ModuleField, val any) (any, error) {
 	if val == nil {
 		return nil, nil
 	}
@@ -829,7 +829,7 @@ func (s *RecordServiceImpl) validateAndConvert(ctx context.Context, field models
 			idStr = v
 		case primitive.ObjectID:
 			idStr = v.Hex()
-		case map[string]interface{}:
+		case map[string]any:
 			if id, ok := v["id"].(string); ok {
 				idStr = id
 			} else if oid, ok := v["id"].(primitive.ObjectID); ok {
@@ -873,7 +873,7 @@ func (s *RecordServiceImpl) validateAndConvert(ctx context.Context, field models
 			idStr = v
 		case primitive.ObjectID:
 			idStr = v.Hex()
-		case map[string]interface{}:
+		case map[string]any:
 			if id, ok := v["id"].(string); ok {
 				idStr = id
 			} else if oid, ok := v["id"].(primitive.ObjectID); ok {
@@ -915,7 +915,7 @@ func (s *RecordServiceImpl) validateAndConvert(ctx context.Context, field models
 			idStr = v
 		case primitive.ObjectID:
 			idStr = v.Hex()
-		case map[string]interface{}:
+		case map[string]any:
 			if id, ok := v["id"].(string); ok {
 				idStr = id
 			} else if oid, ok := v["id"].(primitive.ObjectID); ok {
@@ -938,7 +938,7 @@ func (s *RecordServiceImpl) validateAndConvert(ctx context.Context, field models
 			idStr = v
 		case primitive.ObjectID:
 			return v, nil
-		case map[string]interface{}:
+		case map[string]any:
 			if id, ok := v["id"].(string); ok {
 				idStr = id
 			} else if oid, ok := v["id"].(primitive.ObjectID); ok {
@@ -995,7 +995,7 @@ func (s *RecordServiceImpl) populateUsers(ctx context.Context, fields []models.M
 							displayName = strings.TrimSpace(displayName)
 						}
 
-						record[field.Name] = map[string]interface{}{
+						record[field.Name] = map[string]any{
 							"id":         idStr,
 							"name":       displayName,
 							"email":      user.Email,
@@ -1047,7 +1047,7 @@ func (s *RecordServiceImpl) prepareFilters(ctx context.Context, m *common_models
 							ids = append(ids, oid)
 						}
 					}
-				case []interface{}:
+				case []any:
 					for _, item := range v {
 						if s, ok := item.(string); ok {
 							if oid, err := primitive.ObjectIDFromHex(s); err == nil {
@@ -1125,13 +1125,13 @@ func (s *RecordServiceImpl) prepareFilters(ctx context.Context, m *common_models
 				}
 			}
 		} else {
-			var typedVal interface{}
+			var typedVal any
 			var err error
 
 			// Handle slice for in/nin operators
 			if operator == "in" || operator == "nin" {
 				if sliceVal, ok := val.([]string); ok {
-					var typedSlice []interface{}
+					var typedSlice []any
 					for _, sVal := range sliceVal {
 						tVal, err := s.validateAndConvert(ctx, *field, sVal)
 						if err != nil {
@@ -1140,8 +1140,8 @@ func (s *RecordServiceImpl) prepareFilters(ctx context.Context, m *common_models
 						typedSlice = append(typedSlice, tVal)
 					}
 					typedVal = typedSlice
-				} else if sliceVal, ok := val.([]interface{}); ok {
-					var typedSlice []interface{}
+				} else if sliceVal, ok := val.([]any); ok {
+					var typedSlice []any
 					for _, sVal := range sliceVal {
 						tVal, err := s.validateAndConvert(ctx, *field, sVal)
 						if err != nil {
@@ -1165,7 +1165,7 @@ func (s *RecordServiceImpl) prepareFilters(ctx context.Context, m *common_models
 			case "", "eq":
 				if field.Type == models.FieldTypeUser || field.Type == models.FieldTypeLookup {
 					if oid, ok := typedVal.(primitive.ObjectID); ok {
-						typedFilters[fieldName] = bson.M{"$in": []interface{}{oid, oid.Hex()}}
+						typedFilters[fieldName] = bson.M{"$in": []any{oid, oid.Hex()}}
 					} else {
 						typedFilters[fieldName] = typedVal
 					}
@@ -1175,7 +1175,7 @@ func (s *RecordServiceImpl) prepareFilters(ctx context.Context, m *common_models
 			case "ne":
 				if field.Type == models.FieldTypeUser || field.Type == models.FieldTypeLookup {
 					if oid, ok := typedVal.(primitive.ObjectID); ok {
-						typedFilters[fieldName] = bson.M{"$nin": []interface{}{oid, oid.Hex()}}
+						typedFilters[fieldName] = bson.M{"$nin": []any{oid, oid.Hex()}}
 					} else {
 						typedFilters[fieldName] = bson.M{"$ne": typedVal}
 					}
@@ -1198,8 +1198,8 @@ func (s *RecordServiceImpl) prepareFilters(ctx context.Context, m *common_models
 				typedFilters[fieldName] = bson.M{"$lte": typedVal}
 			case "in":
 				if field.Type == models.FieldTypeUser || field.Type == models.FieldTypeLookup {
-					if slice, ok := typedVal.([]interface{}); ok {
-						var expandedSlice []interface{}
+					if slice, ok := typedVal.([]any); ok {
+						var expandedSlice []any
 						for _, item := range slice {
 							if oid, ok := item.(primitive.ObjectID); ok {
 								expandedSlice = append(expandedSlice, oid, oid.Hex())
@@ -1216,8 +1216,8 @@ func (s *RecordServiceImpl) prepareFilters(ctx context.Context, m *common_models
 				}
 			case "nin":
 				if field.Type == models.FieldTypeUser || field.Type == models.FieldTypeLookup {
-					if slice, ok := typedVal.([]interface{}); ok {
-						var expandedSlice []interface{}
+					if slice, ok := typedVal.([]any); ok {
+						var expandedSlice []any
 						for _, item := range slice {
 							if oid, ok := item.(primitive.ObjectID); ok {
 								expandedSlice = append(expandedSlice, oid, oid.Hex())

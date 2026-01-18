@@ -25,7 +25,7 @@ func NewExtensionService(repo ExtensionRepository) ExtensionService {
 
 func (s *ExtensionServiceImpl) InstallExtension(ctx context.Context, id string) error {
 	now := time.Now()
-	updates := map[string]interface{}{
+	updates := map[string]any{
 		"installed":    true,
 		"installed_at": &now,
 		"status":       ExtensionStatusActive,
@@ -34,7 +34,7 @@ func (s *ExtensionServiceImpl) InstallExtension(ctx context.Context, id string) 
 }
 
 func (s *ExtensionServiceImpl) UninstallExtension(ctx context.Context, id string) error {
-	updates := map[string]interface{}{
+	updates := map[string]any{
 		"installed":    false,
 		"installed_at": nil,
 		"status":       ExtensionStatusInactive,

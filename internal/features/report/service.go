@@ -24,7 +24,7 @@ type ReportService interface {
 	UpdateReport(ctx context.Context, id string, report *Report) error
 	DeleteReport(ctx context.Context, id string) error
 	RunReport(ctx context.Context, id string, userID primitive.ObjectID) ([]map[string]any, error)
-	RunPivotReport(ctx context.Context, config *PivotConfig, moduleName string, filters map[string]any, userID primitive.ObjectID) (interface{}, error)
+	RunPivotReport(ctx context.Context, config *PivotConfig, moduleName string, filters map[string]any, userID primitive.ObjectID) (any, error)
 	RunCrossModuleReport(ctx context.Context, config *CrossModuleConfig, filters map[string]any, userID primitive.ObjectID) ([]map[string]any, error)
 	ExportReport(ctx context.Context, id string, format string, userID primitive.ObjectID) ([]byte, string, error)
 	ExportToExcel(ctx context.Context, data []map[string]any, columns []string, filename string) ([]byte, string, error)
@@ -159,7 +159,7 @@ func (s *ReportServiceImpl) ExportReport(ctx context.Context, id string, format 
 		for _, col := range headers {
 			val := rec[col]
 			strVal := fmt.Sprintf("%v", val)
-			if mapVal, ok := val.(map[string]interface{}); ok {
+			if mapVal, ok := val.(map[string]any); ok {
 				if name, ok := mapVal["name"]; ok {
 					strVal = fmt.Sprintf("%v", name)
 				} else if originalName, ok := mapVal["original_filename"]; ok {
@@ -186,13 +186,13 @@ func (s *ReportServiceImpl) ExportReport(ctx context.Context, id string, format 
 	return buf.Bytes(), filename, nil
 }
 
-func (s *ReportServiceImpl) RunPivotReport(ctx context.Context, config *PivotConfig, moduleName string, filters map[string]any, userID primitive.ObjectID) (interface{}, error) {
+func (s *ReportServiceImpl) RunPivotReport(ctx context.Context, config *PivotConfig, moduleName string, filters map[string]any, userID primitive.ObjectID) (any, error) {
 	records, _, err := s.RecordService.ListRecords(ctx, moduleName, s.convertFilters(filters), 1, 10000, "created_at", "desc", userID)
 	if err != nil {
 		return nil, err
 	}
 
-	pivotTable := make(map[string]map[string]interface{})
+	pivotTable := make(map[string]map[string]any)
 	rowValues := make(map[string]bool)
 	colValues := make(map[string]bool)
 
@@ -208,7 +208,7 @@ func (s *ReportServiceImpl) RunPivotReport(ctx context.Context, config *PivotCon
 		colKey := s.buildKey(record, config.ColumnFields)
 
 		if pivotTable[rowKey] == nil {
-			pivotTable[rowKey] = make(map[string]interface{})
+			pivotTable[rowKey] = make(map[string]any)
 		}
 
 		currentVal := pivotTable[rowKey][colKey]
@@ -216,7 +216,7 @@ func (s *ReportServiceImpl) RunPivotReport(ctx context.Context, config *PivotCon
 		pivotTable[rowKey][colKey] = newVal
 	}
 
-	result := map[string]interface{}{
+	result := map[string]any{
 		"rows":    convertToArray(rowValues),
 		"columns": convertToArray(colValues),
 		"data":    pivotTable,
@@ -254,7 +254,7 @@ func (s *ReportServiceImpl) RunCrossModuleReport(ctx context.Context, config *Cr
 				relatedID = v.Hex()
 			case string:
 				relatedID = v
-			case map[string]interface{}:
+			case map[string]any:
 				if id, ok := v["id"].(string); ok {
 					relatedID = id
 				}
@@ -329,7 +329,7 @@ func (s *ReportServiceImpl) ExportToExcel(ctx context.Context, data []map[string
 				f.SetCellValue(sheetName, cell, v.Format("2006-01-02 15:04:05"))
 			case primitive.ObjectID:
 				f.SetCellValue(sheetName, cell, v.Hex())
-			case map[string]interface{}:
+			case map[string]any:
 				if name, ok := v["name"]; ok {
 					f.SetCellValue(sheetName, cell, fmt.Sprintf("%v", name))
 				} else if fname, ok := v["original_filename"]; ok {
@@ -373,7 +373,7 @@ func (s *ReportServiceImpl) buildKey(record map[string]any, fields []string) str
 	return strings.Join(parts, "|")
 }
 
-func (s *ReportServiceImpl) aggregateValue(current interface{}, record map[string]any, valueField string, aggregation string) interface{} {
+func (s *ReportServiceImpl) aggregateValue(current any, record map[string]any, valueField string, aggregation string) any {
 	if aggregation == "count" {
 		if current == nil {
 			return 1

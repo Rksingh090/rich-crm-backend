@@ -22,7 +22,7 @@ type DashboardService interface {
 	UpdateDashboard(ctx context.Context, id string, dashboard *DashboardConfig, userID primitive.ObjectID) error
 	DeleteDashboard(ctx context.Context, id string, userID primitive.ObjectID) error
 	SetDefaultDashboard(ctx context.Context, dashboardID string, userID primitive.ObjectID) error
-	GetDashboardData(ctx context.Context, dashboardID string, userID primitive.ObjectID) (map[string]interface{}, error)
+	GetDashboardData(ctx context.Context, dashboardID string, userID primitive.ObjectID) (map[string]any, error)
 }
 
 type DashboardServiceImpl struct {
@@ -128,18 +128,18 @@ func (s *DashboardServiceImpl) SetDefaultDashboard(ctx context.Context, dashboar
 	return s.DashboardRepo.SetDefault(ctx, userID.Hex(), dashboardID)
 }
 
-func (s *DashboardServiceImpl) GetDashboardData(ctx context.Context, dashboardID string, userID primitive.ObjectID) (map[string]interface{}, error) {
+func (s *DashboardServiceImpl) GetDashboardData(ctx context.Context, dashboardID string, userID primitive.ObjectID) (map[string]any, error) {
 	dashboard, err := s.GetDashboard(ctx, dashboardID, userID)
 	if err != nil {
 		return nil, err
 	}
 
-	widgetData := make(map[string]interface{})
+	widgetData := make(map[string]any)
 
 	for _, widget := range dashboard.Widgets {
 		data, err := s.getWidgetData(ctx, widget, userID)
 		if err != nil {
-			widgetData[widget.ID] = map[string]interface{}{
+			widgetData[widget.ID] = map[string]any{
 				"error": err.Error(),
 			}
 			continue
@@ -172,7 +172,7 @@ func (s *DashboardServiceImpl) validateWidgets(ctx context.Context, widgets []Da
 	return nil
 }
 
-func (s *DashboardServiceImpl) getWidgetData(ctx context.Context, widget DashboardWidget, userID primitive.ObjectID) (interface{}, error) {
+func (s *DashboardServiceImpl) getWidgetData(ctx context.Context, widget DashboardWidget, userID primitive.ObjectID) (any, error) {
 	switch widget.Type {
 	case "metric":
 		return s.getMetricData(ctx, widget, userID)
@@ -185,9 +185,9 @@ func (s *DashboardServiceImpl) getWidgetData(ctx context.Context, widget Dashboa
 	}
 }
 
-func (s *DashboardServiceImpl) getMetricData(ctx context.Context, widget DashboardWidget, userID primitive.ObjectID) (interface{}, error) {
-	filters := make(map[string]interface{})
-	if configFilters, ok := widget.Config["filters"].(map[string]interface{}); ok {
+func (s *DashboardServiceImpl) getMetricData(ctx context.Context, widget DashboardWidget, userID primitive.ObjectID) (any, error) {
+	filters := make(map[string]any)
+	if configFilters, ok := widget.Config["filters"].(map[string]any); ok {
 		filters = configFilters
 	}
 
@@ -201,7 +201,7 @@ func (s *DashboardServiceImpl) getMetricData(ctx context.Context, widget Dashboa
 		aggregation = agg
 	}
 
-	result := map[string]interface{}{
+	result := map[string]any{
 		"value":       count,
 		"aggregation": aggregation,
 	}
@@ -224,7 +224,7 @@ func (s *DashboardServiceImpl) getMetricData(ctx context.Context, widget Dashboa
 	return result, nil
 }
 
-func (s *DashboardServiceImpl) getChartData(ctx context.Context, widget DashboardWidget, userID primitive.ObjectID) (interface{}, error) {
+func (s *DashboardServiceImpl) getChartData(ctx context.Context, widget DashboardWidget, userID primitive.ObjectID) (any, error) {
 	chartID, _ := widget.Config["chart_id"].(string)
 	if chartID != "" {
 		return s.ChartService.GetChartData(ctx, chartID)
@@ -235,8 +235,8 @@ func (s *DashboardServiceImpl) getChartData(ctx context.Context, widget Dashboar
 		chartType = "bar"
 	}
 
-	filters := make(map[string]interface{})
-	if configFilters, ok := widget.Config["filters"].(map[string]interface{}); ok {
+	filters := make(map[string]any)
+	if configFilters, ok := widget.Config["filters"].(map[string]any); ok {
 		filters = configFilters
 	}
 
@@ -252,15 +252,15 @@ func (s *DashboardServiceImpl) getChartData(ctx context.Context, widget Dashboar
 
 	chartData := s.groupRecords(records, groupByField)
 
-	return map[string]interface{}{
+	return map[string]any{
 		"type": chartType,
 		"data": chartData,
 	}, nil
 }
 
-func (s *DashboardServiceImpl) getTableData(ctx context.Context, widget DashboardWidget, userID primitive.ObjectID) (interface{}, error) {
-	filters := make(map[string]interface{})
-	if configFilters, ok := widget.Config["filters"].(map[string]interface{}); ok {
+func (s *DashboardServiceImpl) getTableData(ctx context.Context, widget DashboardWidget, userID primitive.ObjectID) (any, error) {
+	filters := make(map[string]any)
+	if configFilters, ok := widget.Config["filters"].(map[string]any); ok {
 		filters = configFilters
 	}
 
@@ -274,7 +274,7 @@ func (s *DashboardServiceImpl) getTableData(ctx context.Context, widget Dashboar
 		return nil, err
 	}
 
-	return map[string]interface{}{
+	return map[string]any{
 		"records": records,
 		"total":   total,
 	}, nil
@@ -335,7 +335,7 @@ func (s *DashboardServiceImpl) calculateAggregation(records []map[string]any, fi
 	}
 }
 
-func (s *DashboardServiceImpl) groupRecords(records []map[string]any, field string) []map[string]interface{} {
+func (s *DashboardServiceImpl) groupRecords(records []map[string]any, field string) []map[string]any {
 	groups := make(map[string]int)
 
 	for _, record := range records {
@@ -348,9 +348,9 @@ func (s *DashboardServiceImpl) groupRecords(records []map[string]any, field stri
 		groups[key]++
 	}
 
-	var result []map[string]interface{}
+	var result []map[string]any
 	for key, count := range groups {
-		result = append(result, map[string]interface{}{
+		result = append(result, map[string]any{
 			"name":  key,
 			"value": count,
 		})
@@ -359,7 +359,7 @@ func (s *DashboardServiceImpl) groupRecords(records []map[string]any, field stri
 	return result
 }
 
-func (s *DashboardServiceImpl) convertFilters(filters map[string]interface{}) []common_models.Filter {
+func (s *DashboardServiceImpl) convertFilters(filters map[string]any) []common_models.Filter {
 	var filterSlice []common_models.Filter
 	for k, v := range filters {
 		fieldName := k

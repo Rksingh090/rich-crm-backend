@@ -6,7 +6,7 @@ import (
 )
 
 // ParseInt64 parses a string or number into an int64
-func ParseInt64(val interface{}, defaultVal int64) int64 {
+func ParseInt64(val any, defaultVal int64) int64 {
 	if val == nil {
 		return defaultVal
 	}

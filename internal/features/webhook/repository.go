@@ -19,7 +19,7 @@ type WebhookRepository interface {
 	Get(ctx context.Context, id string) (*Webhook, error)
 	List(ctx context.Context) ([]Webhook, error)
 	ListByEvent(ctx context.Context, event string) ([]Webhook, error)
-	Update(ctx context.Context, id string, updates map[string]interface{}) error
+	Update(ctx context.Context, id string, updates map[string]any) error
 	Delete(ctx context.Context, id string) error
 }
 
@@ -142,7 +142,7 @@ func (r *WebhookRepositoryImpl) ListByEvent(ctx context.Context, event string) (
 	return webhooks, nil
 }
 
-func (r *WebhookRepositoryImpl) Update(ctx context.Context, id string, updates map[string]interface{}) error {
+func (r *WebhookRepositoryImpl) Update(ctx context.Context, id string, updates map[string]any) error {
 	coll, err := r.getCollection(ctx)
 	if err != nil {
 		return err

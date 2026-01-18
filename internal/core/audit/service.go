@@ -15,7 +15,7 @@ type UserFinder interface {
 
 type AuditService interface {
 	LogChange(ctx context.Context, action common_models.AuditAction, module string, recordID string, changes map[string]common_models.Change) error
-	ListLogs(ctx context.Context, filters map[string]interface{}, page, limit int64) ([]common_models.AuditLog, error)
+	ListLogs(ctx context.Context, filters map[string]any, page, limit int64) ([]common_models.AuditLog, error)
 }
 
 type AuditServiceImpl struct {
@@ -50,7 +50,7 @@ func (s *AuditServiceImpl) LogChange(ctx context.Context, action common_models.A
 	return s.Repo.Create(ctx, log)
 }
 
-func (s *AuditServiceImpl) ListLogs(ctx context.Context, filters map[string]interface{}, page, limit int64) ([]common_models.AuditLog, error) {
+func (s *AuditServiceImpl) ListLogs(ctx context.Context, filters map[string]any, page, limit int64) ([]common_models.AuditLog, error) {
 	if page < 1 {
 		page = 1
 	}

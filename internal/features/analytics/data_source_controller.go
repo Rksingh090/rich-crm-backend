@@ -80,13 +80,13 @@ func (c *DataSourceController) ListDataSources(ctx *fiber.Ctx) error {
 // @Accept json
 // @Produce json
 // @Param id path string true "Data Source ID"
-// @Param updates body map[string]interface{} true "Updates"
-// @Success 200 {object} map[string]interface{}
+// @Param updates body map[string]any true "Updates"
+// @Success 200 {object} map[string]any
 // @Router /api/data-sources/{id} [put]
 func (c *DataSourceController) UpdateDataSource(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 
-	var updates map[string]interface{}
+	var updates map[string]any
 	if err := ctx.BodyParser(&updates); err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
@@ -102,7 +102,7 @@ func (c *DataSourceController) UpdateDataSource(ctx *fiber.Ctx) error {
 // @Summary Delete data source
 // @Tags data-sources
 // @Param id path string true "Data Source ID"
-// @Success 200 {object} map[string]interface{}
+// @Success 200 {object} map[string]any
 // @Router /api/data-sources/{id} [delete]
 func (c *DataSourceController) DeleteDataSource(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
@@ -118,7 +118,7 @@ func (c *DataSourceController) DeleteDataSource(ctx *fiber.Ctx) error {
 // @Summary Test data source connection
 // @Tags data-sources
 // @Param id path string true "Data Source ID"
-// @Success 200 {object} map[string]interface{}
+// @Success 200 {object} map[string]any
 // @Router /api/data-sources/{id}/test [post]
 func (c *DataSourceController) TestConnection(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")

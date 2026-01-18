@@ -34,8 +34,8 @@ const (
 )
 
 type Change struct {
-	Old interface{} `bson:"old" json:"old"`
-	New interface{} `bson:"new" json:"new"`
+	Old any `bson:"old" json:"old"`
+	New any `bson:"new" json:"new"`
 }
 
 type AuditLog struct {
@@ -164,18 +164,18 @@ type Entity struct {
 
 // EntityRecord - The actual data
 type EntityRecord struct {
-	ID        primitive.ObjectID     `json:"id" bson:"_id,omitempty"`
-	TenantID  primitive.ObjectID     `json:"tenant_id" bson:"tenant_id"`
-	App       App                    `json:"app" bson:"app"`
-	Entity    string                 `json:"entity" bson:"entity"` // Name of the Entity
-	Data      map[string]interface{} `json:"data" bson:"data"`
-	CreatedBy string                 `json:"created_by" bson:"created_by"` // User ID
-	UpdatedBy string                 `json:"updated_by" bson:"updated_by"` // User ID
-	CreatedAt time.Time              `json:"created_at" bson:"created_at"`
-	UpdatedAt time.Time              `json:"updated_at" bson:"updated_at"`
-	Deleted   bool                   `json:"__deleted" bson:"__deleted"`
-	DeletedAt *time.Time             `json:"deleted_at,omitempty" bson:"deleted_at,omitempty"`
-	DeletedBy string                 `json:"deleted_by,omitempty" bson:"deleted_by,omitempty"` // User ID
+	ID        primitive.ObjectID `json:"id" bson:"_id,omitempty"`
+	TenantID  primitive.ObjectID `json:"tenant_id" bson:"tenant_id"`
+	App       App                `json:"app" bson:"app"`
+	Entity    string             `json:"entity" bson:"entity"` // Name of the Entity
+	Data      map[string]any     `json:"data" bson:"data"`
+	CreatedBy string             `json:"created_by" bson:"created_by"` // User ID
+	UpdatedBy string             `json:"updated_by" bson:"updated_by"` // User ID
+	CreatedAt time.Time          `json:"created_at" bson:"created_at"`
+	UpdatedAt time.Time          `json:"updated_at" bson:"updated_at"`
+	Deleted   bool               `json:"__deleted" bson:"__deleted"`
+	DeletedAt *time.Time         `json:"deleted_at,omitempty" bson:"deleted_at,omitempty"`
+	DeletedBy string             `json:"deleted_by,omitempty" bson:"deleted_by,omitempty"` // User ID
 }
 
 type SubscriptionStatus string
@@ -268,7 +268,7 @@ type WebhookPayload struct {
 	Event     string         `json:"event"`
 	Module    string         `json:"module,omitempty"`
 	RecordID  string         `json:"record_id,omitempty"`
-	Data      interface{}    `json:"data"`
+	Data      any            `json:"data"`
 	Timestamp time.Time      `json:"timestamp"`
 	Extra     map[string]any `json:"extra,omitempty"`
 }
@@ -307,10 +307,10 @@ const (
 )
 
 type PermissionRule struct {
-	Field    string      `json:"field" bson:"field"`
-	Operator string      `json:"operator" bson:"operator"` // eq, ne, gt, lt, gte, lte, in, nin, contains
-	Value    interface{} `json:"value" bson:"value"`
-	Type     RuleType    `json:"type" bson:"type"`
+	Field    string   `json:"field" bson:"field"`
+	Operator string   `json:"operator" bson:"operator"` // eq, ne, gt, lt, gte, lte, in, nin, contains
+	Value    any      `json:"value" bson:"value"`
+	Type     RuleType `json:"type" bson:"type"`
 }
 
 type PermissionGroup struct {
@@ -330,7 +330,7 @@ type ActionPermission struct {
 }
 
 type Filter struct {
-	Field    string      `json:"field" bson:"field"`
-	Operator string      `json:"operator" bson:"operator"` // eq, ne, gt, lt, gte, lte, in, nin, contains, between, starts_with, ends_with
-	Value    interface{} `json:"value" bson:"value"`
+	Field    string `json:"field" bson:"field"`
+	Operator string `json:"operator" bson:"operator"` // eq, ne, gt, lt, gte, lte, in, nin, contains, between, starts_with, ends_with
+	Value    any    `json:"value" bson:"value"`
 }

@@ -21,8 +21,8 @@ func NewChartController(chartService ChartService) *ChartController {
 // @Produce json
 // @Param chart body Chart true "Chart Configuration"
 // @Success 201 {object} Chart
-// @Failure 400 {object} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
+// @Failure 400 {object} map[string]any
+// @Failure 500 {object} map[string]any
 // @Router /api/charts [post]
 func (c *ChartController) Create(ctx *fiber.Ctx) error {
 	var ch Chart
@@ -44,7 +44,7 @@ func (c *ChartController) Create(ctx *fiber.Ctx) error {
 // @Tags charts
 // @Produce json
 // @Success 200 {array} Chart
-// @Failure 500 {object} map[string]interface{}
+// @Failure 500 {object} map[string]any
 // @Router /api/charts [get]
 func (c *ChartController) List(ctx *fiber.Ctx) error {
 	charts, err := c.ChartService.ListCharts(ctx.UserContext())
@@ -62,7 +62,7 @@ func (c *ChartController) List(ctx *fiber.Ctx) error {
 // @Produce json
 // @Param id path string true "Chart ID"
 // @Success 200 {object} Chart
-// @Failure 404 {object} map[string]interface{}
+// @Failure 404 {object} map[string]any
 // @Router /api/charts/{id} [get]
 func (c *ChartController) Get(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
@@ -83,8 +83,8 @@ func (c *ChartController) Get(ctx *fiber.Ctx) error {
 // @Param id path string true "Chart ID"
 // @Param chart body Chart true "Chart Configuration"
 // @Success 200 {object} Chart
-// @Failure 400 {object} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
+// @Failure 400 {object} map[string]any
+// @Failure 500 {object} map[string]any
 // @Router /api/charts/{id} [put]
 func (c *ChartController) Update(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
@@ -107,7 +107,7 @@ func (c *ChartController) Update(ctx *fiber.Ctx) error {
 // @Tags charts
 // @Param id path string true "Chart ID"
 // @Success 204 {object} nil
-// @Failure 500 {object} map[string]interface{}
+// @Failure 500 {object} map[string]any
 // @Router /api/charts/{id} [delete]
 func (c *ChartController) Delete(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
@@ -124,8 +124,8 @@ func (c *ChartController) Delete(ctx *fiber.Ctx) error {
 // @Tags charts
 // @Produce json
 // @Param id path string true "Chart ID"
-// @Success 200 {object} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
+// @Success 200 {object} map[string]any
+// @Failure 500 {object} map[string]any
 // @Router /api/charts/{id}/data [get]
 func (c *ChartController) GetData(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")

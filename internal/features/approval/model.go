@@ -8,9 +8,9 @@ import (
 
 // ApprovalWorkflow defines the rules for approving records in a module
 type RuleCondition struct {
-	Field    string      `json:"field" bson:"field"`
-	Operator string      `json:"operator" bson:"operator"`
-	Value    interface{} `json:"value" bson:"value"`
+	Field    string `json:"field" bson:"field"`
+	Operator string `json:"operator" bson:"operator"`
+	Value    any    `json:"value" bson:"value"`
 }
 
 type ApprovalWorkflow struct {

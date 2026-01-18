@@ -20,7 +20,7 @@ type ResourceService interface {
 	SyncResources(ctx context.Context, resources []models.Resource) error
 	CreateResource(ctx context.Context, resource *models.Resource) error
 	DeleteResource(ctx context.Context, resourceID string, userID string) error
-	GetResourceMetadata(ctx context.Context, resourceName string, action string, userID string) (map[string]interface{}, error)
+	GetResourceMetadata(ctx context.Context, resourceName string, action string, userID string) (map[string]any, error)
 }
 
 type ResourceServiceImpl struct {
@@ -219,7 +219,7 @@ func (s *ResourceServiceImpl) DeleteResource(ctx context.Context, resourceID str
 	return s.repo.Delete(ctx, resource.ID.Hex(), userID)
 }
 
-func (s *ResourceServiceImpl) GetResourceMetadata(ctx context.Context, resourceName string, action string, userID string) (map[string]interface{}, error) {
+func (s *ResourceServiceImpl) GetResourceMetadata(ctx context.Context, resourceName string, action string, userID string) (map[string]any, error) {
 	// 1. Fetch Resource Schema (Entity) from Module Repository
 	// ResourceName in API (e.g. "crm.leads") should match Module Name
 	moduleEntity, err := s.moduleRepo.FindByName(ctx, resourceName)
@@ -287,7 +287,7 @@ func (s *ResourceServiceImpl) GetResourceMetadata(ctx context.Context, resourceN
 	}
 
 	// 4. Derive Filters
-	var allowedFilters []map[string]interface{}
+	var allowedFilters []map[string]any
 
 	if allowed {
 		// Calculate available filters from Schema
@@ -311,7 +311,7 @@ func (s *ResourceServiceImpl) GetResourceMetadata(ctx context.Context, resourceN
 		if len(permFilters) > 0 {
 			for _, key := range permFilters {
 				if field, ok := schemaFilters[key]; ok {
-					allowedFilters = append(allowedFilters, map[string]interface{}{
+					allowedFilters = append(allowedFilters, map[string]any{
 						"key":     field.Name,
 						"label":   field.Label,
 						"type":    field.Type,
@@ -322,11 +322,11 @@ func (s *ResourceServiceImpl) GetResourceMetadata(ctx context.Context, resourceN
 		}
 	}
 
-	response := map[string]interface{}{
+	response := map[string]any{
 		"resource": moduleEntity.Name, // Or ID if that's what we want
 		"label":    moduleEntity.Label,
-		"actions": map[string]interface{}{
-			action: map[string]interface{}{
+		"actions": map[string]any{
+			action: map[string]any{
 				"allowed": allowed,
 				"filters": allowedFilters,
 			},

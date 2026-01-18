@@ -21,8 +21,8 @@ type EmailTemplateService interface {
 	UpdateTemplate(ctx context.Context, template *EmailTemplate) error
 	DeleteTemplate(ctx context.Context, id string) error
 	GetModuleFields(ctx context.Context, moduleName string) ([]models.ModuleField, error)
-	RenderTemplate(ctx context.Context, templateID string, record map[string]interface{}) (string, string, error)
-	SendTestEmail(ctx context.Context, templateID string, to string, testData map[string]interface{}) error
+	RenderTemplate(ctx context.Context, templateID string, record map[string]any) (string, string, error)
+	SendTestEmail(ctx context.Context, templateID string, to string, testData map[string]any) error
 }
 
 type EmailTemplateServiceImpl struct {
@@ -139,7 +139,7 @@ func (s *EmailTemplateServiceImpl) GetModuleFields(ctx context.Context, moduleNa
 	return mod.Fields, nil
 }
 
-func (s *EmailTemplateServiceImpl) RenderTemplate(ctx context.Context, templateID string, record map[string]interface{}) (string, string, error) {
+func (s *EmailTemplateServiceImpl) RenderTemplate(ctx context.Context, templateID string, record map[string]any) (string, string, error) {
 	template, err := s.Repo.GetByID(ctx, templateID)
 	if err != nil {
 		return "", "", err
@@ -151,7 +151,7 @@ func (s *EmailTemplateServiceImpl) RenderTemplate(ctx context.Context, templateI
 	return subject, body, nil
 }
 
-func (s *EmailTemplateServiceImpl) replacePlaceholders(text string, record map[string]interface{}) string {
+func (s *EmailTemplateServiceImpl) replacePlaceholders(text string, record map[string]any) string {
 	for key, value := range record {
 		placeholder := fmt.Sprintf("{{%s}}", key)
 		replacement := fmt.Sprintf("%v", value)
@@ -160,7 +160,7 @@ func (s *EmailTemplateServiceImpl) replacePlaceholders(text string, record map[s
 	return text
 }
 
-func (s *EmailTemplateServiceImpl) SendTestEmail(ctx context.Context, templateID string, to string, testData map[string]interface{}) error {
+func (s *EmailTemplateServiceImpl) SendTestEmail(ctx context.Context, templateID string, to string, testData map[string]any) error {
 	subject, body, err := s.RenderTemplate(ctx, templateID, testData)
 	if err != nil {
 		return err

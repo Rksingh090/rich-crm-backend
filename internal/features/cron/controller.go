@@ -22,8 +22,8 @@ func NewCronController(service CronService) *CronController {
 // @Produce json
 // @Param job body CronJob true "Cron Job"
 // @Success 201 {object} CronJob
-// @Failure 400 {object} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
+// @Failure 400 {object} map[string]any
+// @Failure 500 {object} map[string]any
 // @Router /api/cron/jobs [post]
 func (c *CronController) CreateCronJob(ctx *fiber.Ctx) error {
 	var cronJob CronJob
@@ -46,10 +46,10 @@ func (c *CronController) CreateCronJob(ctx *fiber.Ctx) error {
 // @Param active query boolean false "Filter by active status"
 // @Param module_id query string false "Filter by module ID"
 // @Success 200 {array} CronJob
-// @Failure 500 {object} map[string]interface{}
+// @Failure 500 {object} map[string]any
 // @Router /api/cron/jobs [get]
 func (c *CronController) ListCronJobs(ctx *fiber.Ctx) error {
-	filter := make(map[string]interface{})
+	filter := make(map[string]any)
 
 	if active := ctx.Query("active"); active != "" {
 		filter["active"] = active == "true"
@@ -74,8 +74,8 @@ func (c *CronController) ListCronJobs(ctx *fiber.Ctx) error {
 // @Produce json
 // @Param id path string true "Job ID"
 // @Success 200 {object} CronJob
-// @Failure 404 {object} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
+// @Failure 404 {object} map[string]any
+// @Failure 500 {object} map[string]any
 // @Router /api/cron/jobs/{id} [get]
 func (c *CronController) GetCronJob(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
@@ -100,8 +100,8 @@ func (c *CronController) GetCronJob(ctx *fiber.Ctx) error {
 // @Param id path string true "Job ID"
 // @Param job body CronJob true "Cron Job"
 // @Success 200 {object} CronJob
-// @Failure 400 {object} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
+// @Failure 400 {object} map[string]any
+// @Failure 500 {object} map[string]any
 // @Router /api/cron/jobs/{id} [put]
 func (c *CronController) UpdateCronJob(ctx *fiber.Ctx) error {
 	var cronJob CronJob
@@ -122,7 +122,7 @@ func (c *CronController) UpdateCronJob(ctx *fiber.Ctx) error {
 // @Tags cron
 // @Param id path string true "Job ID"
 // @Success 204 {object} nil
-// @Failure 500 {object} map[string]interface{}
+// @Failure 500 {object} map[string]any
 // @Router /api/cron/jobs/{id} [delete]
 func (c *CronController) DeleteCronJob(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
@@ -140,8 +140,8 @@ func (c *CronController) DeleteCronJob(ctx *fiber.Ctx) error {
 // @Tags cron
 // @Produce json
 // @Param id path string true "Job ID"
-// @Success 200 {object} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
+// @Success 200 {object} map[string]any
+// @Failure 500 {object} map[string]any
 // @Router /api/cron/jobs/{id}/execute [post]
 func (c *CronController) ExecuteCronJob(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
@@ -160,8 +160,8 @@ func (c *CronController) ExecuteCronJob(ctx *fiber.Ctx) error {
 // @Produce json
 // @Param id path string true "Job ID"
 // @Param limit query int false "Max logs to return"
-// @Success 200 {array} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
+// @Success 200 {array} map[string]any
+// @Failure 500 {object} map[string]any
 // @Router /api/cron/jobs/{id}/logs [get]
 func (c *CronController) GetCronJobLogs(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")

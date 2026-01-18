@@ -21,8 +21,8 @@ func NewFunctionController(service FunctionService) *FunctionController {
 // @Produce json
 // @Param function body Function true "Function"
 // @Success 201 {object} Function
-// @Failure 400 {object} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
+// @Failure 400 {object} map[string]any
+// @Failure 500 {object} map[string]any
 // @Router /api/functions [post]
 func (c *FunctionController) Create(ctx *fiber.Ctx) error {
 	var function Function
@@ -48,7 +48,7 @@ func (c *FunctionController) Create(ctx *fiber.Ctx) error {
 // @Produce json
 // @Param id path string true "Function ID"
 // @Success 200 {object} Function
-// @Failure 404 {object} map[string]interface{}
+// @Failure 404 {object} map[string]any
 // @Router /api/functions/{id} [get]
 func (c *FunctionController) Get(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
@@ -68,7 +68,7 @@ func (c *FunctionController) Get(ctx *fiber.Ctx) error {
 // @Produce json
 // @Param module query string false "Filter by module"
 // @Success 200 {array} Function
-// @Failure 500 {object} map[string]interface{}
+// @Failure 500 {object} map[string]any
 // @Router /api/functions [get]
 func (c *FunctionController) List(ctx *fiber.Ctx) error {
 	moduleName := ctx.Query("module")
@@ -90,8 +90,8 @@ func (c *FunctionController) List(ctx *fiber.Ctx) error {
 // @Param id path string true "Function ID"
 // @Param function body Function true "Function"
 // @Success 200 {object} Function
-// @Failure 400 {object} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
+// @Failure 400 {object} map[string]any
+// @Failure 500 {object} map[string]any
 // @Router /api/functions/{id} [put]
 func (c *FunctionController) Update(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
@@ -124,7 +124,7 @@ func (c *FunctionController) Update(ctx *fiber.Ctx) error {
 // @Tags functions
 // @Param id path string true "Function ID"
 // @Success 204 {object} nil
-// @Failure 500 {object} map[string]interface{}
+// @Failure 500 {object} map[string]any
 // @Router /api/functions/{id} [delete]
 func (c *FunctionController) Delete(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
@@ -137,7 +137,8 @@ func (c *FunctionController) Delete(ctx *fiber.Ctx) error {
 }
 
 type TestFunctionRequest struct {
-	TestData map[string]interface{} `json:"test_data"`
+	TestData map[string]any `json:"test_data"`
+	Code     string         `json:"code"`
 }
 
 // TestFunction godoc
@@ -148,9 +149,9 @@ type TestFunctionRequest struct {
 // @Produce json
 // @Param id path string true "Function ID"
 // @Param request body TestFunctionRequest true "Test Data"
-// @Success 200 {object} map[string]interface{}
-// @Failure 400 {object} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
+// @Success 200 {object} map[string]any
+// @Failure 400 {object} map[string]any
+// @Failure 500 {object} map[string]any
 // @Router /api/functions/{id}/test [post]
 func (c *FunctionController) TestFunction(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
@@ -159,7 +160,7 @@ func (c *FunctionController) TestFunction(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
 
-	result, err := c.Service.TestFunction(ctx.UserContext(), id, req.TestData)
+	result, err := c.Service.TestFunction(ctx.UserContext(), id, req.TestData, req.Code)
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}

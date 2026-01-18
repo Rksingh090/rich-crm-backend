@@ -175,9 +175,9 @@ type resourceServiceAdapter struct {
 	svc resource.ResourceService
 }
 
-func (a *resourceServiceAdapter) CreateResource(ctx context.Context, res interface{}) error {
+func (a *resourceServiceAdapter) CreateResource(ctx context.Context, res any) error {
 	// Convert map to Resource struct
-	resMap, ok := res.(map[string]interface{})
+	resMap, ok := res.(map[string]any)
 	if !ok {
 		return fmt.Errorf("invalid resource type")
 	}
@@ -222,7 +222,7 @@ func (a *resourceServiceAdapter) CreateResource(ctx context.Context, res interfa
 	if v, ok := resMap["base_resource_id"].(string); ok {
 		r.BaseResourceID = v
 	}
-	if ui, ok := resMap["ui"].(map[string]interface{}); ok {
+	if ui, ok := resMap["ui"].(map[string]any); ok {
 		if v, ok := ui["sidebar"].(bool); ok {
 			r.UI.Sidebar = v
 		}
@@ -360,7 +360,7 @@ func main() {
 			func(r user.UserRepository) audit.UserFinder { return r },
 			func(s auth.AuthService) organization.TenantAuthService { return s },
 			func(s resource.ResourceService) interface {
-				CreateResource(ctx context.Context, resource interface{}) error
+				CreateResource(ctx context.Context, resource any) error
 				DeleteResource(ctx context.Context, resourceID string, userID string) error
 			} {
 				return &resourceServiceAdapter{svc: s}

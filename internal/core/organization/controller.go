@@ -85,7 +85,7 @@ func (c *OrganizationController) GetOrganization(ctx *fiber.Ctx) error {
 func (c *OrganizationController) ListOrganizations(ctx *fiber.Ctx) error {
 	// Parse query params for filtering if needed
 	// For now, empty filter returns all
-	filter := make(map[string]interface{})
+	filter := make(map[string]any)
 
 	orgs, err := c.service.ListOrganizations(ctx.Context(), filter)
 	if err != nil {
@@ -125,7 +125,7 @@ func (c *OrganizationController) GetOrganizationUsers(ctx *fiber.Ctx) error {
 	// Create context with target tenant ID
 	targetCtx := context.WithValue(ctx.Context(), models.TenantIDKey, id)
 
-	filter := make(map[string]interface{})
+	filter := make(map[string]any)
 	users, total, err := c.userService.ListUsers(targetCtx, filter, page, limit)
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
@@ -149,7 +149,7 @@ func (c *OrganizationController) GetOrganizationActivity(ctx *fiber.Ctx) error {
 	// Create context with target tenant ID
 	targetCtx := context.WithValue(ctx.Context(), models.TenantIDKey, id)
 
-	filters := make(map[string]interface{})
+	filters := make(map[string]any)
 	logs, err := c.auditService.ListLogs(targetCtx, filters, page, limit)
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})

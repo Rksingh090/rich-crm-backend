@@ -20,7 +20,7 @@ const (
 type RuleCondition struct {
 	Field    string             `json:"field" bson:"field"`
 	Operator ValidationOperator `json:"operator" bson:"operator"`
-	Value    interface{}        `json:"value" bson:"value"`
+	Value    any                `json:"value" bson:"value"`
 }
 
 // CronJob represents a scheduled automation job

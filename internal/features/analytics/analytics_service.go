@@ -19,11 +19,11 @@ type AnalyticsService interface {
 	CreateMetric(ctx context.Context, metric *Metric) error
 	GetMetric(ctx context.Context, id string) (*Metric, error)
 	ListMetrics(ctx context.Context) ([]Metric, error)
-	UpdateMetric(ctx context.Context, id string, updates map[string]interface{}) error
+	UpdateMetric(ctx context.Context, id string, updates map[string]any) error
 	DeleteMetric(ctx context.Context, id string) error
 
 	// Metric Execution
-	CalculateMetric(ctx context.Context, id string, filters map[string]interface{}) (*MetricResult, error)
+	CalculateMetric(ctx context.Context, id string, filters map[string]any) (*MetricResult, error)
 	GetMetricHistory(ctx context.Context, id string, timeRange TimeRange) ([]MetricDataPoint, error)
 
 	// Dashboard Analytics
@@ -75,7 +75,7 @@ func (s *AnalyticsServiceImpl) ListMetrics(ctx context.Context) ([]Metric, error
 	return s.metricRepo.List(ctx)
 }
 
-func (s *AnalyticsServiceImpl) UpdateMetric(ctx context.Context, id string, updates map[string]interface{}) error {
+func (s *AnalyticsServiceImpl) UpdateMetric(ctx context.Context, id string, updates map[string]any) error {
 	oldMetric, _ := s.GetMetric(ctx, id)
 
 	updates["updated_at"] = time.Now()
@@ -101,14 +101,14 @@ func (s *AnalyticsServiceImpl) DeleteMetric(ctx context.Context, id string) erro
 	return err
 }
 
-func (s *AnalyticsServiceImpl) CalculateMetric(ctx context.Context, id string, filters map[string]interface{}) (*MetricResult, error) {
+func (s *AnalyticsServiceImpl) CalculateMetric(ctx context.Context, id string, filters map[string]any) (*MetricResult, error) {
 	metric, err := s.GetMetric(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("metric not found: %w", err)
 	}
 
 	// Merge metric filters with provided filters
-	mergedFilters := make(map[string]interface{})
+	mergedFilters := make(map[string]any)
 	for k, v := range metric.Filters {
 		mergedFilters[k] = v
 	}

@@ -19,7 +19,7 @@ type SyncSettingRepository interface {
 	Get(ctx context.Context, id string) (*SyncSetting, error)
 	List(ctx context.Context) ([]SyncSetting, error)
 	ListActive(ctx context.Context) ([]SyncSetting, error)
-	Update(ctx context.Context, id string, updates map[string]interface{}) error
+	Update(ctx context.Context, id string, updates map[string]any) error
 	Delete(ctx context.Context, id string) error
 }
 
@@ -142,7 +142,7 @@ func (r *SyncSettingRepositoryImpl) ListActive(ctx context.Context) ([]SyncSetti
 	return settings, nil
 }
 
-func (r *SyncSettingRepositoryImpl) Update(ctx context.Context, id string, updates map[string]interface{}) error {
+func (r *SyncSettingRepositoryImpl) Update(ctx context.Context, id string, updates map[string]any) error {
 	coll, err := r.getCollection(ctx)
 	if err != nil {
 		return err

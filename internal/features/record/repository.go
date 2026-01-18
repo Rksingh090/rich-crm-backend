@@ -61,7 +61,7 @@ func (r *RecordRepositoryImpl) getCollection(ctx context.Context, moduleName str
 	return db.Collection(collName), nil
 }
 
-func (r *RecordRepositoryImpl) Create(ctx context.Context, moduleName string, product models.App, data map[string]interface{}) (interface{}, error) {
+func (r *RecordRepositoryImpl) Create(ctx context.Context, moduleName string, product models.App, data map[string]any) (any, error) {
 	coll, err := r.getCollection(ctx, moduleName, product)
 	if err != nil {
 		return nil, err
@@ -96,7 +96,7 @@ func (r *RecordRepositoryImpl) Create(ctx context.Context, moduleName string, pr
 	return record.ID, nil
 }
 
-func (r *RecordRepositoryImpl) Get(ctx context.Context, moduleName, id string) (map[string]interface{}, error) {
+func (r *RecordRepositoryImpl) Get(ctx context.Context, moduleName, id string) (map[string]any, error) {
 	var record models.EntityRecord
 	recordID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {

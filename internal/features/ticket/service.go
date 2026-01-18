@@ -18,8 +18,8 @@ import (
 type TicketService interface {
 	CreateTicket(ctx context.Context, ticket *Ticket, createdBy primitive.ObjectID) error
 	GetTicket(ctx context.Context, id string) (*Ticket, error)
-	ListTickets(ctx context.Context, filters map[string]interface{}, page, limit int64, sortBy, sortOrder string) ([]Ticket, int64, error)
-	UpdateTicket(ctx context.Context, id string, updates map[string]interface{}, updatedBy primitive.ObjectID) error
+	ListTickets(ctx context.Context, filters map[string]any, page, limit int64, sortBy, sortOrder string) ([]Ticket, int64, error)
+	UpdateTicket(ctx context.Context, id string, updates map[string]any, updatedBy primitive.ObjectID) error
 	DeleteTicket(ctx context.Context, id string, deletedBy primitive.ObjectID) error
 
 	// Status Management
@@ -42,8 +42,8 @@ type TicketService interface {
 	GetOverdueSLATickets(ctx context.Context) ([]Ticket, error)
 
 	// Multi-Channel
-	CreateTicketFromEmail(ctx context.Context, subject, description, customerEmail, customerName string, metadata map[string]interface{}) error
-	CreateTicketFromChat(ctx context.Context, subject, description, customerEmail, customerName string, metadata map[string]interface{}) error
+	CreateTicketFromEmail(ctx context.Context, subject, description, customerEmail, customerName string, metadata map[string]any) error
+	CreateTicketFromChat(ctx context.Context, subject, description, customerEmail, customerName string, metadata map[string]any) error
 	CreateTicketFromPortal(ctx context.Context, ticket *Ticket, createdBy primitive.ObjectID) error
 }
 
@@ -130,7 +130,7 @@ func (s *TicketServiceImpl) GetTicket(ctx context.Context, id string) (*Ticket, 
 }
 
 // ListTickets retrieves tickets with filtering and pagination
-func (s *TicketServiceImpl) ListTickets(ctx context.Context, filters map[string]interface{}, page, limit int64, sortBy, sortOrder string) ([]Ticket, int64, error) {
+func (s *TicketServiceImpl) ListTickets(ctx context.Context, filters map[string]any, page, limit int64, sortBy, sortOrder string) ([]Ticket, int64, error) {
 	// Build MongoDB filter
 	filter := bson.M{}
 
@@ -173,7 +173,7 @@ func (s *TicketServiceImpl) ListTickets(ctx context.Context, filters map[string]
 }
 
 // UpdateTicket updates a ticket
-func (s *TicketServiceImpl) UpdateTicket(ctx context.Context, id string, updates map[string]interface{}, updatedBy primitive.ObjectID) error {
+func (s *TicketServiceImpl) UpdateTicket(ctx context.Context, id string, updates map[string]any, updatedBy primitive.ObjectID) error {
 	objID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return errors.New("invalid ticket ID")
@@ -323,7 +323,7 @@ func (s *TicketServiceImpl) AssignTicket(ctx context.Context, id string, assigne
 	}
 
 	// Audit log
-	var oldAssignee interface{} = nil
+	var oldAssignee any = nil
 	if oldTicket.AssignedTo != nil {
 		oldAssignee = oldTicket.AssignedTo.Hex()
 	}
@@ -360,7 +360,7 @@ func (s *TicketServiceImpl) UnassignTicket(ctx context.Context, id string, unass
 	}
 
 	// Audit log
-	var oldAssignee interface{} = nil
+	var oldAssignee any = nil
 	if oldTicket.AssignedTo != nil {
 		oldAssignee = oldTicket.AssignedTo.Hex()
 	}
@@ -489,7 +489,7 @@ func (s *TicketServiceImpl) GetOverdueSLATickets(ctx context.Context) ([]Ticket,
 }
 
 // CreateTicketFromEmail creates a ticket from an email
-func (s *TicketServiceImpl) CreateTicketFromEmail(ctx context.Context, subject, description, customerEmail, customerName string, metadata map[string]interface{}) error {
+func (s *TicketServiceImpl) CreateTicketFromEmail(ctx context.Context, subject, description, customerEmail, customerName string, metadata map[string]any) error {
 	t := &Ticket{
 		Subject:         subject,
 		Description:     description,
@@ -508,7 +508,7 @@ func (s *TicketServiceImpl) CreateTicketFromEmail(ctx context.Context, subject, 
 }
 
 // CreateTicketFromChat creates a ticket from a chat conversation
-func (s *TicketServiceImpl) CreateTicketFromChat(ctx context.Context, subject, description, customerEmail, customerName string, metadata map[string]interface{}) error {
+func (s *TicketServiceImpl) CreateTicketFromChat(ctx context.Context, subject, description, customerEmail, customerName string, metadata map[string]any) error {
 	t := &Ticket{
 		Subject:         subject,
 		Description:     description,

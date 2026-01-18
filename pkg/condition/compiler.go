@@ -12,10 +12,10 @@ import (
 )
 
 type Compiler struct {
-	Context map[string]interface{}
+	Context map[string]any
 }
 
-func NewCompiler(ctx map[string]interface{}) *Compiler {
+func NewCompiler(ctx map[string]any) *Compiler {
 	return &Compiler{Context: ctx}
 }
 
@@ -103,7 +103,7 @@ func (c *Compiler) compileRule(rule models.PermissionRule) (bson.M, error) {
 	}
 }
 
-func (c *Compiler) resolveValue(val interface{}, ruleType models.RuleType) (interface{}, error) {
+func (c *Compiler) resolveValue(val any, ruleType models.RuleType) (any, error) {
 	if ruleType != models.RuleTypeVariable {
 		return val, nil
 	}

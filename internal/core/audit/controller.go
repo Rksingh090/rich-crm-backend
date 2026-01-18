@@ -35,14 +35,14 @@ func NewAuditController(service AuditService, roleService middleware.RoleService
 // @Param limit query int false "Items per page"
 // @Param module query string false "Filter by module"
 // @Param record_id query string false "Filter by record ID"
-// @Success 200 {object} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
+// @Success 200 {object} map[string]any
+// @Failure 500 {object} map[string]any
 // @Router /api/audit/logs [get]
 func (ctrl *AuditController) ListLogs(c *fiber.Ctx) error {
 	page, _ := strconv.ParseInt(c.Query("page", "1"), 10, 64)
 	limit, _ := strconv.ParseInt(c.Query("limit", "20"), 10, 64)
 
-	filters := make(map[string]interface{})
+	filters := make(map[string]any)
 	if module := c.Query("module"); module != "" {
 		filters["module"] = module
 	}
@@ -110,7 +110,7 @@ func (ctrl *AuditController) GetGlobalActivity(c *fiber.Ctx) error {
 	page, _ := strconv.ParseInt(c.Query("page", "1"), 10, 64)
 	limit, _ := strconv.ParseInt(c.Query("limit", "50"), 10, 64)
 
-	filters := make(map[string]interface{})
+	filters := make(map[string]any)
 	if tenantID := c.Query("tenant_id"); tenantID != "" {
 		if oid, err := primitive.ObjectIDFromHex(tenantID); err == nil {
 			filters["tenant_id"] = oid

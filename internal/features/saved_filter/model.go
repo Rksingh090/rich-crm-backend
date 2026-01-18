@@ -30,7 +30,7 @@ type FilterCriteria struct {
 
 // FilterCondition represents a single filter condition
 type FilterCondition struct {
-	Field    string      `json:"field" bson:"field"`
-	Operator string      `json:"operator" bson:"operator"` // eq, ne, gt, lt, gte, lte, contains, in, etc.
-	Value    interface{} `json:"value" bson:"value"`
+	Field    string `json:"field" bson:"field"`
+	Operator string `json:"operator" bson:"operator"` // eq, ne, gt, lt, gte, lte, contains, in, etc.
+	Value    any    `json:"value" bson:"value"`
 }

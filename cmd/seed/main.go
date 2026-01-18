@@ -77,7 +77,7 @@ func Seed(
 				}
 
 				// Helper to read JSON
-				readJSON := func(path string, v interface{}) error {
+				readJSON := func(path string, v any) error {
 					b, err := os.ReadFile(path)
 					if err != nil {
 						return err
@@ -256,7 +256,7 @@ func Seed(
 					recordCtx := context.WithValue(tenantCtx, "user_id", userID.Hex())
 
 					// Leads
-					leads := []map[string]interface{}{
+					leads := []map[string]any{
 						{"first_name": "John", "last_name": "Doe", "email": "john@example.com", "company": "Acme Inc", "status": "New"},
 						{"first_name": "Jane", "last_name": "Smith", "email": "jane@test.com", "company": "Test Corp", "status": "Contacted"},
 						{"first_name": "Bob", "last_name": "Brown", "email": "bob@start.up", "company": "Startup Hub", "status": "Qualified"},
@@ -274,7 +274,7 @@ func Seed(
 					logger.Info("Seeded Leads")
 
 					// Contacts
-					contacts := []map[string]interface{}{
+					contacts := []map[string]any{
 						{"first_name": "Sarah", "last_name": "Connor", "email": "sarah@sky.net", "phone": "555-0101"},
 						{"first_name": "Kyle", "last_name": "Reese", "email": "kyle@resistance.org", "phone": "555-0102"},
 						{"first_name": "Tony", "last_name": "Stark", "email": "tony@stark.com", "phone": "555-0199"},

@@ -15,8 +15,8 @@ import (
 )
 
 type ActivityService interface {
-	GetCalendarEvents(ctx context.Context, start, end time.Time) ([]map[string]interface{}, error)
-	GetTimeline(ctx context.Context, moduleName, recordID string) ([]map[string]interface{}, error)
+	GetCalendarEvents(ctx context.Context, start, end time.Time) ([]map[string]any, error)
+	GetTimeline(ctx context.Context, moduleName, recordID string) ([]map[string]any, error)
 }
 
 type ActivityServiceImpl struct {
@@ -28,8 +28,8 @@ func NewActivityService(recordRepo record.RecordRepository, db *database.Mongodb
 	return &ActivityServiceImpl{RecordRepo: recordRepo, DB: db}
 }
 
-func (s *ActivityServiceImpl) GetCalendarEvents(ctx context.Context, start, end time.Time) ([]map[string]interface{}, error) {
-	events := []map[string]interface{}{}
+func (s *ActivityServiceImpl) GetCalendarEvents(ctx context.Context, start, end time.Time) ([]map[string]any, error) {
+	events := []map[string]any{}
 
 	// Fetch Tasks
 	tasks, err := s.RecordRepo.List(ctx, "tasks", bson.M{
@@ -38,7 +38,7 @@ func (s *ActivityServiceImpl) GetCalendarEvents(ctx context.Context, start, end 
 	if err == nil {
 		for _, t := range tasks {
 			dueDate := toTime(t["due_date"])
-			events = append(events, map[string]interface{}{
+			events = append(events, map[string]any{
 				"id":    t["_id"],
 				"title": t["subject"],
 				"start": dueDate,
@@ -67,7 +67,7 @@ func (s *ActivityServiceImpl) GetCalendarEvents(ctx context.Context, start, end 
 
 			endT := startT.Add(time.Duration(duration) * time.Minute)
 
-			events = append(events, map[string]interface{}{
+			events = append(events, map[string]any{
 				"id":    c["_id"],
 				"title": c["subject"],
 				"start": startT,
@@ -87,7 +87,7 @@ func (s *ActivityServiceImpl) GetCalendarEvents(ctx context.Context, start, end 
 			startT := toTime(m["start_time"])
 			endT := toTime(m["end_time"])
 
-			events = append(events, map[string]interface{}{
+			events = append(events, map[string]any{
 				"id":    m["_id"],
 				"title": m["subject"],
 				"start": startT,
@@ -101,7 +101,7 @@ func (s *ActivityServiceImpl) GetCalendarEvents(ctx context.Context, start, end 
 	return events, nil
 }
 
-func (s *ActivityServiceImpl) GetTimeline(ctx context.Context, moduleName, recordID string) ([]map[string]interface{}, error) {
+func (s *ActivityServiceImpl) GetTimeline(ctx context.Context, moduleName, recordID string) ([]map[string]any, error) {
 	tenantID, ok := ctx.Value(models.TenantIDKey).(string)
 	if !ok || tenantID == "" {
 		return nil, fmt.Errorf("organization context missing")
@@ -110,7 +110,7 @@ func (s *ActivityServiceImpl) GetTimeline(ctx context.Context, moduleName, recor
 	db := s.DB.GetTenantDB(tenantID)
 	oid, _ := primitive.ObjectIDFromHex(recordID) // Ignore error, check both string and oid
 
-	timeline := []map[string]interface{}{}
+	timeline := []map[string]any{}
 
 	// Collections to check
 	// Map Collection Name -> Type Label
@@ -154,14 +154,14 @@ func (s *ActivityServiceImpl) GetTimeline(ctx context.Context, moduleName, recor
 			continue // Skip if collection error or missing
 		}
 
-		var results []map[string]interface{}
+		var results []map[string]any
 		if err := cursor.All(ctx, &results); err != nil {
 			continue
 		}
 
 		for _, item := range results {
 			// Extract Data
-			data, _ := item["data"].(map[string]interface{})
+			data, _ := item["data"].(map[string]any)
 
 			// Determine Date (Priority: start_time > due_date > created_at)
 			var date time.Time
@@ -174,7 +174,7 @@ func (s *ActivityServiceImpl) GetTimeline(ctx context.Context, moduleName, recor
 			}
 
 			// Normalized Activity Item
-			timelineItem := map[string]interface{}{
+			timelineItem := map[string]any{
 				"id":         item["_id"],
 				"type":       typeLabel,
 				"module":     collName, // e.g. crm_calls
@@ -199,7 +199,7 @@ func (s *ActivityServiceImpl) GetTimeline(ctx context.Context, moduleName, recor
 	return timeline, nil
 }
 
-func toTime(v interface{}) time.Time {
+func toTime(v any) time.Time {
 	if v == nil {
 		return time.Time{}
 	}

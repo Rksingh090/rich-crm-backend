@@ -61,14 +61,14 @@ type UpdateUserStatusRequest struct {
 // @Param        page query int false "Page number" default(1)
 // @Param        limit query int false "Items per page" default(10)
 // @Param        status query string false "Filter by status"
-// @Success      200  {object} map[string]interface{}
+// @Success      200  {object} map[string]any
 // @Failure      500  {string} string "Failed to fetch users"
 // @Router       /users [get]
 func (ctrl *UserController) ListUsers(c *fiber.Ctx) error {
 	page, _ := strconv.ParseInt(c.Query("page", "1"), 10, 64)
 	limit, _ := strconv.ParseInt(c.Query("limit", "10"), 10, 64)
 
-	filter := make(map[string]interface{})
+	filter := make(map[string]any)
 	if status := c.Query("status"); status != "" {
 		filter["status"] = status
 	}
@@ -218,7 +218,7 @@ func (ctrl *UserController) UpdateUser(c *fiber.Ctx) error {
 		})
 	}
 
-	updates := make(map[string]interface{})
+	updates := make(map[string]any)
 	if req.Email != "" {
 		updates["email"] = req.Email
 	}

@@ -20,7 +20,7 @@ type RecordRepository interface {
 }
 
 type InventoryService interface {
-	HandleStockUpdate(ctx context.Context, moduleName string, recordData map[string]interface{}) error
+	HandleStockUpdate(ctx context.Context, moduleName string, recordData map[string]any) error
 }
 
 type InventoryServiceImpl struct {
@@ -35,7 +35,7 @@ func NewInventoryService(recordRepo RecordRepository, moduleRepo module.ModuleRe
 	}
 }
 
-func (s *InventoryServiceImpl) HandleStockUpdate(ctx context.Context, moduleName string, recordData map[string]interface{}) error {
+func (s *InventoryServiceImpl) HandleStockUpdate(ctx context.Context, moduleName string, recordData map[string]any) error {
 	// Identify the type of movement based on the module
 	var moveType string
 	var sign float64 // +1 or -1
@@ -56,7 +56,7 @@ func (s *InventoryServiceImpl) HandleStockUpdate(ctx context.Context, moduleName
 	}
 
 	// Extract Items
-	items, ok := recordData["items"].([]interface{})
+	items, ok := recordData["items"].([]any)
 	if !ok || len(items) == 0 {
 		// Try subform format (sometimes it might be mapped differently?)
 		// Assuming standard subform array of maps
@@ -67,14 +67,14 @@ func (s *InventoryServiceImpl) HandleStockUpdate(ctx context.Context, moduleName
 
 	// Process each item
 	for _, item := range items {
-		itemMap, ok := item.(map[string]interface{})
+		itemMap, ok := item.(map[string]any)
 		if !ok {
 			continue
 		}
 
 		// Get Product ID
 		var productID string
-		if pID, ok := itemMap["product_id"].(map[string]interface{}); ok {
+		if pID, ok := itemMap["product_id"].(map[string]any); ok {
 			if id, ok := pID["id"].(string); ok {
 				productID = id
 			}
@@ -100,7 +100,7 @@ func (s *InventoryServiceImpl) HandleStockUpdate(ctx context.Context, moduleName
 		oid, _ := primitive.ObjectIDFromHex(productID)
 
 		// Create Stock Movement Record
-		movement := map[string]interface{}{
+		movement := map[string]any{
 			"_id":              primitive.NewObjectID(),
 			"product_id":       oid,
 			"quantity":         changeQty,
@@ -141,7 +141,7 @@ func (s *InventoryServiceImpl) HandleStockUpdate(ctx context.Context, moduleName
 			currentStock, _ := getFloat(invRecord["stock_quantity"])
 			newStock := currentStock + changeQty
 
-			updateData := map[string]interface{}{
+			updateData := map[string]any{
 				"stock_quantity":   newStock,
 				"last_movement_at": time.Now(),
 				"updated_at":       time.Now(),
@@ -153,7 +153,7 @@ func (s *InventoryServiceImpl) HandleStockUpdate(ctx context.Context, moduleName
 			}
 		} else {
 			// Create New Inventory Record
-			newInv := map[string]interface{}{
+			newInv := map[string]any{
 				"_id":              primitive.NewObjectID(),
 				"product_id":       oid,
 				"stock_quantity":   changeQty,
@@ -172,7 +172,7 @@ func (s *InventoryServiceImpl) HandleStockUpdate(ctx context.Context, moduleName
 	return nil
 }
 
-func getFloat(unk interface{}) (float64, bool) {
+func getFloat(unk any) (float64, bool) {
 	switch i := unk.(type) {
 	case float64:
 		return i, true

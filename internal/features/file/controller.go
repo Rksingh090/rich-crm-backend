@@ -42,9 +42,9 @@ func NewFileController(fileService FileService, cfg *config.Config) *FileControl
 // @Param description formData string false "File Description"
 // @Param is_shared formData boolean false "Shared status"
 // @Success 201 {object} File
-// @Failure 400 {object} map[string]interface{}
-// @Failure 401 {object} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
+// @Failure 400 {object} map[string]any
+// @Failure 401 {object} map[string]any
+// @Failure 500 {object} map[string]any
 // @Router /api/files/upload [post]
 func (ctrl *FileController) UploadFile(c *fiber.Ctx) error {
 	userIDStr := c.Locals("user_id").(string)
@@ -116,7 +116,7 @@ func (ctrl *FileController) UploadFile(c *fiber.Ctx) error {
 // @Param module path string true "Module Name"
 // @Param recordId path string true "Record ID"
 // @Success 200 {array} File
-// @Failure 500 {object} map[string]interface{}
+// @Failure 500 {object} map[string]any
 // @Router /api/files/{module}/{recordId} [get]
 func (ctrl *FileController) GetFilesByRecord(c *fiber.Ctx) error {
 	moduleName := c.Params("module")
@@ -138,7 +138,7 @@ func (ctrl *FileController) GetFilesByRecord(c *fiber.Ctx) error {
 // @Tags files
 // @Produce json
 // @Success 200 {array} File
-// @Failure 500 {object} map[string]interface{}
+// @Failure 500 {object} map[string]any
 // @Router /api/files/shared [get]
 func (ctrl *FileController) GetSharedFiles(c *fiber.Ctx) error {
 	files, err := ctrl.FileService.GetSharedFiles(c.UserContext())
@@ -157,7 +157,7 @@ func (ctrl *FileController) GetSharedFiles(c *fiber.Ctx) error {
 // @Tags files
 // @Param id path string true "File ID"
 // @Success 200 {file} file "File content"
-// @Failure 404 {object} map[string]interface{}
+// @Failure 404 {object} map[string]any
 // @Router /api/files/download/{id} [get]
 func (ctrl *FileController) DownloadFile(c *fiber.Ctx) error {
 	fileID := c.Params("id")
@@ -177,9 +177,9 @@ func (ctrl *FileController) DownloadFile(c *fiber.Ctx) error {
 // @Description Delete a file by ID
 // @Tags files
 // @Param id path string true "File ID"
-// @Success 200 {object} map[string]interface{}
-// @Failure 401 {object} map[string]interface{}
-// @Failure 403 {object} map[string]interface{}
+// @Success 200 {object} map[string]any
+// @Failure 401 {object} map[string]any
+// @Failure 403 {object} map[string]any
 // @Router /api/files/{id} [delete]
 func (ctrl *FileController) DeleteFile(c *fiber.Ctx) error {
 	fileID := c.Params("id")

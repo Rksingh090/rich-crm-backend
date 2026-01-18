@@ -33,7 +33,7 @@ type ApprovalService interface {
 	CanApprove(ctx context.Context, moduleName string, recordID string, userID string, userRoleIDs []string) (bool, error)
 
 	// Helper to initialize approval state for a new record
-	InitializeApproval(ctx context.Context, moduleName string, record map[string]interface{}) (*common_models.ApprovalRecordState, error)
+	InitializeApproval(ctx context.Context, moduleName string, record map[string]any) (*common_models.ApprovalRecordState, error)
 }
 
 type ApprovalServiceImpl struct {
@@ -171,7 +171,7 @@ func (s *ApprovalServiceImpl) ListWorkflows(ctx context.Context, userID primitiv
 	return s.Repo.List(ctx)
 }
 
-func (s *ApprovalServiceImpl) InitializeApproval(ctx context.Context, moduleName string, rec map[string]interface{}) (*common_models.ApprovalRecordState, error) {
+func (s *ApprovalServiceImpl) InitializeApproval(ctx context.Context, moduleName string, rec map[string]any) (*common_models.ApprovalRecordState, error) {
 	mod, err := s.ModuleRepo.FindByName(ctx, moduleName)
 	if err != nil {
 		return nil, err
@@ -271,7 +271,7 @@ func (s *ApprovalServiceImpl) ApproveRecord(ctx context.Context, moduleName stri
 		state.Status = common_models.ApprovalStatusApproved
 	}
 
-	data := map[string]interface{}{
+	data := map[string]any{
 		"_approval": state,
 	}
 
@@ -324,7 +324,7 @@ func (s *ApprovalServiceImpl) RejectRecord(ctx context.Context, moduleName strin
 
 	state.Status = common_models.ApprovalStatusRejected
 
-	data := map[string]interface{}{
+	data := map[string]any{
 		"_approval": state,
 	}
 	err = s.RecordRepo.Update(ctx, moduleName, recordID, data)

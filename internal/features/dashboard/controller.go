@@ -24,9 +24,9 @@ func NewDashboardController(dashboardService DashboardService) *DashboardControl
 // @Produce json
 // @Param dashboard body DashboardConfig true "Dashboard Config"
 // @Success 201 {object} DashboardConfig
-// @Failure 400 {object} map[string]interface{}
-// @Failure 401 {object} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
+// @Failure 400 {object} map[string]any
+// @Failure 401 {object} map[string]any
+// @Failure 500 {object} map[string]any
 // @Router /api/dashboards [post]
 func (ctrl *DashboardController) CreateDashboard(ctx *fiber.Ctx) error {
 	var dashboard DashboardConfig
@@ -58,8 +58,8 @@ func (ctrl *DashboardController) CreateDashboard(ctx *fiber.Ctx) error {
 // @Tags dashboard
 // @Produce json
 // @Success 200 {array} DashboardConfig
-// @Failure 401 {object} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
+// @Failure 401 {object} map[string]any
+// @Failure 500 {object} map[string]any
 // @Router /api/dashboards [get]
 func (ctrl *DashboardController) ListDashboards(ctx *fiber.Ctx) error {
 	userIDStr := ctx.Locals("user_id")
@@ -88,8 +88,8 @@ func (ctrl *DashboardController) ListDashboards(ctx *fiber.Ctx) error {
 // @Produce json
 // @Param id path string true "Dashboard ID"
 // @Success 200 {object} DashboardConfig
-// @Failure 401 {object} map[string]interface{}
-// @Failure 404 {object} map[string]interface{}
+// @Failure 401 {object} map[string]any
+// @Failure 404 {object} map[string]any
 // @Router /api/dashboards/{id} [get]
 func (ctrl *DashboardController) GetDashboard(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
@@ -122,9 +122,9 @@ func (ctrl *DashboardController) GetDashboard(ctx *fiber.Ctx) error {
 // @Param id path string true "Dashboard ID"
 // @Param dashboard body DashboardConfig true "Dashboard Config"
 // @Success 200 {object} DashboardConfig
-// @Failure 400 {object} map[string]interface{}
-// @Failure 401 {object} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
+// @Failure 400 {object} map[string]any
+// @Failure 401 {object} map[string]any
+// @Failure 500 {object} map[string]any
 // @Router /api/dashboards/{id} [put]
 func (ctrl *DashboardController) UpdateDashboard(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
@@ -158,8 +158,8 @@ func (ctrl *DashboardController) UpdateDashboard(ctx *fiber.Ctx) error {
 // @Tags dashboard
 // @Param id path string true "Dashboard ID"
 // @Success 204 {object} nil
-// @Failure 401 {object} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
+// @Failure 401 {object} map[string]any
+// @Failure 500 {object} map[string]any
 // @Router /api/dashboards/{id} [delete]
 func (ctrl *DashboardController) DeleteDashboard(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
@@ -188,9 +188,9 @@ func (ctrl *DashboardController) DeleteDashboard(ctx *fiber.Ctx) error {
 // @Tags dashboard
 // @Produce json
 // @Param id path string true "Dashboard ID"
-// @Success 200 {object} map[string]interface{}
-// @Failure 401 {object} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
+// @Success 200 {object} map[string]any
+// @Failure 401 {object} map[string]any
+// @Failure 500 {object} map[string]any
 // @Router /api/dashboards/{id}/default [post]
 func (ctrl *DashboardController) SetDefaultDashboard(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
@@ -219,9 +219,9 @@ func (ctrl *DashboardController) SetDefaultDashboard(ctx *fiber.Ctx) error {
 // @Tags dashboard
 // @Produce json
 // @Param id path string true "Dashboard ID"
-// @Success 200 {object} map[string]interface{}
-// @Failure 401 {object} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
+// @Success 200 {object} map[string]any
+// @Failure 401 {object} map[string]any
+// @Failure 500 {object} map[string]any
 // @Router /api/dashboards/{id}/data [get]
 func (ctrl *DashboardController) GetDashboardData(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")

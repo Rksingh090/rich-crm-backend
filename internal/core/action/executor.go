@@ -16,14 +16,12 @@ import (
 	"net/http"
 	"strings"
 	"time"
-
-	"github.com/d5/tengo/v2"
 )
 
 // ActionExecutor provides centralized action execution for all automation features
 type ActionExecutor interface {
-	ExecuteActions(ctx context.Context, actions []Action, moduleName string, record map[string]interface{}) error
-	ExecuteAction(ctx context.Context, action Action, moduleName string, record map[string]interface{}) error
+	ExecuteActions(ctx context.Context, actions []Action, moduleName string, record map[string]any) error
+	ExecuteAction(ctx context.Context, action Action, moduleName string, record map[string]any) error
 }
 
 type ActionExecutorImpl struct {
@@ -58,7 +56,7 @@ func NewActionExecutor(
 	}
 }
 
-func (e *ActionExecutorImpl) ExecuteActions(ctx context.Context, actions []Action, moduleName string, record map[string]interface{}) error {
+func (e *ActionExecutorImpl) ExecuteActions(ctx context.Context, actions []Action, moduleName string, record map[string]any) error {
 	for i, action := range actions {
 		if err := e.ExecuteAction(ctx, action, moduleName, record); err != nil {
 			log.Printf("Failed to execute action %d (type: %s): %v", i, action.Type, err)
@@ -67,7 +65,7 @@ func (e *ActionExecutorImpl) ExecuteActions(ctx context.Context, actions []Actio
 	return nil
 }
 
-func (e *ActionExecutorImpl) ExecuteAction(ctx context.Context, action Action, moduleName string, record map[string]interface{}) error {
+func (e *ActionExecutorImpl) ExecuteAction(ctx context.Context, action Action, moduleName string, record map[string]any) error {
 	switch action.Type {
 	case ActionSendEmail:
 		return e.executeSendEmail(ctx, action.Config, record)
@@ -92,7 +90,7 @@ func (e *ActionExecutorImpl) ExecuteAction(ctx context.Context, action Action, m
 	}
 }
 
-func (e *ActionExecutorImpl) executeSendEmail(ctx context.Context, config map[string]interface{}, rec map[string]interface{}) error {
+func (e *ActionExecutorImpl) executeSendEmail(ctx context.Context, config map[string]any, rec map[string]any) error {
 	to, _ := config["to"].(string)
 	cc, _ := config["cc"].(string)
 	bcc, _ := config["bcc"].(string)
@@ -157,7 +155,7 @@ func (e *ActionExecutorImpl) executeSendEmail(ctx context.Context, config map[st
 	return nil
 }
 
-func (e *ActionExecutorImpl) executeWebhook(_ context.Context, config map[string]interface{}, moduleName string, rec map[string]interface{}) error {
+func (e *ActionExecutorImpl) executeWebhook(_ context.Context, config map[string]any, moduleName string, rec map[string]any) error {
 	url, _ := config["url"].(string)
 	method, _ := config["method"].(string)
 
@@ -169,7 +167,7 @@ func (e *ActionExecutorImpl) executeWebhook(_ context.Context, config map[string
 		method = "POST"
 	}
 
-	payload := map[string]interface{}{
+	payload := map[string]any{
 		"module":    moduleName,
 		"record":    rec,
 		"timestamp": time.Now().Format(time.RFC3339),
@@ -187,7 +185,7 @@ func (e *ActionExecutorImpl) executeWebhook(_ context.Context, config map[string
 
 	req.Header.Set("Content-Type", "application/json")
 
-	if headers, ok := config["headers"].(map[string]interface{}); ok {
+	if headers, ok := config["headers"].(map[string]any); ok {
 		for key, value := range headers {
 			req.Header.Set(key, fmt.Sprintf("%v", value))
 		}
@@ -208,18 +206,18 @@ func (e *ActionExecutorImpl) executeWebhook(_ context.Context, config map[string
 	return nil
 }
 
-func (e *ActionExecutorImpl) executeCreateRecord(ctx context.Context, config map[string]interface{}, rec map[string]interface{}) error {
+func (e *ActionExecutorImpl) executeCreateRecord(ctx context.Context, config map[string]any, rec map[string]any) error {
 	targetModuleName, _ := config["module_name"].(string)
 	if targetModuleName == "" {
 		return fmt.Errorf("target module_name is required for create_record action")
 	}
 
-	mapping, _ := config["mapping"].(map[string]interface{})
+	mapping, _ := config["mapping"].(map[string]any)
 	if mapping == nil {
-		mapping = make(map[string]interface{})
+		mapping = make(map[string]any)
 	}
 
-	newData := make(map[string]interface{})
+	newData := make(map[string]any)
 	for targetField, sourceFieldRaw := range mapping {
 		sourceField, ok := sourceFieldRaw.(string)
 		if !ok || sourceField == "" {
@@ -253,42 +251,22 @@ func (e *ActionExecutorImpl) executeCreateRecord(ctx context.Context, config map
 	return nil
 }
 
-func (e *ActionExecutorImpl) executeRunScript(ctx context.Context, config map[string]interface{}, moduleName string, rec map[string]interface{}) error {
+func (e *ActionExecutorImpl) executeRunScript(ctx context.Context, config map[string]any, moduleName string, rec map[string]any) error {
 	// Check if using stored function
-	if functionID, ok := config["function_id"].(string); ok && functionID != "" && functionID != "none" {
-		if e.functionService != nil {
-			log.Printf("Executing stored function %s for module %s", functionID, moduleName)
-			return e.functionService.ExecuteFunction(ctx, functionID, moduleName, rec)
-		}
-		log.Printf("Warning: function_id specified but functionService not available")
+	functionID, ok := config["function_id"].(string)
+	if !ok || functionID == "" || functionID == "none" {
+		return fmt.Errorf("function_id is required")
 	}
 
-	// Fall back to inline script (backward compatibility)
-	scriptContent, _ := config["script"].(string)
-
-	if scriptContent == "" {
-		return fmt.Errorf("script content or function_id is required")
+	if e.functionService != nil {
+		log.Printf("Executing stored function %s for module %s", functionID, moduleName)
+		return e.functionService.ExecuteFunction(ctx, functionID, moduleName, rec)
 	}
 
-	script := tengo.NewScript([]byte(scriptContent))
-
-	script.Add("module", moduleName)
-	script.Add("record", rec)
-
-	compiled, err := script.Compile()
-	if err != nil {
-		return fmt.Errorf("failed to compile script: %w", err)
-	}
-
-	if err := compiled.Run(); err != nil {
-		return fmt.Errorf("failed to run script: %w", err)
-	}
-
-	log.Printf("Executed inline script for module %s", moduleName)
-	return nil
+	return fmt.Errorf("functionService not available")
 }
 
-func (e *ActionExecutorImpl) executeSendNotification(ctx context.Context, config map[string]interface{}, rec map[string]interface{}) error {
+func (e *ActionExecutorImpl) executeSendNotification(ctx context.Context, config map[string]any, rec map[string]any) error {
 	userID, _ := config["user_id"].(string)
 	title, _ := config["title"].(string)
 	message, _ := config["message"].(string)
@@ -304,7 +282,7 @@ func (e *ActionExecutorImpl) executeSendNotification(ctx context.Context, config
 	title = e.replacePlaceholders(title, rec)
 	message = e.replacePlaceholders(message, rec)
 
-	notificationData := map[string]interface{}{
+	notificationData := map[string]any{
 		"user_id":    userID,
 		"title":      title,
 		"message":    message,
@@ -328,7 +306,7 @@ func (e *ActionExecutorImpl) executeSendNotification(ctx context.Context, config
 	return nil
 }
 
-func (e *ActionExecutorImpl) replacePlaceholders(text string, rec map[string]interface{}) string {
+func (e *ActionExecutorImpl) replacePlaceholders(text string, rec map[string]any) string {
 	for key, value := range rec {
 		placeholder := fmt.Sprintf("{{%s}}", key)
 		replacement := fmt.Sprintf("%v", value)
@@ -360,7 +338,7 @@ func indexOf(s, substr string) int {
 	return -1
 }
 
-func (e *ActionExecutorImpl) executeDataSync(ctx context.Context, config map[string]interface{}) error {
+func (e *ActionExecutorImpl) executeDataSync(ctx context.Context, config map[string]any) error {
 	syncSettingID, _ := config["sync_setting_id"].(string)
 
 	if syncSettingID == "" {

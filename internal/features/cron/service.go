@@ -20,7 +20,7 @@ import (
 type CronService interface {
 	CreateCronJob(ctx context.Context, cronJob *CronJob) error
 	GetCronJob(ctx context.Context, id string) (*CronJob, error)
-	ListCronJobs(ctx context.Context, filter map[string]interface{}) ([]CronJob, error)
+	ListCronJobs(ctx context.Context, filter map[string]any) ([]CronJob, error)
 	UpdateCronJob(ctx context.Context, cronJob *CronJob) error
 	DeleteCronJob(ctx context.Context, id string) error
 	ExecuteCronJob(ctx context.Context, id string) error
@@ -47,7 +47,7 @@ type CronServiceImpl struct {
 
 // OrganizationRepository interface for getting all tenants
 type OrganizationRepository interface {
-	List(ctx context.Context, filter map[string]interface{}) ([]common_models.Organization, error)
+	List(ctx context.Context, filter map[string]any) ([]common_models.Organization, error)
 }
 
 func NewCronService(
@@ -105,7 +105,7 @@ func (s *CronServiceImpl) GetCronJob(ctx context.Context, id string) (*CronJob, 
 	return s.repo.GetByID(ctx, id)
 }
 
-func (s *CronServiceImpl) ListCronJobs(ctx context.Context, filter map[string]interface{}) ([]CronJob, error) {
+func (s *CronServiceImpl) ListCronJobs(ctx context.Context, filter map[string]any) ([]CronJob, error) {
 	return s.repo.List(ctx, filter)
 }
 
@@ -228,7 +228,7 @@ func (s *CronServiceImpl) executeCronJobInternal(ctx context.Context, cronJob *C
 }
 
 func (s *CronServiceImpl) executeRecordBasedJob(ctx context.Context, cronJob *CronJob) (int, int, error) {
-	filter := make(map[string]interface{})
+	filter := make(map[string]any)
 
 	if len(cronJob.Conditions) > 0 {
 		for _, condition := range cronJob.Conditions {
@@ -236,13 +236,13 @@ func (s *CronServiceImpl) executeRecordBasedJob(ctx context.Context, cronJob *Cr
 			case OperatorEquals:
 				filter[condition.Field] = condition.Value
 			case OperatorNotEquals:
-				filter[condition.Field] = map[string]interface{}{"$ne": condition.Value}
+				filter[condition.Field] = map[string]any{"$ne": condition.Value}
 			case OperatorGreaterThan:
-				filter[condition.Field] = map[string]interface{}{"$gt": condition.Value}
+				filter[condition.Field] = map[string]any{"$gt": condition.Value}
 			case OperatorLessThan:
-				filter[condition.Field] = map[string]interface{}{"$lt": condition.Value}
+				filter[condition.Field] = map[string]any{"$lt": condition.Value}
 			case OperatorContains:
-				filter[condition.Field] = map[string]interface{}{"$regex": condition.Value, "$options": "i"}
+				filter[condition.Field] = map[string]any{"$regex": condition.Value, "$options": "i"}
 			}
 		}
 	}
@@ -270,7 +270,7 @@ func (s *CronServiceImpl) executeRecordBasedJob(ctx context.Context, cronJob *Cr
 func (s *CronServiceImpl) executeNonRecordBasedJob(ctx context.Context, cronJob *CronJob) (int, error) {
 	// Actions are already action.Action type, no conversion needed
 	// For non-record based jobs, pass empty record
-	if err := s.actionExecutor.ExecuteActions(ctx, cronJob.Actions, "", map[string]interface{}{}); err != nil {
+	if err := s.actionExecutor.ExecuteActions(ctx, cronJob.Actions, "", map[string]any{}); err != nil {
 		return 0, err
 	}
 
@@ -289,7 +289,7 @@ func (s *CronServiceImpl) InitializeScheduler(ctx context.Context) error {
 	s.scheduler = cron.New()
 
 	// Get all organizations/tenants
-	orgs, err := s.orgRepo.List(ctx, map[string]interface{}{})
+	orgs, err := s.orgRepo.List(ctx, map[string]any{})
 	if err != nil {
 		return fmt.Errorf("failed to load organizations: %w", err)
 	}

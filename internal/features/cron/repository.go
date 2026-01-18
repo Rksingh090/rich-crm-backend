@@ -17,7 +17,7 @@ import (
 type CronRepository interface {
 	Create(ctx context.Context, cronJob *CronJob) error
 	GetByID(ctx context.Context, id string) (*CronJob, error)
-	List(ctx context.Context, filter map[string]interface{}) ([]CronJob, error)
+	List(ctx context.Context, filter map[string]any) ([]CronJob, error)
 	Update(ctx context.Context, cronJob *CronJob) error
 	Delete(ctx context.Context, id string) error
 	GetActive(ctx context.Context) ([]CronJob, error)
@@ -83,7 +83,7 @@ func (r *CronRepositoryImpl) GetByID(ctx context.Context, id string) (*CronJob, 
 	return &cronJob, nil
 }
 
-func (r *CronRepositoryImpl) List(ctx context.Context, filter map[string]interface{}) ([]CronJob, error) {
+func (r *CronRepositoryImpl) List(ctx context.Context, filter map[string]any) ([]CronJob, error) {
 	tenantID, ok := ctx.Value(common_models.TenantIDKey).(string)
 	if !ok || tenantID == "" {
 		return nil, fmt.Errorf("tenant context missing")

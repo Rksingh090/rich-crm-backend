@@ -23,9 +23,9 @@ func NewSavedFilterController(filterService SavedFilterService) *SavedFilterCont
 // @Produce json
 // @Param filter body SavedFilter true "Filter Details"
 // @Success 201 {object} SavedFilter
-// @Failure 400 {object} map[string]interface{}
-// @Failure 401 {object} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
+// @Failure 400 {object} map[string]any
+// @Failure 401 {object} map[string]any
+// @Failure 500 {object} map[string]any
 // @Router /api/saved-filters [post]
 func (c *SavedFilterController) CreateFilter(ctx *fiber.Ctx) error {
 	var filter SavedFilter
@@ -54,7 +54,7 @@ func (c *SavedFilterController) CreateFilter(ctx *fiber.Ctx) error {
 // @Produce json
 // @Param id path string true "Filter ID"
 // @Success 200 {object} SavedFilter
-// @Failure 404 {object} map[string]interface{}
+// @Failure 404 {object} map[string]any
 // @Router /api/saved-filters/{id} [get]
 func (c *SavedFilterController) GetFilter(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
@@ -76,8 +76,8 @@ func (c *SavedFilterController) GetFilter(ctx *fiber.Ctx) error {
 // @Param id path string true "Filter ID"
 // @Param filter body SavedFilter true "Filter Details"
 // @Success 200 {object} SavedFilter
-// @Failure 400 {object} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
+// @Failure 400 {object} map[string]any
+// @Failure 500 {object} map[string]any
 // @Router /api/saved-filters/{id} [put]
 func (c *SavedFilterController) UpdateFilter(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
@@ -103,8 +103,8 @@ func (c *SavedFilterController) UpdateFilter(ctx *fiber.Ctx) error {
 // @Tags saved_filters
 // @Param id path string true "Filter ID"
 // @Success 204 {object} nil
-// @Failure 401 {object} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
+// @Failure 401 {object} map[string]any
+// @Failure 500 {object} map[string]any
 // @Router /api/saved-filters/{id} [delete]
 func (c *SavedFilterController) DeleteFilter(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
@@ -129,9 +129,9 @@ func (c *SavedFilterController) DeleteFilter(ctx *fiber.Ctx) error {
 // @Produce json
 // @Param module query string true "Module Name"
 // @Success 200 {array} SavedFilter
-// @Failure 400 {object} map[string]interface{}
-// @Failure 401 {object} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
+// @Failure 400 {object} map[string]any
+// @Failure 401 {object} map[string]any
+// @Failure 500 {object} map[string]any
 // @Router /api/saved-filters/user [get]
 func (c *SavedFilterController) ListUserFilters(ctx *fiber.Ctx) error {
 	moduleName := ctx.Query("module")
@@ -160,8 +160,8 @@ func (c *SavedFilterController) ListUserFilters(ctx *fiber.Ctx) error {
 // @Produce json
 // @Param module query string true "Module Name"
 // @Success 200 {array} SavedFilter
-// @Failure 400 {object} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
+// @Failure 400 {object} map[string]any
+// @Failure 500 {object} map[string]any
 // @Router /api/saved-filters/public [get]
 func (c *SavedFilterController) ListPublicFilters(ctx *fiber.Ctx) error {
 	moduleName := ctx.Query("module")

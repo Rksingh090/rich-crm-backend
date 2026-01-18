@@ -63,8 +63,8 @@ type Ticket struct {
 	Description  string             `json:"description" bson:"description"`
 
 	// Channel Information
-	Channel         TicketChannel          `json:"channel" bson:"channel"`
-	ChannelMetadata map[string]interface{} `json:"channel_metadata,omitempty" bson:"channel_metadata,omitempty"`
+	Channel         TicketChannel  `json:"channel" bson:"channel"`
+	ChannelMetadata map[string]any `json:"channel_metadata,omitempty" bson:"channel_metadata,omitempty"`
 
 	// Priority & SLA
 	Priority        TicketPriority      `json:"priority" bson:"priority"`
@@ -116,8 +116,8 @@ type SLAPolicy struct {
 	ResolutionTime int `json:"resolution_time" bson:"resolution_time"`
 
 	// Business Hours
-	IsBusinessHoursOnly bool                   `json:"is_business_hours_only" bson:"is_business_hours_only"`
-	BusinessHours       map[string]interface{} `json:"business_hours,omitempty" bson:"business_hours,omitempty"`
+	IsBusinessHoursOnly bool           `json:"is_business_hours_only" bson:"is_business_hours_only"`
+	BusinessHours       map[string]any `json:"business_hours,omitempty" bson:"business_hours,omitempty"`
 
 	// Status
 	IsActive  bool      `json:"is_active" bson:"is_active"`

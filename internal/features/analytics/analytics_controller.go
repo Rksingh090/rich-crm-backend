@@ -78,13 +78,13 @@ func (c *AnalyticsController) ListMetrics(ctx *fiber.Ctx) error {
 // @Accept json
 // @Produce json
 // @Param id path string true "Metric ID"
-// @Param updates body map[string]interface{} true "Updates"
-// @Success 200 {object} map[string]interface{}
+// @Param updates body map[string]any true "Updates"
+// @Success 200 {object} map[string]any
 // @Router /api/analytics/metrics/{id} [put]
 func (c *AnalyticsController) UpdateMetric(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 
-	var updates map[string]interface{}
+	var updates map[string]any
 	if err := ctx.BodyParser(&updates); err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
@@ -100,7 +100,7 @@ func (c *AnalyticsController) UpdateMetric(ctx *fiber.Ctx) error {
 // @Summary Delete metric
 // @Tags analytics
 // @Param id path string true "Metric ID"
-// @Success 200 {object} map[string]interface{}
+// @Success 200 {object} map[string]any
 // @Router /api/analytics/metrics/{id} [delete]
 func (c *AnalyticsController) DeleteMetric(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
@@ -118,13 +118,13 @@ func (c *AnalyticsController) DeleteMetric(ctx *fiber.Ctx) error {
 // @Accept json
 // @Produce json
 // @Param id path string true "Metric ID"
-// @Param filters body map[string]interface{} false "Additional Filters"
+// @Param filters body map[string]any false "Additional Filters"
 // @Success 200 {object} MetricResult
 // @Router /api/analytics/metrics/{id}/calculate [post]
 func (c *AnalyticsController) CalculateMetric(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 
-	var filters map[string]interface{}
+	var filters map[string]any
 	ctx.BodyParser(&filters) // Optional filters
 
 	result, err := c.Service.CalculateMetric(ctx.UserContext(), id, filters)

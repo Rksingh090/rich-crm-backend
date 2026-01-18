@@ -147,10 +147,10 @@ func (s *SearchServiceImpl) GlobalSearch(ctx context.Context, query string, user
 			}
 			defer cursor.Close(ctx)
 
-			var records []map[string]interface{}
+			var records []map[string]any
 			if err = cursor.All(ctx, &records); err == nil {
 				for _, r := range records {
-					data, _ := r["data"].(map[string]interface{})
+					data, _ := r["data"].(map[string]any)
 					if data == nil {
 						continue
 					}

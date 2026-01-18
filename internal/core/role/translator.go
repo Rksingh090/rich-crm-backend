@@ -11,7 +11,7 @@ import (
 )
 
 // TranslateConditions converts a PermissionGroup into a MongoDB filter
-func TranslateConditions(group *models.PermissionGroup, contextData map[string]interface{}) (bson.M, error) {
+func TranslateConditions(group *models.PermissionGroup, contextData map[string]any) (bson.M, error) {
 	if group == nil {
 		return bson.M{}, nil
 	}
@@ -55,7 +55,7 @@ func TranslateConditions(group *models.PermissionGroup, contextData map[string]i
 	return bson.M{operator: conditions}, nil
 }
 
-func translateRule(rule models.PermissionRule, contextData map[string]interface{}) (bson.M, error) {
+func translateRule(rule models.PermissionRule, contextData map[string]any) (bson.M, error) {
 	val := rule.Value
 
 	// Resolve Variable
@@ -136,7 +136,7 @@ func mapFieldToDB(field string) string {
 	}
 }
 
-func resolvePath(path string, data map[string]interface{}) (interface{}, bool) {
+func resolvePath(path string, data map[string]any) (any, bool) {
 	// Simple resolution for now: $user.id, $user.tenant_id
 	// path starts with $, strip it
 	key := strings.TrimPrefix(path, "$")
@@ -149,8 +149,8 @@ func resolvePath(path string, data map[string]interface{}) (interface{}, bool) {
 
 // PrepareContextData prepares standard variables for ABAC condition evaluation
 // This includes user ID, tenant ID, and user groups
-func PrepareContextData(userID primitive.ObjectID, tenantID primitive.ObjectID, groups []string) map[string]interface{} {
-	return map[string]interface{}{
+func PrepareContextData(userID primitive.ObjectID, tenantID primitive.ObjectID, groups []string) map[string]any {
+	return map[string]any{
 		"user.id":        userID,
 		"user.tenant_id": tenantID,
 		"user.groups":    groups, // Array of group names for "in" operator

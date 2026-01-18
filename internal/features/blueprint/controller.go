@@ -122,7 +122,7 @@ type ExecuteTransitionRequest struct {
 // @Param module path string true "Module Name"
 // @Param id path string true "Record ID"
 // @Param request body ExecuteTransitionRequest true "Transition Request"
-// @Success 200 {object} map[string]interface{}
+// @Success 200 {object} map[string]any
 // @Router /modules/{module}/records/{id}/transition [post]
 func (c *Controller) ExecuteTransition(ctx *fiber.Ctx) error {
 	moduleName := ctx.Params("module")

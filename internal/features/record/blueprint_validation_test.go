@@ -88,7 +88,7 @@ func (m *MockRoleService) CheckPermission(ctx context.Context, userID primitive.
 
 type MockAutomationTrigger struct{}
 
-func (m *MockAutomationTrigger) ExecuteFromTrigger(ctx context.Context, moduleName string, record map[string]interface{}, triggerType string) error {
+func (m *MockAutomationTrigger) ExecuteFromTrigger(ctx context.Context, moduleName string, record map[string]any, triggerType string) error {
 	return nil
 }
 
@@ -103,7 +103,7 @@ func (m *MockWebhookService) ListWebhooks(ctx context.Context) ([]webhook.Webhoo
 func (m *MockWebhookService) GetWebhook(ctx context.Context, id string) (*webhook.Webhook, error) {
 	return nil, nil
 }
-func (m *MockWebhookService) UpdateWebhook(ctx context.Context, id string, updates map[string]interface{}) error {
+func (m *MockWebhookService) UpdateWebhook(ctx context.Context, id string, updates map[string]any) error {
 	return nil
 }
 func (m *MockWebhookService) DeleteWebhook(ctx context.Context, id string) error { return nil }
@@ -143,7 +143,7 @@ func TestUpdateRecord_BlueprintValidation(t *testing.T) {
 	// Case 1: Active Blueprint manages "stage". Update contains "stage". Should Fail.
 	t.Run("BlockedByBlueprint", func(t *testing.T) {
 		mockValidator.TargetField = "stage"
-		data := map[string]interface{}{
+		data := map[string]any{
 			"stage": "Closed Won",
 		}
 
@@ -158,7 +158,7 @@ func TestUpdateRecord_BlueprintValidation(t *testing.T) {
 	// Case 2: Active Blueprint manages "stage". Update only "amount". Should Pass.
 	t.Run("AllowedUpdate", func(t *testing.T) {
 		mockValidator.TargetField = "stage"
-		data := map[string]interface{}{
+		data := map[string]any{
 			"amount": 1000,
 		}
 
@@ -171,7 +171,7 @@ func TestUpdateRecord_BlueprintValidation(t *testing.T) {
 	// Case 3: No Active Blueprint. Update "stage". Should Pass.
 	t.Run("NoBlueprint", func(t *testing.T) {
 		mockValidator.TargetField = ""
-		data := map[string]interface{}{
+		data := map[string]any{
 			"stage": "Negotiation",
 		}
 
@@ -188,7 +188,7 @@ func TestUpdateRecord_BlueprintValidation(t *testing.T) {
 			"_id":   recordID,
 			"stage": "Negotiation",
 		}
-		data := map[string]interface{}{
+		data := map[string]any{
 			"stage": "Negotiation",
 		}
 

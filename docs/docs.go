@@ -8824,7 +8824,7 @@ const docTemplate = `{
             "properties": {
                 "config": {
                     "type": "object",
-                    "additionalProperties": true
+                    "additionalProperties": {}
                 },
                 "created_at": {
                     "type": "string"
@@ -8879,7 +8879,7 @@ const docTemplate = `{
                 },
                 "filters": {
                     "type": "object",
-                    "additionalProperties": true
+                    "additionalProperties": {}
                 },
                 "group_by": {
                     "type": "array",
@@ -8924,7 +8924,7 @@ const docTemplate = `{
                     "type": "array",
                     "items": {
                         "type": "object",
-                        "additionalProperties": true
+                        "additionalProperties": {}
                     }
                 },
                 "metric_id": {
@@ -9162,7 +9162,7 @@ const docTemplate = `{
                 "layout": {
                     "description": "Node positions: key=stateName, val={x,y}",
                     "type": "object",
-                    "additionalProperties": true
+                    "additionalProperties": {}
                 },
                 "module": {
                     "description": "Target Module Name",
@@ -9195,7 +9195,7 @@ const docTemplate = `{
                 "config": {
                     "description": "Config depends on Type",
                     "type": "object",
-                    "additionalProperties": true
+                    "additionalProperties": {}
                 },
                 "id": {
                     "type": "string"
@@ -9365,7 +9365,7 @@ const docTemplate = `{
                 },
                 "updates": {
                     "type": "object",
-                    "additionalProperties": true
+                    "additionalProperties": {}
                 },
                 "user_id": {
                     "type": "string"
@@ -9555,7 +9555,7 @@ const docTemplate = `{
                 "filters": {
                     "description": "Filter conditions",
                     "type": "object",
-                    "additionalProperties": true
+                    "additionalProperties": {}
                 },
                 "limit": {
                     "type": "integer",
@@ -9589,7 +9589,7 @@ const docTemplate = `{
                     "type": "array",
                     "items": {
                         "type": "object",
-                        "additionalProperties": true
+                        "additionalProperties": {}
                     }
                 },
                 "timestamp": {
@@ -9743,7 +9743,7 @@ const docTemplate = `{
             "properties": {
                 "config": {
                     "type": "object",
-                    "additionalProperties": true
+                    "additionalProperties": {}
                 },
                 "id": {
                     "type": "string"
@@ -9829,7 +9829,7 @@ const docTemplate = `{
             "properties": {
                 "test_data": {
                     "type": "object",
-                    "additionalProperties": true
+                    "additionalProperties": {}
                 },
                 "to": {
                     "type": "string"
@@ -9880,7 +9880,7 @@ const docTemplate = `{
                 },
                 "settings": {
                     "type": "object",
-                    "additionalProperties": true
+                    "additionalProperties": {}
                 },
                 "status": {
                     "$ref": "#/definitions/extension.ExtensionStatus"
@@ -9995,15 +9995,9 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "language": {
-                    "description": "\"tengo\" or \"javascript\"",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/function.FunctionLanguage"
-                        }
-                    ]
+                    "$ref": "#/definitions/function.FunctionLanguage"
                 },
                 "module_name": {
-                    "description": "Empty for global",
                     "type": "string"
                 },
                 "name": {
@@ -10026,11 +10020,9 @@ const docTemplate = `{
         "function.FunctionLanguage": {
             "type": "string",
             "enum": [
-                "tengo",
                 "javascript"
             ],
             "x-enum-varnames": [
-                "LanguageTengo",
                 "LanguageJavaScript"
             ]
         },
@@ -10052,9 +10044,12 @@ const docTemplate = `{
         "function.TestFunctionRequest": {
             "type": "object",
             "properties": {
+                "code": {
+                    "type": "string"
+                },
                 "test_data": {
                     "type": "object",
-                    "additionalProperties": true
+                    "additionalProperties": {}
                 }
             }
         },
@@ -11353,7 +11348,7 @@ const docTemplate = `{
             "properties": {
                 "business_hours": {
                     "type": "object",
-                    "additionalProperties": true
+                    "additionalProperties": {}
                 },
                 "created_at": {
                     "type": "string"
@@ -11435,7 +11430,7 @@ const docTemplate = `{
                 },
                 "channel_metadata": {
                     "type": "object",
-                    "additionalProperties": true
+                    "additionalProperties": {}
                 },
                 "closed_at": {
                     "type": "string"

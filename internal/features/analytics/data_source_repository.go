@@ -13,7 +13,7 @@ type DataSourceRepository interface {
 	Create(ctx context.Context, dataSource *DataSource) error
 	Get(ctx context.Context, id string) (*DataSource, error)
 	List(ctx context.Context) ([]DataSource, error)
-	Update(ctx context.Context, id string, updates map[string]interface{}) error
+	Update(ctx context.Context, id string, updates map[string]any) error
 	Delete(ctx context.Context, id string) error
 	FindByType(ctx context.Context, dsType string) ([]DataSource, error)
 }
@@ -64,7 +64,7 @@ func (r *DataSourceRepositoryImpl) List(ctx context.Context) ([]DataSource, erro
 	return dataSources, nil
 }
 
-func (r *DataSourceRepositoryImpl) Update(ctx context.Context, id string, updates map[string]interface{}) error {
+func (r *DataSourceRepositoryImpl) Update(ctx context.Context, id string, updates map[string]any) error {
 	objectID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return err

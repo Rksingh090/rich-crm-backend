@@ -15,7 +15,7 @@ type ExtensionRepository interface {
 	Create(ctx context.Context, ext *Extension) error
 	GetByID(ctx context.Context, id string) (*Extension, error)
 	List(ctx context.Context, onlyInstalled bool) ([]Extension, error)
-	Update(ctx context.Context, id string, updates map[string]interface{}) error
+	Update(ctx context.Context, id string, updates map[string]any) error
 	Delete(ctx context.Context, id string) error
 }
 
@@ -69,7 +69,7 @@ func (r *ExtensionRepositoryImpl) List(ctx context.Context, onlyInstalled bool) 
 	return extensions, nil
 }
 
-func (r *ExtensionRepositoryImpl) Update(ctx context.Context, id string, updates map[string]interface{}) error {
+func (r *ExtensionRepositoryImpl) Update(ctx context.Context, id string, updates map[string]any) error {
 	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return err

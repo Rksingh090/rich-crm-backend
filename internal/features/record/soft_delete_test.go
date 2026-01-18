@@ -72,7 +72,7 @@ func (m *MockAuditService) LogChange(ctx context.Context, action common_models.A
 	return nil
 }
 
-func (m *MockAuditService) ListLogs(ctx context.Context, filters map[string]interface{}, page, limit int64) ([]common_models.AuditLog, error) {
+func (m *MockAuditService) ListLogs(ctx context.Context, filters map[string]any, page, limit int64) ([]common_models.AuditLog, error) {
 	return []common_models.AuditLog{}, nil
 }
 

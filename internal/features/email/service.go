@@ -56,6 +56,8 @@ func (s *EmailServiceImpl) SendEmail(ctx context.Context, to []string, subject, 
 		from = config.SMTPUser
 	}
 
+	log.Printf("DEBUG SMTP: User='%s', From='%s', Host='%s'", config.SMTPUser, from, config.SMTPHost)
+
 	// Try to get TenantID and AppID from context
 	var tenantID primitive.ObjectID
 	var appID string

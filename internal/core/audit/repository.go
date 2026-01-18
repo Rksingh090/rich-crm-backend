@@ -13,7 +13,7 @@ import (
 
 type AuditRepository interface {
 	Create(ctx context.Context, log common_models.AuditLog) error
-	List(ctx context.Context, filters map[string]interface{}, limit, offset int64) ([]common_models.AuditLog, error)
+	List(ctx context.Context, filters map[string]any, limit, offset int64) ([]common_models.AuditLog, error)
 }
 
 type AuditRepositoryImpl struct {
@@ -48,7 +48,7 @@ func (r *AuditRepositoryImpl) Create(ctx context.Context, log common_models.Audi
 	return err
 }
 
-func (r *AuditRepositoryImpl) List(ctx context.Context, filters map[string]interface{}, limit, offset int64) ([]common_models.AuditLog, error) {
+func (r *AuditRepositoryImpl) List(ctx context.Context, filters map[string]any, limit, offset int64) ([]common_models.AuditLog, error) {
 	coll := r.getCollection(ctx)
 	opts := options.Find().SetLimit(limit).SetSkip(offset).SetSort(bson.M{"timestamp": -1})
 

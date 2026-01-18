@@ -20,7 +20,7 @@ type RoleRepository interface {
 	List(ctx context.Context) ([]Role, error)
 	Update(ctx context.Context, id string, role *Role) error
 	Delete(ctx context.Context, id string) error
-	FindPermissionsByRoleIDs(ctx context.Context, roleIDs []interface{}) ([]string, error)
+	FindPermissionsByRoleIDs(ctx context.Context, roleIDs []any) ([]string, error)
 	GetDefaults(ctx context.Context) ([]Role, error)
 	EnsureIndexes(ctx context.Context) error
 	EnsureGlobalIndexes(ctx context.Context) error
@@ -168,7 +168,7 @@ func (r *RoleRepositoryImpl) Delete(ctx context.Context, id string) error {
 	return err
 }
 
-func (r *RoleRepositoryImpl) FindPermissionsByRoleIDs(ctx context.Context, roleIDs []interface{}) ([]string, error) {
+func (r *RoleRepositoryImpl) FindPermissionsByRoleIDs(ctx context.Context, roleIDs []any) ([]string, error) {
 	coll, err := r.getCollection(ctx)
 	if err != nil {
 		return nil, err

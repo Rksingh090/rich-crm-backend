@@ -22,7 +22,7 @@ func NewActivityController(activityService ActivityService) *ActivityController 
 // @Produce      json
 // @Param        start  query     string  true  "Start date (YYYY-MM-DD)"
 // @Param        end    query     string  true  "End date (YYYY-MM-DD)"
-// @Success      200    {array}   interface{}
+// @Success      200    {array}   any
 // @Failure      400    {object}  map[string]string
 // @Router       /api/activities/calendar [get]
 func (c *ActivityController) GetCalendarEvents(ctx *fiber.Ctx) error {
@@ -59,7 +59,7 @@ func (c *ActivityController) GetCalendarEvents(ctx *fiber.Ctx) error {
 // @Produce      json
 // @Param        module query     string  true  "Module Name (e.g. contacts)"
 // @Param        id     query     string  true  "Record ID"
-// @Success      200    {array}   interface{}
+// @Success      200    {array}   any
 // @Router       /api/activities/timeline [get]
 func (c *ActivityController) GetTimeline(ctx *fiber.Ctx) error {
 	moduleName := ctx.Query("module")

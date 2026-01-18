@@ -23,7 +23,7 @@ type Service interface {
 	GetActiveByModule(ctx context.Context, module string) (*Blueprint, error)
 
 	// Core Logic
-	ExecuteTransition(ctx context.Context, blueprintID string, transitionID string, recordID string, data map[string]interface{}) error
+	ExecuteTransition(ctx context.Context, blueprintID string, transitionID string, recordID string, data map[string]any) error
 	ValidateTransition(ctx context.Context, blueprintID string, transitionID string, recordID string) (bool, error)
 	GetAvailableTransitions(ctx context.Context, module string, recordID string) ([]Transition, error)
 	GetActiveBlueprintTargetField(ctx context.Context, module string) (string, error)
@@ -102,7 +102,7 @@ func (s *ServiceImpl) GetActiveByModule(ctx context.Context, module string) (*Bl
 }
 
 // ExecuteTransition handles the state change and associated actions
-func (s *ServiceImpl) ExecuteTransition(ctx context.Context, blueprintID string, transitionID string, recordID string, inputData map[string]interface{}) error {
+func (s *ServiceImpl) ExecuteTransition(ctx context.Context, blueprintID string, transitionID string, recordID string, inputData map[string]any) error {
 	// 1. Fetch Blueprint
 	bp, err := s.repo.FindByID(ctx, blueprintID)
 	if err != nil {
@@ -158,7 +158,7 @@ func (s *ServiceImpl) ExecuteTransition(ctx context.Context, blueprintID string,
 	// 6. Update Record State (DURING)
 	// Update the TargetField to 'ToState'
 	if bp.TargetField != "" {
-		updateData := map[string]interface{}{
+		updateData := map[string]any{
 			bp.TargetField: transition.ToState,
 			"updated_at":   time.Now(),
 		}
@@ -166,11 +166,11 @@ func (s *ServiceImpl) ExecuteTransition(ctx context.Context, blueprintID string,
 		// SPECIAL HANDLING FOR TICKETS STATUS HISTORY
 		// This is a bit hacky but ensures consistency with TicketService logic without circular deps
 		if bp.Module == "tickets" && bp.TargetField == "status" {
-			currentHistory, _ := rec["status_history"].([]interface{})
+			currentHistory, _ := rec["status_history"].([]any)
 			if currentHistory == nil {
 				// Try to parse if it's a generic slice
 				if hist, ok := rec["status_history"].(primitive.A); ok {
-					currentHistory = []interface{}(hist)
+					currentHistory = []any(hist)
 				}
 			}
 
@@ -180,7 +180,7 @@ func (s *ServiceImpl) ExecuteTransition(ctx context.Context, blueprintID string,
 			// Ideally we use the user ID from context.
 			// For now, let's leave changedBy empty or handle via simple map.
 
-			newEntry := map[string]interface{}{
+			newEntry := map[string]any{
 				"status":     transition.ToState,
 				"changed_at": time.Now(),
 				"comment":    fmt.Sprintf("Transition: %s", transition.Name),
@@ -275,7 +275,7 @@ func (s *ServiceImpl) GetAvailableTransitions(ctx context.Context, module string
 	return available, nil
 }
 
-func (s *ServiceImpl) executeActions(ctx context.Context, actions []BlueprintAction, moduleName string, rec map[string]interface{}) error {
+func (s *ServiceImpl) executeActions(ctx context.Context, actions []BlueprintAction, moduleName string, rec map[string]any) error {
 	// Convert BlueprintAction to action.Action
 	coreActions := make([]action.Action, len(actions))
 	for i, a := range actions {
@@ -287,7 +287,7 @@ func (s *ServiceImpl) executeActions(ctx context.Context, actions []BlueprintAct
 	return s.executor.ExecuteActions(ctx, coreActions, moduleName, rec)
 }
 
-func (s *ServiceImpl) isPendingApproval(rec map[string]interface{}) bool {
+func (s *ServiceImpl) isPendingApproval(rec map[string]any) bool {
 	if val, ok := rec["_approval"]; ok {
 		var state common_models.ApprovalRecordState
 		bytes, _ := bson.Marshal(val)
@@ -297,7 +297,7 @@ func (s *ServiceImpl) isPendingApproval(rec map[string]interface{}) bool {
 	return false
 }
 
-func (s *ServiceImpl) evaluateCriteria(rec map[string]interface{}, criteria []common_models.Filter) bool {
+func (s *ServiceImpl) evaluateCriteria(rec map[string]any, criteria []common_models.Filter) bool {
 	if len(criteria) == 0 {
 		return true
 	}
@@ -315,7 +315,7 @@ func (s *ServiceImpl) evaluateCriteria(rec map[string]interface{}, criteria []co
 	return true
 }
 
-func evaluateCondition(actual interface{}, operator string, expected interface{}) bool {
+func evaluateCondition(actual any, operator string, expected any) bool {
 	sActual := fmt.Sprintf("%v", actual)
 	sExpected := fmt.Sprintf("%v", expected)
 

@@ -21,7 +21,7 @@ type ImportService interface {
 	GetUserJobs(ctx context.Context, userID primitive.ObjectID) ([]ImportJob, error)
 	PreviewFile(ctx context.Context, file io.Reader, filename string, moduleName string) (*ImportPreview, error)
 	ProcessImport(ctx context.Context, jobID string, userID primitive.ObjectID) error
-	ProcessImportWithData(ctx context.Context, data []map[string]interface{}, columnMapping map[string]string, moduleName string, userID primitive.ObjectID, jobID string) error
+	ProcessImportWithData(ctx context.Context, data []map[string]any, columnMapping map[string]string, moduleName string, userID primitive.ObjectID, jobID string) error
 }
 
 type ImportServiceImpl struct {
@@ -61,7 +61,7 @@ func (s *ImportServiceImpl) PreviewFile(ctx context.Context, file io.Reader, fil
 	}
 
 	var headers []string
-	var sampleData []map[string]interface{}
+	var sampleData []map[string]any
 	var totalRows int
 
 	if strings.HasSuffix(strings.ToLower(filename), ".csv") {
@@ -84,7 +84,7 @@ func (s *ImportServiceImpl) PreviewFile(ctx context.Context, file io.Reader, fil
 	}, nil
 }
 
-func (s *ImportServiceImpl) parseCSV(file io.Reader) ([]string, []map[string]interface{}, int, error) {
+func (s *ImportServiceImpl) parseCSV(file io.Reader) ([]string, []map[string]any, int, error) {
 	reader := csv.NewReader(file)
 
 	headers, err := reader.Read()
@@ -92,7 +92,7 @@ func (s *ImportServiceImpl) parseCSV(file io.Reader) ([]string, []map[string]int
 		return nil, nil, 0, fmt.Errorf("failed to read CSV headers: %w", err)
 	}
 
-	var sampleData []map[string]interface{}
+	var sampleData []map[string]any
 	totalRows := 0
 
 	for {
@@ -107,7 +107,7 @@ func (s *ImportServiceImpl) parseCSV(file io.Reader) ([]string, []map[string]int
 		totalRows++
 
 		if totalRows <= 5 {
-			row := make(map[string]interface{})
+			row := make(map[string]any)
 			for i, value := range rec {
 				if i < len(headers) {
 					row[headers[i]] = value
@@ -120,7 +120,7 @@ func (s *ImportServiceImpl) parseCSV(file io.Reader) ([]string, []map[string]int
 	return headers, sampleData, totalRows, nil
 }
 
-func (s *ImportServiceImpl) parseExcel(file io.Reader) ([]string, []map[string]interface{}, int, error) {
+func (s *ImportServiceImpl) parseExcel(file io.Reader) ([]string, []map[string]any, int, error) {
 	f, err := excelize.OpenReader(file)
 	if err != nil {
 		return nil, nil, 0, fmt.Errorf("failed to open Excel file: %w", err)
@@ -142,11 +142,11 @@ func (s *ImportServiceImpl) parseExcel(file io.Reader) ([]string, []map[string]i
 	}
 
 	headers := rows[0]
-	var sampleData []map[string]interface{}
+	var sampleData []map[string]any
 	totalRows := len(rows) - 1
 
 	for i := 1; i < len(rows) && i <= 5; i++ {
-		row := make(map[string]interface{})
+		row := make(map[string]any)
 		for j, cell := range rows[i] {
 			if j < len(headers) {
 				row[headers[j]] = cell
@@ -179,7 +179,7 @@ func (s *ImportServiceImpl) ProcessImport(ctx context.Context, jobID string, use
 	}
 	defer file.Close()
 
-	var allData []map[string]interface{}
+	var allData []map[string]any
 	var headers []string
 
 	if strings.HasSuffix(strings.ToLower(job.FileName), ".csv") {
@@ -204,7 +204,7 @@ func (s *ImportServiceImpl) ProcessImport(ctx context.Context, jobID string, use
 	var errs []ImportError
 
 	for i, row := range allData {
-		rec := make(map[string]interface{})
+		rec := make(map[string]any)
 		for _, header := range headers {
 			if fieldName, ok := job.ColumnMapping[header]; ok && fieldName != "" {
 				if value, exists := row[header]; exists && value != nil && value != "" {
@@ -248,7 +248,7 @@ func (s *ImportServiceImpl) ProcessImport(ctx context.Context, jobID string, use
 	return s.ImportRepo.Update(ctx, jobID, job)
 }
 
-func (s *ImportServiceImpl) parseCSVFull(file io.Reader) ([]string, []map[string]interface{}, int, error) {
+func (s *ImportServiceImpl) parseCSVFull(file io.Reader) ([]string, []map[string]any, int, error) {
 	reader := csv.NewReader(file)
 
 	headers, err := reader.Read()
@@ -256,7 +256,7 @@ func (s *ImportServiceImpl) parseCSVFull(file io.Reader) ([]string, []map[string
 		return nil, nil, 0, fmt.Errorf("failed to read CSV headers: %w", err)
 	}
 
-	var allData []map[string]interface{}
+	var allData []map[string]any
 	for {
 		rec, err := reader.Read()
 		if err == io.EOF {
@@ -266,7 +266,7 @@ func (s *ImportServiceImpl) parseCSVFull(file io.Reader) ([]string, []map[string
 			return nil, nil, 0, fmt.Errorf("failed to read CSV row: %w", err)
 		}
 
-		row := make(map[string]interface{})
+		row := make(map[string]any)
 		for i, value := range rec {
 			if i < len(headers) {
 				row[headers[i]] = value
@@ -278,7 +278,7 @@ func (s *ImportServiceImpl) parseCSVFull(file io.Reader) ([]string, []map[string
 	return headers, allData, len(allData), nil
 }
 
-func (s *ImportServiceImpl) parseExcelFull(file io.Reader) ([]string, []map[string]interface{}, int, error) {
+func (s *ImportServiceImpl) parseExcelFull(file io.Reader) ([]string, []map[string]any, int, error) {
 	f, err := excelize.OpenReader(file)
 	if err != nil {
 		return nil, nil, 0, fmt.Errorf("failed to open Excel file: %w", err)
@@ -300,10 +300,10 @@ func (s *ImportServiceImpl) parseExcelFull(file io.Reader) ([]string, []map[stri
 	}
 
 	headers := rows[0]
-	var allData []map[string]interface{}
+	var allData []map[string]any
 
 	for i := 1; i < len(rows); i++ {
-		row := make(map[string]interface{})
+		row := make(map[string]any)
 		for j, cell := range rows[i] {
 			if j < len(headers) {
 				row[headers[j]] = cell
@@ -315,7 +315,7 @@ func (s *ImportServiceImpl) parseExcelFull(file io.Reader) ([]string, []map[stri
 	return headers, allData, len(allData), nil
 }
 
-func (s *ImportServiceImpl) ProcessImportWithData(ctx context.Context, data []map[string]interface{}, columnMapping map[string]string, moduleName string, userID primitive.ObjectID, jobID string) error {
+func (s *ImportServiceImpl) ProcessImportWithData(ctx context.Context, data []map[string]any, columnMapping map[string]string, moduleName string, userID primitive.ObjectID, jobID string) error {
 	job, err := s.ImportRepo.Get(ctx, jobID)
 	if err != nil {
 		return err
@@ -327,7 +327,7 @@ func (s *ImportServiceImpl) ProcessImportWithData(ctx context.Context, data []ma
 	var errs []ImportError
 
 	for i, row := range data {
-		rec := make(map[string]interface{})
+		rec := make(map[string]any)
 		for csvCol, fieldName := range columnMapping {
 			if value, ok := row[csvCol]; ok && value != nil && value != "" {
 				rec[fieldName] = value

@@ -17,7 +17,7 @@ type UserRepository interface {
 	FindByEmailGlobal(ctx context.Context, email string) (*models.User, error)
 	FindByID(ctx context.Context, id string) (*models.User, error)
 	FindByEmail(ctx context.Context, email string) (*models.User, error)
-	List(ctx context.Context, filter map[string]interface{}, limit, offset int64) ([]models.User, int64, error)
+	List(ctx context.Context, filter map[string]any, limit, offset int64) ([]models.User, int64, error)
 	Update(ctx context.Context, id string, user *models.User) error
 	Delete(ctx context.Context, id string) error
 	FindByIDs(ctx context.Context, ids []string) ([]models.User, error)
@@ -106,7 +106,7 @@ func (r *UserRepositoryImpl) FindByEmail(ctx context.Context, email string) (*mo
 	return &user, nil
 }
 
-func (r *UserRepositoryImpl) List(ctx context.Context, filter map[string]interface{}, limit, offset int64) ([]models.User, int64, error) {
+func (r *UserRepositoryImpl) List(ctx context.Context, filter map[string]any, limit, offset int64) ([]models.User, int64, error) {
 	tenantID, ok := ctx.Value(models.TenantIDKey).(string)
 	if !ok || tenantID == "" {
 		return nil, 0, fmt.Errorf("tenant context missing")

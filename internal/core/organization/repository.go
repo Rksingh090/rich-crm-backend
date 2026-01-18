@@ -15,7 +15,7 @@ type OrganizationRepository interface {
 	Create(ctx context.Context, org *models.Organization) error
 	FindByID(ctx context.Context, id string) (*models.Organization, error)
 	FindByName(ctx context.Context, name string) (*models.Organization, error)
-	List(ctx context.Context, filter map[string]interface{}) ([]models.Organization, error)
+	List(ctx context.Context, filter map[string]any) ([]models.Organization, error)
 	Update(ctx context.Context, org *models.Organization) error
 	Delete(ctx context.Context, id string) error
 	EnsureIndexes(ctx context.Context) error
@@ -70,7 +70,7 @@ func (r *OrganizationRepositoryImpl) Update(ctx context.Context, org *models.Org
 	return err
 }
 
-func (r *OrganizationRepositoryImpl) List(ctx context.Context, filter map[string]interface{}) ([]models.Organization, error) {
+func (r *OrganizationRepositoryImpl) List(ctx context.Context, filter map[string]any) ([]models.Organization, error) {
 	cursor, err := r.getCollection().Find(ctx, filter)
 	if err != nil {
 		return nil, err

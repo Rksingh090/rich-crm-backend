@@ -19,7 +19,7 @@ type WebhookService interface {
 	CreateWebhook(ctx context.Context, webhook *Webhook) error
 	ListWebhooks(ctx context.Context) ([]Webhook, error)
 	GetWebhook(ctx context.Context, id string) (*Webhook, error)
-	UpdateWebhook(ctx context.Context, id string, updates map[string]interface{}) error
+	UpdateWebhook(ctx context.Context, id string, updates map[string]any) error
 	DeleteWebhook(ctx context.Context, id string) error
 	Trigger(ctx context.Context, event string, payload models.WebhookPayload)
 }
@@ -58,7 +58,7 @@ func (s *WebhookServiceImpl) GetWebhook(ctx context.Context, id string) (*Webhoo
 	return s.Repo.Get(ctx, id)
 }
 
-func (s *WebhookServiceImpl) UpdateWebhook(ctx context.Context, id string, updates map[string]interface{}) error {
+func (s *WebhookServiceImpl) UpdateWebhook(ctx context.Context, id string, updates map[string]any) error {
 	oldWebhook, _ := s.GetWebhook(ctx, id)
 
 	err := s.Repo.Update(ctx, id, updates)

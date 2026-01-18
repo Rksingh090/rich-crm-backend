@@ -76,7 +76,7 @@ func (c *ResourceController) ListResources(ctx *fiber.Ctx) error {
 // @Produce json
 // @Param resource path string true "Resource ID (e.g., crm.leads)"
 // @Param action query string false "Action to check (default: read)"
-// @Success 200 {object} map[string]interface{}
+// @Success 200 {object} map[string]any
 // @Failure 403 {object} map[string]string "Forbidden"
 // @Failure 500 {object} map[string]string "Internal server error"
 // @Security BearerAuth

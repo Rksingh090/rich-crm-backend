@@ -118,7 +118,7 @@ func (s *RoleServiceImpl) DeleteRole(ctx context.Context, id string) error {
 }
 
 func (s *RoleServiceImpl) GetPermissionsForRoles(ctx context.Context, roleIDHexes []string) ([]string, error) {
-	var roleIDs []interface{}
+	var roleIDs []any
 	for _, rID := range roleIDHexes {
 		oid, err := primitive.ObjectIDFromHex(rID)
 		if err == nil {

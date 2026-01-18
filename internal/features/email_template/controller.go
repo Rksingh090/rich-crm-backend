@@ -21,8 +21,8 @@ func NewEmailTemplateController(service EmailTemplateService) *EmailTemplateCont
 // @Produce json
 // @Param template body EmailTemplate true "Email Template"
 // @Success 201 {object} EmailTemplate
-// @Failure 400 {object} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
+// @Failure 400 {object} map[string]any
+// @Failure 500 {object} map[string]any
 // @Router /api/email-templates [post]
 func (c *EmailTemplateController) Create(ctx *fiber.Ctx) error {
 	var template EmailTemplate
@@ -44,7 +44,7 @@ func (c *EmailTemplateController) Create(ctx *fiber.Ctx) error {
 // @Produce json
 // @Param id path string true "Template ID"
 // @Success 200 {object} EmailTemplate
-// @Failure 404 {object} map[string]interface{}
+// @Failure 404 {object} map[string]any
 // @Router /api/email-templates/{id} [get]
 func (c *EmailTemplateController) Get(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
@@ -64,7 +64,7 @@ func (c *EmailTemplateController) Get(ctx *fiber.Ctx) error {
 // @Produce json
 // @Param module query string false "Filter by module"
 // @Success 200 {array} EmailTemplate
-// @Failure 500 {object} map[string]interface{}
+// @Failure 500 {object} map[string]any
 // @Router /api/email-templates [get]
 func (c *EmailTemplateController) List(ctx *fiber.Ctx) error {
 	moduleName := ctx.Query("module")
@@ -86,8 +86,8 @@ func (c *EmailTemplateController) List(ctx *fiber.Ctx) error {
 // @Param id path string true "Template ID"
 // @Param template body EmailTemplate true "Email Template"
 // @Success 200 {object} EmailTemplate
-// @Failure 400 {object} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
+// @Failure 400 {object} map[string]any
+// @Failure 500 {object} map[string]any
 // @Router /api/email-templates/{id} [put]
 func (c *EmailTemplateController) Update(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
@@ -116,7 +116,7 @@ func (c *EmailTemplateController) Update(ctx *fiber.Ctx) error {
 // @Tags email_templates
 // @Param id path string true "Template ID"
 // @Success 204 {object} nil
-// @Failure 500 {object} map[string]interface{}
+// @Failure 500 {object} map[string]any
 // @Router /api/email-templates/{id} [delete]
 func (c *EmailTemplateController) Delete(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
@@ -135,7 +135,7 @@ func (c *EmailTemplateController) Delete(ctx *fiber.Ctx) error {
 // @Produce json
 // @Param module path string true "Module Name"
 // @Success 200 {array} string
-// @Failure 404 {object} map[string]interface{}
+// @Failure 404 {object} map[string]any
 // @Router /api/email-templates/modules/{module}/fields [get]
 func (c *EmailTemplateController) GetModuleFields(ctx *fiber.Ctx) error {
 	moduleName := ctx.Params("module")
@@ -149,8 +149,8 @@ func (c *EmailTemplateController) GetModuleFields(ctx *fiber.Ctx) error {
 }
 
 type TestEmailRequest struct {
-	To       string                 `json:"to"`
-	TestData map[string]interface{} `json:"test_data"`
+	To       string         `json:"to"`
+	TestData map[string]any `json:"test_data"`
 }
 
 // SendTestEmail sends a test email using the specified template

@@ -24,7 +24,7 @@ func NewExternalDBConnector(dbType string) Connector {
 }
 
 // Connect establishes connection to external database
-func (c *ExternalDBConnector) Connect(ctx context.Context, config map[string]interface{}) error {
+func (c *ExternalDBConnector) Connect(ctx context.Context, config map[string]any) error {
 	connStr, err := c.buildConnectionString(config)
 	if err != nil {
 		return fmt.Errorf("failed to build connection string: %w", err)
@@ -153,7 +153,7 @@ func (c *ExternalDBConnector) GetType() string {
 }
 
 // buildConnectionString creates a connection string from config
-func (c *ExternalDBConnector) buildConnectionString(config map[string]interface{}) (string, error) {
+func (c *ExternalDBConnector) buildConnectionString(config map[string]any) (string, error) {
 	host, _ := config["host"].(string)
 	port, _ := config["port"].(float64)
 	database, _ := config["database"].(string)
@@ -187,9 +187,9 @@ func (c *ExternalDBConnector) buildConnectionString(config map[string]interface{
 }
 
 // buildSQLQuery constructs a SQL query from QueryRequest
-func (c *ExternalDBConnector) buildSQLQuery(req QueryRequest) (string, []interface{}) {
+func (c *ExternalDBConnector) buildSQLQuery(req QueryRequest) (string, []any) {
 	var query strings.Builder
-	var args []interface{}
+	var args []any
 	argIndex := 1
 
 	// SELECT clause
@@ -256,17 +256,17 @@ func (c *ExternalDBConnector) getPlaceholder(index int) string {
 }
 
 // rowsToMaps converts SQL rows to a slice of maps
-func (c *ExternalDBConnector) rowsToMaps(rows *sql.Rows) ([]map[string]interface{}, error) {
+func (c *ExternalDBConnector) rowsToMaps(rows *sql.Rows) ([]map[string]any, error) {
 	columns, err := rows.Columns()
 	if err != nil {
 		return nil, err
 	}
 
-	result := []map[string]interface{}{}
+	result := []map[string]any{}
 
 	for rows.Next() {
-		values := make([]interface{}, len(columns))
-		valuePtrs := make([]interface{}, len(columns))
+		values := make([]any, len(columns))
+		valuePtrs := make([]any, len(columns))
 		for i := range values {
 			valuePtrs[i] = &values[i]
 		}
@@ -275,7 +275,7 @@ func (c *ExternalDBConnector) rowsToMaps(rows *sql.Rows) ([]map[string]interface
 			return nil, err
 		}
 
-		row := make(map[string]interface{})
+		row := make(map[string]any)
 		for i, col := range columns {
 			val := values[i]
 			if b, ok := val.([]byte); ok {

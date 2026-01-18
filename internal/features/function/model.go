@@ -10,7 +10,6 @@ import (
 type FunctionLanguage string
 
 const (
-	LanguageTengo      FunctionLanguage = "tengo"
 	LanguageJavaScript FunctionLanguage = "javascript"
 )
 
@@ -28,10 +27,10 @@ type Function struct {
 	App         string              `json:"app" bson:"app"`
 	Name        string              `json:"name" bson:"name"`
 	Description string              `json:"description" bson:"description"`
-	Language    FunctionLanguage    `json:"language" bson:"language"` // "tengo" or "javascript"
+	Language    FunctionLanguage    `json:"language" bson:"language"`
 	Parameters  []FunctionParameter `json:"parameters" bson:"parameters"`
 	Code        string              `json:"code" bson:"code"`
-	ModuleName  string              `json:"module_name" bson:"module_name"` // Empty for global
+	ModuleName  string              `json:"module_name" bson:"module_name"`
 	IsActive    bool                `json:"is_active" bson:"is_active"`
 	CreatedBy   string              `json:"created_by" bson:"created_by"`
 	CreatedAt   time.Time           `json:"created_at" bson:"created_at"`

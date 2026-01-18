@@ -55,9 +55,9 @@ func TestPrepareFilters(t *testing.T) {
 		{
 			name: "In List",
 			filters: []common_models.Filter{
-				{Field: "name", Operator: "in", Value: []interface{}{"A", "B"}},
+				{Field: "name", Operator: "in", Value: []any{"A", "B"}},
 			},
-			want: bson.M{"name": bson.M{"$in": []interface{}{"A", "B"}}},
+			want: bson.M{"name": bson.M{"$in": []any{"A", "B"}}},
 		},
 	}
 

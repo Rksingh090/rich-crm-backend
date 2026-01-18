@@ -22,7 +22,7 @@ type SyncService interface {
 	CreateSetting(ctx context.Context, setting *SyncSetting) error
 	GetSetting(ctx context.Context, id string) (*SyncSetting, error)
 	ListSettings(ctx context.Context) ([]SyncSetting, error)
-	UpdateSetting(ctx context.Context, id string, updates map[string]interface{}) error
+	UpdateSetting(ctx context.Context, id string, updates map[string]any) error
 	DeleteSetting(ctx context.Context, id string) error
 	RunSync(ctx context.Context, id string) error
 	ListLogs(ctx context.Context, settingID string, limit int64) ([]SyncLog, error)
@@ -66,7 +66,7 @@ func (s *SyncServiceImpl) ListSettings(ctx context.Context) ([]SyncSetting, erro
 	return s.SyncRepo.List(ctx)
 }
 
-func (s *SyncServiceImpl) UpdateSetting(ctx context.Context, id string, updates map[string]interface{}) error {
+func (s *SyncServiceImpl) UpdateSetting(ctx context.Context, id string, updates map[string]any) error {
 	oldSetting, _ := s.GetSetting(ctx, id)
 
 	err := s.SyncRepo.Update(ctx, id, updates)
@@ -141,7 +141,7 @@ func (s *SyncServiceImpl) executeSync(ctx context.Context, setting *SyncSetting)
 		}
 		log.ProcessedCount = totalProcessed
 
-		updates := map[string]interface{}{
+		updates := map[string]any{
 			"last_sync_at": time.Now(),
 		}
 		_ = s.SyncRepo.Update(ctx, setting.ID.Hex(), updates)
@@ -226,10 +226,10 @@ func (s *SyncServiceImpl) syncModule(ctx context.Context, setting *SyncSetting, 
 }
 
 func (s *SyncServiceImpl) syncDeletions(ctx context.Context, setting *SyncSetting, config ModuleSyncConfig) (int, error) {
-	filters := map[string]interface{}{
+	filters := map[string]any{
 		"action":    common_models.AuditActionDelete,
 		"module":    config.ModuleName,
-		"timestamp": map[string]interface{}{"$gt": setting.LastSyncAt},
+		"timestamp": map[string]any{"$gt": setting.LastSyncAt},
 	}
 
 	totalDeleted := 0
@@ -296,7 +296,7 @@ func (s *SyncServiceImpl) syncToPostgres(records []map[string]any, dbConfig map[
 
 	for _, record := range records {
 		columns := []string{}
-		values := []interface{}{}
+		values := []any{}
 		updateExprs := []string{}
 		placeholders := []string{}
 
@@ -412,7 +412,7 @@ func (s *SyncServiceImpl) syncToPostgresDelete(ids []string, dbConfig map[string
 
 	tableName := moduleConfig.ModuleName
 	placeholders := make([]string, len(ids))
-	args := make([]interface{}, len(ids))
+	args := make([]any, len(ids))
 	for i, id := range ids {
 		placeholders[i] = fmt.Sprintf("$%d", i+1)
 		args[i] = id

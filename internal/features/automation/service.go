@@ -17,7 +17,7 @@ type AutomationService interface {
 	DeleteRule(ctx context.Context, id string) error
 
 	// Core Logic
-	ExecuteFromTrigger(ctx context.Context, moduleName string, record map[string]interface{}, triggerType string) error
+	ExecuteFromTrigger(ctx context.Context, moduleName string, record map[string]any, triggerType string) error
 }
 
 type AutomationServiceImpl struct {
@@ -86,7 +86,7 @@ func (s *AutomationServiceImpl) DeleteRule(ctx context.Context, id string) error
 	return err
 }
 
-func (s *AutomationServiceImpl) ExecuteFromTrigger(ctx context.Context, moduleName string, record map[string]interface{}, triggerType string) error {
+func (s *AutomationServiceImpl) ExecuteFromTrigger(ctx context.Context, moduleName string, record map[string]any, triggerType string) error {
 	rules, err := s.Repo.GetByModule(ctx, moduleName)
 	if err != nil {
 		return err
@@ -121,7 +121,7 @@ func (s *AutomationServiceImpl) ExecuteFromTrigger(ctx context.Context, moduleNa
 	return nil
 }
 
-func (s *AutomationServiceImpl) evaluateConditions(conditions []RuleCondition, record map[string]interface{}) bool {
+func (s *AutomationServiceImpl) evaluateConditions(conditions []RuleCondition, record map[string]any) bool {
 	for _, cond := range conditions {
 		val, exists := record[cond.Field]
 		if !exists {
@@ -147,6 +147,6 @@ func (s *AutomationServiceImpl) evaluateConditions(conditions []RuleCondition, r
 	return true
 }
 
-func (s *AutomationServiceImpl) executeActions(ctx context.Context, actions []action.Action, moduleName string, record map[string]interface{}) error {
+func (s *AutomationServiceImpl) executeActions(ctx context.Context, actions []action.Action, moduleName string, record map[string]any) error {
 	return s.ActionExecutor.ExecuteActions(ctx, actions, moduleName, record)
 }

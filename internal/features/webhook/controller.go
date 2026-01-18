@@ -23,8 +23,8 @@ func NewWebhookController(service WebhookService) *WebhookController {
 // @Accept json
 // @Produce json
 // @Param webhook body Webhook true "Webhook Details"
-// @Success 201 {object} map[string]interface{}
-// @Failure 400 {object} map[string]interface{}
+// @Success 201 {object} map[string]any
+// @Failure 400 {object} map[string]any
 // @Router /api/webhooks [post]
 func (ctrl *WebhookController) CreateWebhook(c *fiber.Ctx) error {
 	var webhook Webhook
@@ -60,7 +60,7 @@ func (ctrl *WebhookController) CreateWebhook(c *fiber.Ctx) error {
 // @Tags webhooks
 // @Produce json
 // @Success 200 {array} Webhook
-// @Failure 500 {object} map[string]interface{}
+// @Failure 500 {object} map[string]any
 // @Router /api/webhooks [get]
 func (ctrl *WebhookController) ListWebhooks(c *fiber.Ctx) error {
 	webhooks, err := ctrl.Service.ListWebhooks(c.UserContext())
@@ -83,7 +83,7 @@ func (ctrl *WebhookController) ListWebhooks(c *fiber.Ctx) error {
 // @Produce json
 // @Param id path string true "Webhook ID"
 // @Success 200 {object} Webhook
-// @Failure 404 {object} map[string]interface{}
+// @Failure 404 {object} map[string]any
 // @Router /api/webhooks/{id} [get]
 func (ctrl *WebhookController) GetWebhook(c *fiber.Ctx) error {
 	id := c.Params("id")
@@ -106,14 +106,14 @@ func (ctrl *WebhookController) GetWebhook(c *fiber.Ctx) error {
 // @Accept json
 // @Produce json
 // @Param id path string true "Webhook ID"
-// @Param updates body map[string]interface{} true "Webhook Updates"
-// @Success 200 {object} map[string]interface{}
-// @Failure 400 {object} map[string]interface{}
+// @Param updates body map[string]any true "Webhook Updates"
+// @Success 200 {object} map[string]any
+// @Failure 400 {object} map[string]any
 // @Router /api/webhooks/{id} [put]
 func (ctrl *WebhookController) UpdateWebhook(c *fiber.Ctx) error {
 	id := c.Params("id")
 
-	var updates map[string]interface{}
+	var updates map[string]any
 	if err := c.BodyParser(&updates); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Invalid request body",
@@ -137,8 +137,8 @@ func (ctrl *WebhookController) UpdateWebhook(c *fiber.Ctx) error {
 // @Description Delete a webhook by ID
 // @Tags webhooks
 // @Param id path string true "Webhook ID"
-// @Success 200 {object} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
+// @Success 200 {object} map[string]any
+// @Failure 500 {object} map[string]any
 // @Router /api/webhooks/{id} [delete]
 func (ctrl *WebhookController) DeleteWebhook(c *fiber.Ctx) error {
 	id := c.Params("id")

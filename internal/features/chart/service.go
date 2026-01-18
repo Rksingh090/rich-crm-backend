@@ -20,7 +20,7 @@ type ChartService interface {
 	ListCharts(ctx context.Context) ([]Chart, error)
 	UpdateChart(ctx context.Context, id string, chart *Chart) error
 	DeleteChart(ctx context.Context, id string) error
-	GetChartData(ctx context.Context, id string) ([]map[string]interface{}, error)
+	GetChartData(ctx context.Context, id string) ([]map[string]any, error)
 }
 
 type ChartServiceImpl struct {
@@ -88,7 +88,7 @@ func (s *ChartServiceImpl) DeleteChart(ctx context.Context, id string) error {
 	return err
 }
 
-func (s *ChartServiceImpl) GetChartData(ctx context.Context, id string) ([]map[string]interface{}, error) {
+func (s *ChartServiceImpl) GetChartData(ctx context.Context, id string) ([]map[string]any, error) {
 	chart, err := s.ChartRepo.Get(ctx, id)
 	if err != nil {
 		return nil, err
@@ -170,14 +170,14 @@ func (s *ChartServiceImpl) GetChartData(ctx context.Context, id string) ([]map[s
 		}
 	}
 
-	formatted := make([]map[string]interface{}, 0, len(results))
+	formatted := make([]map[string]any, 0, len(results))
 	for _, res := range results {
 		name := "Unknown"
 		if val, ok := res["_id"]; ok && val != nil {
 			name = fmt.Sprintf("%v", val)
 		}
 
-		formatted = append(formatted, map[string]interface{}{
+		formatted = append(formatted, map[string]any{
 			"name":  name,
 			"value": res["value"],
 		})

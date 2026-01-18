@@ -27,10 +27,10 @@ func NewBulkOperationController(bulkService BulkOperationService) *BulkOperation
 // @Tags bulk_operations
 // @Accept json
 // @Produce json
-// @Param request body map[string]interface{} true "Preview Request"
-// @Success 200 {object} map[string]interface{}
-// @Failure 400 {object} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
+// @Param request body map[string]any true "Preview Request"
+// @Success 200 {object} map[string]any
+// @Failure 400 {object} map[string]any
+// @Failure 500 {object} map[string]any
 // @Router /api/bulk/preview [post]
 func (c *BulkOperationController) PreviewBulkOperation(ctx *fiber.Ctx) error {
 	var req struct {
@@ -67,15 +67,15 @@ func (c *BulkOperationController) PreviewBulkOperation(ctx *fiber.Ctx) error {
 // @Produce json
 // @Param operation body BulkOperation true "Bulk Operation"
 // @Success 201 {object} BulkOperation
-// @Failure 400 {object} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
+// @Failure 400 {object} map[string]any
+// @Failure 500 {object} map[string]any
 // @Router /api/bulk/operations [post]
 func (c *BulkOperationController) CreateBulkOperation(ctx *fiber.Ctx) error {
 	type CreateBulkOpRequest struct {
-		ModuleName string                 `json:"module_name"`
-		Type       BulkOperationType      `json:"type"`
-		Filters    interface{}            `json:"filters"`
-		Updates    map[string]interface{} `json:"updates"`
+		ModuleName string            `json:"module_name"`
+		Type       BulkOperationType `json:"type"`
+		Filters    any               `json:"filters"`
+		Updates    map[string]any    `json:"updates"`
 	}
 
 	var req CreateBulkOpRequest
@@ -95,7 +95,7 @@ func (c *BulkOperationController) CreateBulkOperation(ctx *fiber.Ctx) error {
 				filters = structFilters
 			} else {
 				// Failed to unmarshal as slice, try legacy map
-				var mapFilters map[string]interface{}
+				var mapFilters map[string]any
 				if err := json.Unmarshal(b, &mapFilters); err == nil {
 					for k, val := range mapFilters {
 						field := k
@@ -158,8 +158,8 @@ func (c *BulkOperationController) CreateBulkOperation(ctx *fiber.Ctx) error {
 // @Tags bulk_operations
 // @Produce json
 // @Param id path string true "Operation ID"
-// @Success 200 {object} map[string]interface{}
-// @Failure 401 {object} map[string]interface{}
+// @Success 200 {object} map[string]any
+// @Failure 401 {object} map[string]any
 // @Router /api/bulk/operations/{id}/execute [post]
 func (c *BulkOperationController) ExecuteBulkOperation(ctx *fiber.Ctx) error {
 	opID := ctx.Params("id")
@@ -192,7 +192,7 @@ func (c *BulkOperationController) ExecuteBulkOperation(ctx *fiber.Ctx) error {
 // @Produce json
 // @Param id path string true "Operation ID"
 // @Success 200 {object} BulkOperation
-// @Failure 404 {object} map[string]interface{}
+// @Failure 404 {object} map[string]any
 // @Router /api/bulk/operations/{id} [get]
 func (c *BulkOperationController) GetBulkOperation(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
@@ -211,8 +211,8 @@ func (c *BulkOperationController) GetBulkOperation(ctx *fiber.Ctx) error {
 // @Tags bulk_operations
 // @Produce json
 // @Success 200 {array} BulkOperation
-// @Failure 401 {object} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
+// @Failure 401 {object} map[string]any
+// @Failure 500 {object} map[string]any
 // @Router /api/bulk/operations [get]
 func (c *BulkOperationController) ListBulkOperations(ctx *fiber.Ctx) error {
 	userIDStr, ok := ctx.Locals("user_id").(string)

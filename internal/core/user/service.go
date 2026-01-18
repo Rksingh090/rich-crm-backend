@@ -12,10 +12,10 @@ import (
 )
 
 type UserService interface {
-	ListUsers(ctx context.Context, filter map[string]interface{}, page, limit int64) ([]models.User, int64, error)
+	ListUsers(ctx context.Context, filter map[string]any, page, limit int64) ([]models.User, int64, error)
 	GetUserByID(ctx context.Context, id string) (*models.User, error)
 	CreateUser(ctx context.Context, user *models.User) error
-	UpdateUser(ctx context.Context, id string, updates map[string]interface{}) error
+	UpdateUser(ctx context.Context, id string, updates map[string]any) error
 	UpdateUserRoles(ctx context.Context, id string, appRoles []models.UserAppRole) error
 	UpdateUserStatus(ctx context.Context, id string, status string) error
 	DeleteUser(ctx context.Context, id string) error
@@ -35,9 +35,9 @@ func NewUserService(userRepo UserRepository, auditService audit.AuditService) Us
 	}
 }
 
-func (s *UserServiceImpl) ListUsers(ctx context.Context, filter map[string]interface{}, page, limit int64) ([]models.User, int64, error) {
+func (s *UserServiceImpl) ListUsers(ctx context.Context, filter map[string]any, page, limit int64) ([]models.User, int64, error) {
 	if filter == nil {
-		filter = make(map[string]interface{})
+		filter = make(map[string]any)
 	}
 
 	offset := (page - 1) * limit
@@ -82,7 +82,7 @@ func (s *UserServiceImpl) CreateUser(ctx context.Context, user *models.User) err
 	return nil
 }
 
-func (s *UserServiceImpl) UpdateUser(ctx context.Context, id string, updates map[string]interface{}) error {
+func (s *UserServiceImpl) UpdateUser(ctx context.Context, id string, updates map[string]any) error {
 	// Get existing user
 	user, err := s.UserRepo.FindByID(ctx, id)
 	if err != nil {
@@ -280,7 +280,7 @@ func (s *UserServiceImpl) AcceptInvite(ctx context.Context, token, password, fir
 	// We need a method for this in Repo.
 	// Or we can list users with filter? ListUsers supports filter.
 
-	filter := map[string]interface{}{
+	filter := map[string]any{
 		"invite_token": token,
 	}
 	users, _, err := s.UserRepo.List(ctx, filter, 1, 0)

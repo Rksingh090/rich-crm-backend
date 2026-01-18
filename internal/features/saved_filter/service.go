@@ -14,7 +14,7 @@ type SavedFilterService interface {
 	DeleteFilter(ctx context.Context, id string, userID primitive.ObjectID) error
 	GetUserFilters(ctx context.Context, userID primitive.ObjectID, moduleName string) ([]SavedFilter, error)
 	GetPublicFilters(ctx context.Context, moduleName string) ([]SavedFilter, error)
-	BuildQueryFromCriteria(criteria FilterCriteria) map[string]interface{}
+	BuildQueryFromCriteria(criteria FilterCriteria) map[string]any
 }
 
 type SavedFilterServiceImpl struct {
@@ -60,14 +60,14 @@ func (s *SavedFilterServiceImpl) GetPublicFilters(ctx context.Context, moduleNam
 	return s.FilterRepo.FindPublic(ctx, moduleName)
 }
 
-func (s *SavedFilterServiceImpl) BuildQueryFromCriteria(criteria FilterCriteria) map[string]interface{} {
-	query := make(map[string]interface{})
+func (s *SavedFilterServiceImpl) BuildQueryFromCriteria(criteria FilterCriteria) map[string]any {
+	query := make(map[string]any)
 
 	if len(criteria.Conditions) == 0 && len(criteria.Groups) == 0 {
 		return query
 	}
 
-	var conditions []map[string]interface{}
+	var conditions []map[string]any
 
 	for _, condition := range criteria.Conditions {
 		condQuery := s.buildConditionQuery(condition)
@@ -96,28 +96,28 @@ func (s *SavedFilterServiceImpl) BuildQueryFromCriteria(criteria FilterCriteria)
 	return query
 }
 
-func (s *SavedFilterServiceImpl) buildConditionQuery(condition FilterCondition) map[string]interface{} {
-	query := make(map[string]interface{})
+func (s *SavedFilterServiceImpl) buildConditionQuery(condition FilterCondition) map[string]any {
+	query := make(map[string]any)
 
 	switch condition.Operator {
 	case "eq":
 		query[condition.Field] = condition.Value
 	case "ne":
-		query[condition.Field] = map[string]interface{}{"$ne": condition.Value}
+		query[condition.Field] = map[string]any{"$ne": condition.Value}
 	case "gt":
-		query[condition.Field] = map[string]interface{}{"$gt": condition.Value}
+		query[condition.Field] = map[string]any{"$gt": condition.Value}
 	case "gte":
-		query[condition.Field] = map[string]interface{}{"$gte": condition.Value}
+		query[condition.Field] = map[string]any{"$gte": condition.Value}
 	case "lt":
-		query[condition.Field] = map[string]interface{}{"$lt": condition.Value}
+		query[condition.Field] = map[string]any{"$lt": condition.Value}
 	case "lte":
-		query[condition.Field] = map[string]interface{}{"$lte": condition.Value}
+		query[condition.Field] = map[string]any{"$lte": condition.Value}
 	case "contains":
-		query[condition.Field] = map[string]interface{}{"$regex": condition.Value, "$options": "i"}
+		query[condition.Field] = map[string]any{"$regex": condition.Value, "$options": "i"}
 	case "in":
-		query[condition.Field] = map[string]interface{}{"$in": condition.Value}
+		query[condition.Field] = map[string]any{"$in": condition.Value}
 	case "nin":
-		query[condition.Field] = map[string]interface{}{"$nin": condition.Value}
+		query[condition.Field] = map[string]any{"$nin": condition.Value}
 	default:
 		query[condition.Field] = condition.Value
 	}

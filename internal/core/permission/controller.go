@@ -219,10 +219,10 @@ func (ctrl *PermissionController) RevokeResourceFromRole(c *fiber.Ctx) error {
 func (ctrl *PermissionController) GetUserEffectivePermissions(c *fiber.Ctx) error {
 	// 1. Check if Platform Admin via Token Claims (fastest, robust bypass)
 	if isPlatformAdmin, ok := c.Locals("is_platform_admin").(bool); ok && isPlatformAdmin {
-		return c.JSON(map[string]interface{}{
-			"*": map[string]interface{}{
+		return c.JSON(map[string]any{
+			"*": map[string]any{
 				"resource_id": "*",
-				"actions": map[string]interface{}{
+				"actions": map[string]any{
 					"read":   map[string]bool{"allowed": true},
 					"create": map[string]bool{"allowed": true},
 					"update": map[string]bool{"allowed": true},

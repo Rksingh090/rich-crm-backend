@@ -15,7 +15,7 @@ func NewDebugController() *DebugController {
 // @Description  Get the current user's info from JWT
 // @Tags         debug
 // @Produce      json
-// @Success      200  {object}  map[string]interface{}
+// @Success      200  {object}  map[string]any
 // @Router       /debug/user [get]
 func (c *DebugController) GetCurrentUser(ctx *fiber.Ctx) error {
 	userID := ctx.Locals("user_id")

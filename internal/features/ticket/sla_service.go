@@ -54,7 +54,7 @@ type SLAService interface {
 	CreatePolicy(ctx context.Context, policy *SLAPolicy) error
 	GetPolicy(ctx context.Context, id string) (*SLAPolicy, error)
 	ListPolicies(ctx context.Context) ([]SLAPolicy, error)
-	UpdatePolicy(ctx context.Context, id string, updates map[string]interface{}) error
+	UpdatePolicy(ctx context.Context, id string, updates map[string]any) error
 	DeletePolicy(ctx context.Context, id string) error
 
 	// Metrics and tracking
@@ -99,7 +99,7 @@ func (s *SLAServiceImpl) ListPolicies(ctx context.Context) ([]SLAPolicy, error) 
 }
 
 // UpdatePolicy updates an SLA policy
-func (s *SLAServiceImpl) UpdatePolicy(ctx context.Context, id string, updates map[string]interface{}) error {
+func (s *SLAServiceImpl) UpdatePolicy(ctx context.Context, id string, updates map[string]any) error {
 	objID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return errors.New("invalid policy ID")

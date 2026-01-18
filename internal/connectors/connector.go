@@ -10,17 +10,17 @@ type DataSource struct {
 	ID       string
 	Name     string
 	Type     string // "crm", "erp", "postgresql", "mysql", "mongodb"
-	Config   map[string]interface{}
+	Config   map[string]any
 	IsActive bool
 }
 
 // QueryRequest represents a data query
 type QueryRequest struct {
-	Source      string                 // Data source ID
-	Module      string                 // Module/table name
-	Fields      []string               // Fields to retrieve
-	Filters     map[string]interface{} // Filter conditions
-	Sort        map[string]int         // Sort order (1 for ASC, -1 for DESC)
+	Source      string         // Data source ID
+	Module      string         // Module/table name
+	Fields      []string       // Fields to retrieve
+	Filters     map[string]any // Filter conditions
+	Sort        map[string]int // Sort order (1 for ASC, -1 for DESC)
 	Limit       int64
 	Offset      int64
 	Aggregation *AggregationConfig // Optional aggregation
@@ -41,7 +41,7 @@ type MetricConfig struct {
 
 // QueryResponse represents query results
 type QueryResponse struct {
-	Data       []map[string]interface{}
+	Data       []map[string]any
 	TotalCount int64
 	Timestamp  time.Time
 }
@@ -65,7 +65,7 @@ type FieldInfo struct {
 // Connector interface for all data sources
 type Connector interface {
 	// Connect establishes connection to data source
-	Connect(ctx context.Context, config map[string]interface{}) error
+	Connect(ctx context.Context, config map[string]any) error
 
 	// Disconnect closes connection
 	Disconnect(ctx context.Context) error

@@ -27,13 +27,13 @@ func NewRecordController(service RecordService) *RecordController {
 // @Accept json
 // @Produce json
 // @Param name path string true "Module Name"
-// @Param record body map[string]interface{} true "Record Data"
-// @Success 201 {object} map[string]interface{}
-// @Failure 400 {object} map[string]interface{}
+// @Param record body map[string]any true "Record Data"
+// @Success 201 {object} map[string]any
+// @Failure 400 {object} map[string]any
 // @Router /api/records/{name} [post]
 func (ctrl *RecordController) CreateRecord(c *fiber.Ctx) error {
 	moduleName := c.Params("name")
-	var data map[string]interface{}
+	var data map[string]any
 	if err := c.BodyParser(&data); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Invalid request body",
@@ -64,8 +64,8 @@ func (ctrl *RecordController) CreateRecord(c *fiber.Ctx) error {
 // @Produce json
 // @Param name path string true "Module Name"
 // @Param id path string true "Record ID"
-// @Success 200 {object} map[string]interface{}
-// @Failure 404 {object} map[string]interface{}
+// @Success 200 {object} map[string]any
+// @Failure 404 {object} map[string]any
 // @Router /api/records/{name}/{id} [get]
 func (ctrl *RecordController) GetRecord(c *fiber.Ctx) error {
 	moduleName := c.Params("name")
@@ -97,8 +97,8 @@ func (ctrl *RecordController) GetRecord(c *fiber.Ctx) error {
 // @Param limit query int false "Items per page"
 // @Param sort_by query string false "Sort field"
 // @Param sort_order query string false "Sort order (asc/desc)"
-// @Success 200 {object} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
+// @Success 200 {object} map[string]any
+// @Failure 500 {object} map[string]any
 // @Router /api/records/{name} [get]
 func (ctrl *RecordController) ListRecords(c *fiber.Ctx) error {
 	moduleName := c.Params("name")
@@ -139,7 +139,7 @@ func (ctrl *RecordController) ListRecords(c *fiber.Ctx) error {
 			}
 
 			// Handle comma-separated values for 'in' operator
-			var typeVal interface{} = v
+			var typeVal any = v
 			if operator == "in" || operator == "nin" {
 				typeVal = strings.Split(v, ",")
 			}
@@ -181,15 +181,15 @@ func (ctrl *RecordController) ListRecords(c *fiber.Ctx) error {
 // @Produce json
 // @Param name path string true "Module Name"
 // @Param id path string true "Record ID"
-// @Param record body map[string]interface{} true "Record Data"
-// @Success 200 {object} map[string]interface{}
-// @Failure 400 {object} map[string]interface{}
+// @Param record body map[string]any true "Record Data"
+// @Success 200 {object} map[string]any
+// @Failure 400 {object} map[string]any
 // @Router /api/records/{name}/{id} [put]
 func (ctrl *RecordController) UpdateRecord(c *fiber.Ctx) error {
 	moduleName := c.Params("name")
 	id := c.Params("id")
 
-	var data map[string]interface{}
+	var data map[string]any
 	if err := c.BodyParser(&data); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Invalid request body",
@@ -220,8 +220,8 @@ func (ctrl *RecordController) UpdateRecord(c *fiber.Ctx) error {
 // @Tags records
 // @Param name path string true "Module Name"
 // @Param id path string true "Record ID"
-// @Success 200 {object} map[string]interface{}
-// @Failure 400 {object} map[string]interface{}
+// @Success 200 {object} map[string]any
+// @Failure 400 {object} map[string]any
 // @Router /api/records/{name}/{id} [delete]
 func (ctrl *RecordController) DeleteRecord(c *fiber.Ctx) error {
 	moduleName := c.Params("name")
@@ -249,20 +249,20 @@ func (ctrl *RecordController) DeleteRecord(c *fiber.Ctx) error {
 // @Tags records
 // @Accept json
 // @Produce json
-// @Param query body map[string]interface{} true "Query Request"
-// @Success 200 {object} map[string]interface{}
-// @Failure 400 {object} map[string]interface{}
-// @Failure 403 {object} map[string]interface{}
+// @Param query body map[string]any true "Query Request"
+// @Success 200 {object} map[string]any
+// @Failure 400 {object} map[string]any
+// @Failure 403 {object} map[string]any
 // @Router /api/records/query [post]
 func (ctrl *RecordController) QueryRecords(c *fiber.Ctx) error {
 	var req struct {
-		Resource  string                 `json:"resource"`
-		Action    string                 `json:"action"`
-		Filters   map[string]interface{} `json:"filters"`
-		Page      int64                  `json:"page"`
-		Limit     int64                  `json:"limit"`
-		SortBy    string                 `json:"sort_by"`
-		SortOrder string                 `json:"sort_order"`
+		Resource  string         `json:"resource"`
+		Action    string         `json:"action"`
+		Filters   map[string]any `json:"filters"`
+		Page      int64          `json:"page"`
+		Limit     int64          `json:"limit"`
+		SortBy    string         `json:"sort_by"`
+		SortOrder string         `json:"sort_order"`
 	}
 
 	if err := c.BodyParser(&req); err != nil {
@@ -305,7 +305,7 @@ func (ctrl *RecordController) QueryRecords(c *fiber.Ctx) error {
 		// Map conversion logic from ListRecords handles comma-separated strings for query params.
 		// For JSON body, array is preferred.
 		// But existing logic in ListRecords handles string split.
-		// Here we take raw interface{}.
+		// Here we take raw any.
 
 		// Handle comma-separated strings for 'in' operator if explicit array not provided
 		val := v

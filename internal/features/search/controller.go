@@ -22,10 +22,10 @@ func NewSearchController(service SearchService) *SearchController {
 // @Tags search
 // @Produce json
 // @Param q query string true "Search query"
-// @Success 200 {object} map[string]interface{}
-// @Failure 400 {object} map[string]interface{}
-// @Failure 401 {object} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
+// @Success 200 {object} map[string]any
+// @Failure 400 {object} map[string]any
+// @Failure 401 {object} map[string]any
+// @Failure 500 {object} map[string]any
 // @Router /api/search [get]
 func (ctrl *SearchController) GlobalSearch(c *fiber.Ctx) error {
 	query := c.Query("q")
