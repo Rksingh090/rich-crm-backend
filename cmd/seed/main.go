@@ -106,7 +106,7 @@ func Seed(
 				}
 
 				// 2b. Seed Resources (Global)
-				var resources []resource.Resource
+				var resources []common_models.Resource
 				if err := readJSON(resourcesPath, &resources); err != nil {
 					logger.Warn("Failed to read resources.json, skipping resource seeding", zap.Error(err))
 				} else {

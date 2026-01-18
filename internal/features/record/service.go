@@ -45,19 +45,24 @@ type ApprovalTrigger interface {
 	InitializeApproval(ctx context.Context, moduleName string, record map[string]interface{}) (*common_models.ApprovalRecordState, error)
 }
 
+type BlueprintValidator interface {
+	GetActiveBlueprintTargetField(ctx context.Context, module string) (string, error)
+}
+
 type RecordServiceImpl struct {
-	ModuleRepo        module.ModuleRepository
-	RecordRepo        RecordRepository
-	FileRepo          file.FileRepository
-	UserRepo          user.UserRepository
-	RoleRepo          role.RoleRepository
-	RoleService       role.RoleService
-	AuditService      audit.AuditService
-	ApprovalService   ApprovalTrigger
-	AutomationService AutomationTrigger
-	WebhookService    webhook.WebhookService
-	PermissionService permission.PermissionService
-	InventoryService  inventory.InventoryService
+	ModuleRepo         module.ModuleRepository
+	RecordRepo         RecordRepository
+	FileRepo           file.FileRepository
+	UserRepo           user.UserRepository
+	RoleRepo           role.RoleRepository
+	RoleService        role.RoleService
+	AuditService       audit.AuditService
+	ApprovalService    ApprovalTrigger
+	AutomationService  AutomationTrigger
+	WebhookService     webhook.WebhookService
+	PermissionService  permission.PermissionService
+	InventoryService   inventory.InventoryService
+	BlueprintValidator BlueprintValidator
 }
 
 func NewRecordService(
@@ -73,20 +78,22 @@ func NewRecordService(
 	webhookService webhook.WebhookService,
 	permissionService permission.PermissionService,
 	inventoryService inventory.InventoryService,
+	blueprintValidator BlueprintValidator,
 ) RecordService {
 	return &RecordServiceImpl{
-		ModuleRepo:        moduleRepo,
-		RecordRepo:        recordRepo,
-		FileRepo:          fileRepo,
-		UserRepo:          userRepo,
-		RoleRepo:          roleRepo,
-		RoleService:       roleService,
-		AuditService:      auditService,
-		ApprovalService:   approvalService,
-		AutomationService: automationService,
-		WebhookService:    webhookService,
-		PermissionService: permissionService,
-		InventoryService:  inventoryService,
+		ModuleRepo:         moduleRepo,
+		RecordRepo:         recordRepo,
+		FileRepo:           fileRepo,
+		UserRepo:           userRepo,
+		RoleRepo:           roleRepo,
+		RoleService:        roleService,
+		AuditService:       auditService,
+		ApprovalService:    approvalService,
+		AutomationService:  automationService,
+		WebhookService:     webhookService,
+		PermissionService:  permissionService,
+		InventoryService:   inventoryService,
+		BlueprintValidator: blueprintValidator,
 	}
 }
 
@@ -579,6 +586,22 @@ func (s *RecordServiceImpl) UpdateRecord(ctx context.Context, moduleName, id str
 	oldRecord, err := s.RecordRepo.Get(ctx, moduleName, id)
 	if err != nil {
 		return err
+	}
+
+	// CHECK BLUEPRINT FIELD
+	if s.BlueprintValidator != nil {
+		targetField, err := s.BlueprintValidator.GetActiveBlueprintTargetField(ctx, moduleName)
+		if err != nil {
+			// Log error but maybe don't block? Or strict?
+			// Let's assume strict for safety or log.
+			// fmt.Printf("failed to check blueprint target field: %v\n", err)
+			return fmt.Errorf("failed to validate blueprint constraint: %v", err)
+		}
+		if targetField != "" {
+			if _, exists := data[targetField]; exists {
+				return fmt.Errorf("field '%s' is managed by a blueprint and cannot be updated manually", targetField)
+			}
+		}
 	}
 
 	if val, ok := oldRecord["_approval"]; ok {

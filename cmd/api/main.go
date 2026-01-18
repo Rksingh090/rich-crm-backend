@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	common_api "go-crm/internal/common/api"
-	"go-crm/internal/common/models"
 	"go-crm/internal/config"
 	"go-crm/internal/core/action"
 	"go-crm/internal/core/audit"
@@ -171,83 +170,6 @@ func InitializeIndexes(
 	})
 }
 
-// resourceServiceAdapter adapts ResourceService to the interface expected by ModuleService
-type resourceServiceAdapter struct {
-	svc resource.ResourceService
-}
-
-func (a *resourceServiceAdapter) CreateResource(ctx context.Context, res interface{}) error {
-	// Convert map to Resource struct
-	resMap, ok := res.(map[string]interface{})
-	if !ok {
-		return fmt.Errorf("invalid resource type")
-	}
-
-	r := &resource.Resource{}
-	if v, ok := resMap["resource"].(string); ok {
-		r.ResourceID = v
-	}
-	if v, ok := resMap["app"].(string); ok {
-		r.App = models.App(v)
-	}
-	if v, ok := resMap["type"].(string); ok {
-		r.Type = v
-	}
-	if v, ok := resMap["key"].(string); ok {
-		r.Key = v
-	}
-	if v, ok := resMap["label"].(string); ok {
-		r.Label = v
-	}
-	if v, ok := resMap["icon"].(string); ok {
-		r.Icon = v
-	}
-	if v, ok := resMap["route"].(string); ok {
-		r.Route = v
-	}
-	if v, ok := resMap["actions"].([]string); ok {
-		r.Actions = v
-	}
-	if v, ok := resMap["configurable"].(bool); ok {
-		r.Configurable = v
-	}
-	if v, ok := resMap["is_system"].(bool); ok {
-		r.IsSystem = v
-	}
-	if v, ok := resMap["scope"].(string); ok {
-		r.Scope = v
-	}
-	if v, ok := resMap["is_override"].(bool); ok {
-		r.IsOverride = v
-	}
-	if v, ok := resMap["base_resource_id"].(string); ok {
-		r.BaseResourceID = v
-	}
-	if ui, ok := resMap["ui"].(map[string]interface{}); ok {
-		if v, ok := ui["sidebar"].(bool); ok {
-			r.UI.Sidebar = v
-		}
-		if v, ok := ui["order"].(int); ok {
-			r.UI.Order = v
-		}
-		if v, ok := ui["group"].(string); ok {
-			r.UI.Group = v
-		}
-		if v, ok := ui["group_order"].(int); ok {
-			r.UI.GroupOrder = v
-		}
-		if v, ok := ui["location"].(string); ok {
-			r.UI.Location = v
-		}
-	}
-
-	return a.svc.CreateResource(ctx, r)
-}
-
-func (a *resourceServiceAdapter) DeleteResource(ctx context.Context, resourceID string, userID string) error {
-	return a.svc.DeleteResource(ctx, resourceID, userID)
-}
-
 // @title           Microservice Demo API
 // @version         1.0
 // @description     This is a sample server using Fiber, Uber Fx, and GORM.
@@ -282,8 +204,16 @@ func main() {
 			audit.NewAuditRepository,
 			module.NewModuleRepository,
 			organization.NewOrganizationRepository,
-			user.NewUserRepository,
-			record.NewRecordRepository,
+			fx.Annotate(
+				user.NewUserRepository,
+				fx.As(new(user.UserRepository)),
+				fx.As(new(audit.UserFinder)),
+			),
+			fx.Annotate(
+				record.NewRecordRepository,
+				fx.As(new(record.RecordRepository)),
+				fx.As(new(inventory.RecordRepository)),
+			),
 			role.NewRoleRepository,
 			approval.NewApprovalRepository,
 			report.NewReportRepository,
@@ -316,19 +246,35 @@ func main() {
 
 			audit.NewAuditService,
 			app.NewAppService,
-			auth.NewAuthService,
-			role.NewRoleService,
+			fx.Annotate(
+				auth.NewAuthService,
+				fx.As(new(auth.AuthService)),
+				fx.As(new(organization.TenantAuthService)),
+			),
+			fx.Annotate(
+				role.NewRoleService,
+				fx.As(new(role.RoleService)),
+				fx.As(new(middleware.RoleService)),
+			),
 			module.NewModuleService,
 			record.NewRecordService,
 			user.NewUserService,
 			file.NewFileService,
 			group.NewGroupService,
-			approval.NewApprovalService,
+			fx.Annotate(
+				approval.NewApprovalService,
+				fx.As(new(approval.ApprovalService)),
+				fx.As(new(record.ApprovalTrigger)),
+			),
 			settings.NewSettingsService,
 			report.NewReportService,
 			// Create centralized action executor
 			action.NewActionExecutor,
-			automation.NewAutomationService,
+			fx.Annotate(
+				automation.NewAutomationService,
+				fx.As(new(automation.AutomationService)),
+				fx.As(new(record.AutomationTrigger)),
+			),
 			ticket.NewTicketService,
 			ticket.NewSLAService,
 			ticket.NewEscalationService,
@@ -348,25 +294,20 @@ func main() {
 			saved_filter.NewSavedFilterService,
 			analytics.NewAnalyticsService,
 			analytics.NewDataSourceService,
-			resource.NewResourceService,
+			fx.Annotate(
+				resource.NewResourceService,
+				fx.As(new(resource.ResourceService)),
+				fx.As(new(module.ResourceService)),
+			),
 			permission.NewPermissionService,
 			inventory.NewInventoryService,
 			organization.NewOrganizationService,
-			blueprint.NewService,
-
-			// Interface Adapters to break circular dependencies and satisfy Fx
-			func(r record.RecordRepository) inventory.RecordRepository { return r },
-			func(s approval.ApprovalService) record.ApprovalTrigger { return s },
-			func(s automation.AutomationService) record.AutomationTrigger { return s },
-			func(s role.RoleService) middleware.RoleService { return s },
-			func(r user.UserRepository) audit.UserFinder { return r },
-			func(s auth.AuthService) organization.TenantAuthService { return s },
-			func(s resource.ResourceService) interface {
-				CreateResource(ctx context.Context, resource interface{}) error
-				DeleteResource(ctx context.Context, resourceID string, userID string) error
-			} {
-				return &resourceServiceAdapter{svc: s}
-			},
+			fx.Annotate(
+				blueprint.NewService,
+				fx.As(new(blueprint.Service)),
+				fx.As(new(record.BlueprintValidator)),
+				fx.As(new(module.BlueprintValidator)),
+			),
 
 			// Initialize Controller
 			admin.NewAdminController,

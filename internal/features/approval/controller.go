@@ -5,6 +5,7 @@ import (
 	"go-crm/pkg/utils"
 
 	"github.com/gofiber/fiber/v2"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type ApprovalController struct {
@@ -36,7 +37,12 @@ func (c *ApprovalController) CreateWorkflow(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request body"})
 	}
 
-	if err := c.Service.CreateWorkflow(ctx.UserContext(), input); err != nil {
+	var userID primitive.ObjectID
+	if idStr, ok := ctx.Locals("user_id").(string); ok && idStr != "" {
+		userID, _ = primitive.ObjectIDFromHex(idStr)
+	}
+
+	if err := c.Service.CreateWorkflow(ctx.UserContext(), input, userID); err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
@@ -62,7 +68,12 @@ func (c *ApprovalController) UpdateWorkflow(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request body"})
 	}
 
-	if err := c.Service.UpdateWorkflow(ctx.UserContext(), id, input); err != nil {
+	var userID primitive.ObjectID
+	if idStr, ok := ctx.Locals("user_id").(string); ok && idStr != "" {
+		userID, _ = primitive.ObjectIDFromHex(idStr)
+	}
+
+	if err := c.Service.UpdateWorkflow(ctx.UserContext(), id, input, userID); err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
@@ -79,7 +90,12 @@ func (c *ApprovalController) UpdateWorkflow(ctx *fiber.Ctx) error {
 // @Router /api/approvals/workflows/{id} [delete]
 func (c *ApprovalController) DeleteWorkflow(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
-	if err := c.Service.DeleteWorkflow(ctx.UserContext(), id); err != nil {
+	var userID primitive.ObjectID
+	if idStr, ok := ctx.Locals("user_id").(string); ok && idStr != "" {
+		userID, _ = primitive.ObjectIDFromHex(idStr)
+	}
+
+	if err := c.Service.DeleteWorkflow(ctx.UserContext(), id, userID); err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 	return ctx.SendStatus(fiber.StatusNoContent)
@@ -97,7 +113,12 @@ func (c *ApprovalController) DeleteWorkflow(ctx *fiber.Ctx) error {
 // @Router /api/approvals/workflows/module/{moduleId} [get]
 func (c *ApprovalController) GetWorkflowByModule(ctx *fiber.Ctx) error {
 	moduleID := ctx.Params("moduleId")
-	workflow, err := c.Service.GetWorkflowByModule(ctx.UserContext(), moduleID)
+	var userID primitive.ObjectID
+	if idStr, ok := ctx.Locals("user_id").(string); ok && idStr != "" {
+		userID, _ = primitive.ObjectIDFromHex(idStr)
+	}
+
+	workflow, err := c.Service.GetWorkflowByModule(ctx.UserContext(), moduleID, userID)
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
@@ -119,7 +140,12 @@ func (c *ApprovalController) GetWorkflowByModule(ctx *fiber.Ctx) error {
 // @Router /api/approvals/workflows/{id} [get]
 func (c *ApprovalController) GetWorkflowByID(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
-	workflow, err := c.Service.GetWorkflowByID(ctx.UserContext(), id)
+	var userID primitive.ObjectID
+	if idStr, ok := ctx.Locals("user_id").(string); ok && idStr != "" {
+		userID, _ = primitive.ObjectIDFromHex(idStr)
+	}
+
+	workflow, err := c.Service.GetWorkflowByID(ctx.UserContext(), id, userID)
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
@@ -138,7 +164,12 @@ func (c *ApprovalController) GetWorkflowByID(ctx *fiber.Ctx) error {
 // @Failure 500 {object} map[string]string "Internal server error"
 // @Router /api/approvals/workflows [get]
 func (c *ApprovalController) ListWorkflows(ctx *fiber.Ctx) error {
-	workflows, err := c.Service.ListWorkflows(ctx.UserContext())
+	var userID primitive.ObjectID
+	if idStr, ok := ctx.Locals("user_id").(string); ok && idStr != "" {
+		userID, _ = primitive.ObjectIDFromHex(idStr)
+	}
+
+	workflows, err := c.Service.ListWorkflows(ctx.UserContext(), userID)
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}

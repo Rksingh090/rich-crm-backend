@@ -42,7 +42,7 @@ func NewRoleService(
 	userRepo user.UserRepository,
 	auditService audit.AuditService,
 	permissionService permission.PermissionService,
-) RoleService {
+) *RoleServiceImpl {
 	return &RoleServiceImpl{
 		RoleRepo:          roleRepo,
 		UserRepo:          userRepo,

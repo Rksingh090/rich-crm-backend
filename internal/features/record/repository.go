@@ -29,7 +29,7 @@ type RecordRepositoryImpl struct {
 	DB *database.MongodbDB
 }
 
-func NewRecordRepository(mongodb *database.MongodbDB) RecordRepository {
+func NewRecordRepository(mongodb *database.MongodbDB) *RecordRepositoryImpl {
 	return &RecordRepositoryImpl{
 		DB: mongodb,
 	}

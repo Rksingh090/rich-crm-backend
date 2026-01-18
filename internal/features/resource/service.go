@@ -3,7 +3,7 @@ package resource
 import (
 	"context"
 	"fmt"
-	common_models "go-crm/internal/common/models"
+	"go-crm/internal/common/models"
 	"go-crm/internal/core/permission"
 	"go-crm/internal/core/role"
 	"go-crm/internal/features/module"
@@ -14,11 +14,11 @@ import (
 )
 
 type ResourceService interface {
-	ListResources(ctx context.Context) ([]Resource, error)
-	ListSidebarResources(ctx context.Context, app string, location string) ([]Resource, error)
-	GetSidebar(ctx context.Context, userID string) ([]Resource, error)
-	SyncResources(ctx context.Context, resources []Resource) error
-	CreateResource(ctx context.Context, resource *Resource) error
+	ListResources(ctx context.Context) ([]models.Resource, error)
+	ListSidebarResources(ctx context.Context, app string, location string) ([]models.Resource, error)
+	GetSidebar(ctx context.Context, userID string) ([]models.Resource, error)
+	SyncResources(ctx context.Context, resources []models.Resource) error
+	CreateResource(ctx context.Context, resource *models.Resource) error
 	DeleteResource(ctx context.Context, resourceID string, userID string) error
 	GetResourceMetadata(ctx context.Context, resourceName string, action string, userID string) (map[string]interface{}, error)
 }
@@ -30,7 +30,7 @@ type ResourceServiceImpl struct {
 	moduleRepo        module.ModuleRepository
 }
 
-func NewResourceService(repo ResourceRepository, roleService role.RoleService, permissionService permission.PermissionService, moduleRepo module.ModuleRepository) ResourceService {
+func NewResourceService(repo ResourceRepository, roleService role.RoleService, permissionService permission.PermissionService, moduleRepo module.ModuleRepository) *ResourceServiceImpl {
 	return &ResourceServiceImpl{
 		repo:              repo,
 		roleService:       roleService,
@@ -39,13 +39,13 @@ func NewResourceService(repo ResourceRepository, roleService role.RoleService, p
 	}
 }
 
-func (s *ResourceServiceImpl) ListResources(ctx context.Context) ([]Resource, error) {
+func (s *ResourceServiceImpl) ListResources(ctx context.Context) ([]models.Resource, error) {
 	return s.repo.FindAll(ctx)
 }
 
-func (s *ResourceServiceImpl) SyncResources(ctx context.Context, resources []Resource) error {
+func (s *ResourceServiceImpl) SyncResources(ctx context.Context, resources []models.Resource) error {
 	// Get TenantID from context
-	tenantID, _ := ctx.Value(common_models.TenantIDKey).(string)
+	tenantID, _ := ctx.Value(models.TenantIDKey).(string)
 
 	for _, res := range resources {
 		// Populate ResourceID if missing (legacy support or new convention)
@@ -131,7 +131,7 @@ func (s *ResourceServiceImpl) SyncResources(ctx context.Context, resources []Res
 	return nil
 }
 
-func (s *ResourceServiceImpl) GetSidebar(ctx context.Context, userID string) ([]Resource, error) {
+func (s *ResourceServiceImpl) GetSidebar(ctx context.Context, userID string) ([]models.Resource, error) {
 	// 1. Fetch all resources
 	allResources, err := s.repo.FindAll(ctx)
 	if err != nil {
@@ -139,7 +139,7 @@ func (s *ResourceServiceImpl) GetSidebar(ctx context.Context, userID string) ([]
 	}
 
 	// 2. Filter by Sidebar = true and Permissions
-	var sidebarResources []Resource
+	var sidebarResources []models.Resource
 
 	// Convert string userID to ObjectID
 	uID, err := primitive.ObjectIDFromHex(userID)
@@ -169,17 +169,17 @@ func (s *ResourceServiceImpl) GetSidebar(ctx context.Context, userID string) ([]
 	return sidebarResources, nil
 }
 
-func (s *ResourceServiceImpl) ListSidebarResources(ctx context.Context, app string, location string) ([]Resource, error) {
+func (s *ResourceServiceImpl) ListSidebarResources(ctx context.Context, app string, location string) ([]models.Resource, error) {
 	return s.repo.FindSidebarResources(ctx, app, location)
 }
 
-func (s *ResourceServiceImpl) CreateResource(ctx context.Context, resource *Resource) error {
+func (s *ResourceServiceImpl) CreateResource(ctx context.Context, resource *models.Resource) error {
 	// Check if this resource already exists (Global)
 	// If it does, checks if we can override it.
 	if resource.ResourceID != "" {
 		existing, err := s.repo.FindByResourceID(ctx, resource.ResourceID)
 		if err == nil && existing != nil {
-			tenantID, _ := ctx.Value(common_models.TenantIDKey).(string)
+			tenantID, _ := ctx.Value(models.TenantIDKey).(string)
 			// If we are tenant, and existing is global
 			if tenantID != "" && existing.Scope == "global" {
 				if !existing.CanOverride {
@@ -242,7 +242,7 @@ func (s *ResourceServiceImpl) GetResourceMetadata(ctx context.Context, resourceN
 	}
 
 	// 3. Check Action Permission
-	var actionPerm *common_models.ActionPermission
+	var actionPerm *models.ActionPermission
 
 	// Construct full resource key (e.g., "crm.leads")
 	// If Product is empty, it might just be the name (e.g. system modules?)
@@ -291,7 +291,7 @@ func (s *ResourceServiceImpl) GetResourceMetadata(ctx context.Context, resourceN
 
 	if allowed {
 		// Calculate available filters from Schema
-		schemaFilters := make(map[string]common_models.ModuleField)
+		schemaFilters := make(map[string]models.ModuleField)
 		for _, f := range moduleEntity.Fields {
 			if f.Filterable {
 				schemaFilters[f.Name] = f

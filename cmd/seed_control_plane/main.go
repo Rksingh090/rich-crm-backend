@@ -12,7 +12,6 @@ import (
 	"go-crm/internal/config"
 	"go-crm/internal/core/role"
 	"go-crm/internal/database"
-	"go-crm/internal/features/resource"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -98,16 +97,24 @@ func seedDefaultRoles(ctx context.Context, db *mongo.Database) {
 
 func seedDefaultModules(ctx context.Context, db *mongo.Database) {
 	fmt.Println("- Seeding Default Modules...")
-	path := "cmd/seed/data/modules.json"
-	data, err := os.ReadFile(path)
-	if err != nil {
-		fmt.Printf("Warning: Failed to read %s: %v\n", path, err)
-		return
+	// Load both CRM and ERP modules
+	modulePaths := []string{
+		"cmd/seed/data/crm_modules.json",
+		"cmd/seed/data/erp_modules.json",
 	}
 
 	var modules []models.Entity
-	if err := json.Unmarshal(data, &modules); err != nil {
-		log.Fatalf("Failed to unmarshal modules: %v", err)
+	for _, path := range modulePaths {
+		data, err := os.ReadFile(path)
+		if err != nil {
+			fmt.Printf("Warning: Failed to read %s: %v\n", path, err)
+			continue
+		}
+		var m []models.Entity
+		if err := json.Unmarshal(data, &m); err != nil {
+			log.Fatalf("Failed to unmarshal %s: %v", path, err)
+		}
+		modules = append(modules, m...)
 	}
 
 	coll := db.Collection("default_modules")
@@ -169,7 +176,7 @@ func seedDefaultResources(ctx context.Context, db *mongo.Database) {
 		return
 	}
 
-	var resources []resource.Resource
+	var resources []models.Resource
 	if err := json.Unmarshal(data, &resources); err != nil {
 		log.Fatalf("Failed to unmarshal resources: %v", err)
 	}

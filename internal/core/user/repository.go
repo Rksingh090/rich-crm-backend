@@ -28,7 +28,7 @@ type UserRepositoryImpl struct {
 	Collection *mongo.Collection
 }
 
-func NewUserRepository(mongodb *database.MongodbDB) UserRepository {
+func NewUserRepository(mongodb *database.MongodbDB) *UserRepositoryImpl {
 	return &UserRepositoryImpl{
 		Collection: mongodb.DB.Collection("users"),
 	}

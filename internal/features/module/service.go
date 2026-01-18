@@ -22,25 +22,30 @@ type ModuleService interface {
 	DeleteModule(ctx context.Context, name string, userID primitive.ObjectID) error
 }
 
-type ModuleServiceImpl struct {
-	Repo            ModuleRepository
-	RoleService     role.RoleService
-	AuditService    audit.AuditService
-	ResourceService interface {
-		CreateResource(ctx context.Context, resource interface{}) error
-		DeleteResource(ctx context.Context, resourceID string, userID string) error
-	}
+type BlueprintValidator interface {
+	GetActiveBlueprintTargetField(ctx context.Context, module string) (string, error)
 }
 
-func NewModuleService(repo ModuleRepository, roleService role.RoleService, auditService audit.AuditService, resourceService interface {
-	CreateResource(ctx context.Context, resource interface{}) error
+type ResourceService interface {
+	CreateResource(ctx context.Context, resource *common_models.Resource) error
 	DeleteResource(ctx context.Context, resourceID string, userID string) error
-}) ModuleService {
+}
+
+type ModuleServiceImpl struct {
+	Repo               ModuleRepository
+	RoleService        role.RoleService
+	AuditService       audit.AuditService
+	ResourceService    ResourceService
+	BlueprintValidator BlueprintValidator
+}
+
+func NewModuleService(repo ModuleRepository, roleService role.RoleService, auditService audit.AuditService, resourceService ResourceService, blueprintValidator BlueprintValidator) ModuleService {
 	return &ModuleServiceImpl{
-		Repo:            repo,
-		RoleService:     roleService,
-		AuditService:    auditService,
-		ResourceService: resourceService,
+		Repo:               repo,
+		RoleService:        roleService,
+		AuditService:       auditService,
+		ResourceService:    resourceService,
+		BlueprintValidator: blueprintValidator,
 	}
 }
 
@@ -74,26 +79,26 @@ func (s *ModuleServiceImpl) CreateModule(ctx context.Context, m *common_models.E
 
 	// Create corresponding Resource
 	resourceID := fmt.Sprintf("%s.%s", string(m.App), m.Name)
-	resource := map[string]interface{}{
-		"resource":     resourceID,
-		"app":          string(m.App),
-		"type":         "module",
-		"key":          m.Name,
-		"label":        m.Label,
-		"icon":         "database",
-		"route":        fmt.Sprintf("/dashboard/modules/%s", m.Name),
-		"actions":      []string{"create", "read", "update", "delete"},
-		"configurable": true,
-		"is_system":    m.IsSystem,
-		"scope":        "tenant", // Module resources are tenant-specific
-		"is_override":  false,
-		"tenant_id":    m.TenantID,
-		"ui": map[string]interface{}{
-			"sidebar":     true,
-			"order":       100,
-			"group":       "Modules",
-			"group_order": 10,
-			"location":    "main",
+	resource := &common_models.Resource{
+		ResourceID:   resourceID,
+		App:          m.App,
+		Type:         "module",
+		Key:          m.Name,
+		Label:        m.Label,
+		Icon:         "database",
+		Route:        fmt.Sprintf("/dashboard/modules/%s", m.Name),
+		Actions:      []string{"create", "read", "update", "delete"},
+		Configurable: true,
+		IsSystem:     m.IsSystem,
+		Scope:        "tenant", // Module resources are tenant-specific
+		IsOverride:   false,
+		TenantID:     m.TenantID,
+		UI: common_models.ResourceUI{
+			Sidebar:    true,
+			Order:      100,
+			Group:      "Modules",
+			GroupOrder: 10,
+			Location:   "main",
 		},
 	}
 
@@ -150,6 +155,18 @@ func (s *ModuleServiceImpl) GetModuleByName(ctx context.Context, name string, us
 		}
 	}
 
+	// Dynamic ReadOnly for Blueprint Fields
+	if s.BlueprintValidator != nil {
+		targetField, _ := s.BlueprintValidator.GetActiveBlueprintTargetField(ctx, m.Name)
+		if targetField != "" {
+			for i := range m.Fields {
+				if m.Fields[i].Name == targetField {
+					m.Fields[i].ReadOnly = true
+				}
+			}
+		}
+	}
+
 	return m, nil
 }
 
@@ -199,6 +216,21 @@ func (s *ModuleServiceImpl) ListModules(ctx context.Context, userID primitive.Ob
 		}
 		filteredModules = append(filteredModules, modules[i])
 	}
+
+	// Dynamic ReadOnly for Blueprint Fields
+	if s.BlueprintValidator != nil && len(filteredModules) > 0 {
+		for i := range filteredModules {
+			targetField, _ := s.BlueprintValidator.GetActiveBlueprintTargetField(ctx, filteredModules[i].Name)
+			if targetField != "" {
+				for j := range filteredModules[i].Fields {
+					if filteredModules[i].Fields[j].Name == targetField {
+						filteredModules[i].Fields[j].ReadOnly = true
+					}
+				}
+			}
+		}
+	}
+
 	return filteredModules, nil
 }
 
@@ -280,24 +312,24 @@ func (s *ModuleServiceImpl) UpdateModule(ctx context.Context, m *common_models.E
 		// Logic handles resource creation in CreateModule.
 		// Since we are effectively "creating" a new override module, we should sync resource.
 		resourceID := fmt.Sprintf("%s.%s", string(m.App), m.Name)
-		resource := map[string]interface{}{
-			"resource":         resourceID,
-			"app":              string(m.App),
-			"type":             "module",
-			"key":              m.Name,
-			"label":            m.Label,
-			"icon":             "database", // Should inherit?
-			"route":            fmt.Sprintf("/dashboard/modules/%s", m.Name),
-			"actions":          []string{"create", "read", "update", "delete"},
-			"configurable":     true,
-			"scope":            "tenant",
-			"is_override":      true,
-			"base_resource_id": existingModule.Name, // Or ID? Resource usually links by ID string
-			"ui": map[string]interface{}{
-				"sidebar":  true,
-				"order":    100, // Should inherit?
-				"group":    "Modules",
-				"location": "main",
+		resource := &common_models.Resource{
+			ResourceID:     resourceID,
+			App:            m.App,
+			Type:           "module",
+			Key:            m.Name,
+			Label:          m.Label,
+			Icon:           "database", // Should inherit?
+			Route:          fmt.Sprintf("/dashboard/modules/%s", m.Name),
+			Actions:        []string{"create", "read", "update", "delete"},
+			Configurable:   true,
+			Scope:          "tenant",
+			IsOverride:     true,
+			BaseResourceID: existingModule.Name, // Or ID? Resource usually links by ID string
+			UI: common_models.ResourceUI{
+				Sidebar:  true,
+				Order:    100, // Should inherit?
+				Group:    "Modules",
+				Location: "main",
 			},
 		}
 		_ = s.ResourceService.CreateResource(ctx, resource)

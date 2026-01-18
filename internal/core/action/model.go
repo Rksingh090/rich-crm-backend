@@ -5,7 +5,7 @@ type ActionType string
 
 const (
 	ActionSendEmail        ActionType = "send_email"
-	ActionCreateTask       ActionType = "create_task"
+	ActionCreateRecord     ActionType = "create_record"
 	ActionUpdateField      ActionType = "update_field"
 	ActionWebhook          ActionType = "webhook"
 	ActionRunScript        ActionType = "run_script"

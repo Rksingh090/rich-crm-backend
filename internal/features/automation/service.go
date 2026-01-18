@@ -26,7 +26,8 @@ type AutomationServiceImpl struct {
 	AuditService   audit.AuditService
 }
 
-func NewAutomationService(repo AutomationRepository, actionExecutor action.ActionExecutor, auditService audit.AuditService) AutomationService {
+func NewAutomationService(repo AutomationRepository, actionExecutor action.ActionExecutor, auditService audit.AuditService) *AutomationServiceImpl {
+
 	return &AutomationServiceImpl{
 		Repo:           repo,
 		ActionExecutor: actionExecutor,

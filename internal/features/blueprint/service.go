@@ -26,6 +26,7 @@ type Service interface {
 	ExecuteTransition(ctx context.Context, blueprintID string, transitionID string, recordID string, data map[string]interface{}) error
 	ValidateTransition(ctx context.Context, blueprintID string, transitionID string, recordID string) (bool, error)
 	GetAvailableTransitions(ctx context.Context, module string, recordID string) ([]Transition, error)
+	GetActiveBlueprintTargetField(ctx context.Context, module string) (string, error)
 }
 
 type ServiceImpl struct {
@@ -63,6 +64,18 @@ func (s *ServiceImpl) Update(ctx context.Context, id string, blueprint *Blueprin
 	}
 	if existing == nil {
 		return fmt.Errorf("blueprint not found")
+	}
+
+	// Validate TargetField Change
+	if existing.TargetField != blueprint.TargetField {
+		// Check if records exist
+		count, err := s.recordRepo.Count(ctx, blueprint.Module, nil, nil)
+		if err != nil {
+			return fmt.Errorf("failed to check existing records: %w", err)
+		}
+		if count > 0 {
+			return fmt.Errorf("cannot change target field when records exist in module")
+		}
 	}
 
 	blueprint.ID = existing.ID
@@ -317,4 +330,15 @@ func evaluateCondition(actual interface{}, operator string, expected interface{}
 	default:
 		return false
 	}
+}
+
+func (s *ServiceImpl) GetActiveBlueprintTargetField(ctx context.Context, module string) (string, error) {
+	bp, err := s.repo.FindActiveByModule(ctx, module)
+	if err != nil {
+		return "", err
+	}
+	if bp == nil {
+		return "", nil
+	}
+	return bp.TargetField, nil
 }

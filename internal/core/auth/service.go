@@ -45,7 +45,7 @@ func NewAuthService(
 	resourceRepo resource.ResourceRepository,
 	permissionRepo permission.PermissionRepository,
 	auditService audit.AuditService,
-) AuthService {
+) *AuthServiceImpl {
 	return &AuthServiceImpl{
 		UserRepo:         userRepo,
 		RoleRepo:         roleRepo,

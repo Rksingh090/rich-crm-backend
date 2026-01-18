@@ -103,11 +103,14 @@ func (ctrl *UserController) GetUser(c *fiber.Ctx) error {
 
 	// Helper function for claims (can be refactored)
 	getUserID := func() string {
-		if claims, ok := c.UserContext().Value(utils.UserClaimsKey).(*utils.UserClaims); ok {
+		// Middleware stores claims in Locals, not UserContext
+		if claims, ok := c.Locals(utils.UserClaimsKey).(*utils.UserClaims); ok {
 			return claims.UserID
 		}
+
 		// Fallback for fiber context locals if middleware sets it differently
-		if uid := c.Locals("userID"); uid != nil {
+		// Middleware sets "user_id" (underscore), not "userID"
+		if uid := c.Locals("user_id"); uid != nil {
 			return uid.(string)
 		}
 		return ""
@@ -116,22 +119,9 @@ func (ctrl *UserController) GetUser(c *fiber.Ctx) error {
 	currentUserID := getUserID()
 	hasAccess := false
 
-	// 1. Allow if requesting own profile
-	if currentUserID != "" && currentUserID == id {
+	// Allow any authenticated user to read user details (needed for record owner display etc)
+	if currentUserID != "" {
 		hasAccess = true
-	}
-
-	// 2. Allow if has system permission
-	if !hasAccess {
-		rolesInterface := c.Locals("roles")
-		if rolesInterface != nil {
-			if roles, ok := rolesInterface.([]string); ok {
-				hasPermission, err := ctrl.RoleService.CheckModulePermission(c.UserContext(), roles, "crm.settings_users", "read")
-				if err == nil && hasPermission {
-					hasAccess = true
-				}
-			}
-		}
 	}
 
 	if !hasAccess {

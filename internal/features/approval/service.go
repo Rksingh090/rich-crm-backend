@@ -6,6 +6,7 @@ import (
 	"fmt"
 	common_models "go-crm/internal/common/models"
 	"go-crm/internal/core/audit"
+	"go-crm/internal/core/role"
 	"go-crm/internal/core/user"
 	"go-crm/internal/features/module"
 	"go-crm/internal/features/record"
@@ -17,12 +18,12 @@ import (
 )
 
 type ApprovalService interface {
-	CreateWorkflow(ctx context.Context, workflow ApprovalWorkflow) error
-	GetWorkflowByModule(ctx context.Context, moduleID string) (*ApprovalWorkflow, error)
-	GetWorkflowByID(ctx context.Context, id string) (*ApprovalWorkflow, error)
-	ListWorkflows(ctx context.Context) ([]ApprovalWorkflow, error)
-	UpdateWorkflow(ctx context.Context, id string, workflow ApprovalWorkflow) error
-	DeleteWorkflow(ctx context.Context, id string) error
+	CreateWorkflow(ctx context.Context, workflow ApprovalWorkflow, userID primitive.ObjectID) error
+	GetWorkflowByModule(ctx context.Context, moduleID string, userID primitive.ObjectID) (*ApprovalWorkflow, error)
+	GetWorkflowByID(ctx context.Context, id string, userID primitive.ObjectID) (*ApprovalWorkflow, error)
+	ListWorkflows(ctx context.Context, userID primitive.ObjectID) ([]ApprovalWorkflow, error)
+	UpdateWorkflow(ctx context.Context, id string, workflow ApprovalWorkflow, userID primitive.ObjectID) error
+	DeleteWorkflow(ctx context.Context, id string, userID primitive.ObjectID) error
 
 	// Approval Actions
 	ApproveRecord(ctx context.Context, moduleName string, recordID string, actorID string, comment string) error
@@ -41,6 +42,7 @@ type ApprovalServiceImpl struct {
 	ModuleRepo   module.ModuleRepository
 	UserRepo     user.UserRepository
 	AuditService audit.AuditService
+	RoleService  role.RoleService
 }
 
 func NewApprovalService(
@@ -49,17 +51,27 @@ func NewApprovalService(
 	moduleRepo module.ModuleRepository,
 	userRepo user.UserRepository,
 	auditService audit.AuditService,
-) ApprovalService {
+	roleService role.RoleService,
+) *ApprovalServiceImpl {
 	return &ApprovalServiceImpl{
 		Repo:         repo,
 		RecordRepo:   recordRepo,
 		ModuleRepo:   moduleRepo,
 		UserRepo:     userRepo,
 		AuditService: auditService,
+		RoleService:  roleService,
 	}
 }
 
-func (s *ApprovalServiceImpl) CreateWorkflow(ctx context.Context, workflow ApprovalWorkflow) error {
+func (s *ApprovalServiceImpl) CreateWorkflow(ctx context.Context, workflow ApprovalWorkflow, userID primitive.ObjectID) error {
+	// Permission Check
+	if !userID.IsZero() {
+		allowed, err := s.RoleService.CheckPermission(ctx, userID, "settings_workflows", "create")
+		if err != nil || !allowed {
+			return errors.New("access denied")
+		}
+	}
+
 	if err := s.validateWorkflowOverlaps(ctx, workflow); err != nil {
 		return err
 	}
@@ -73,7 +85,15 @@ func (s *ApprovalServiceImpl) CreateWorkflow(ctx context.Context, workflow Appro
 	return s.Repo.Create(ctx, &workflow)
 }
 
-func (s *ApprovalServiceImpl) UpdateWorkflow(ctx context.Context, id string, workflow ApprovalWorkflow) error {
+func (s *ApprovalServiceImpl) UpdateWorkflow(ctx context.Context, id string, workflow ApprovalWorkflow, userID primitive.ObjectID) error {
+	// Permission Check
+	if !userID.IsZero() {
+		allowed, err := s.RoleService.CheckPermission(ctx, userID, "settings_workflows", "update")
+		if err != nil || !allowed {
+			return errors.New("access denied")
+		}
+	}
+
 	workflow.ID, _ = primitive.ObjectIDFromHex(id)
 
 	if err := s.validateWorkflowOverlaps(ctx, workflow); err != nil {
@@ -121,19 +141,33 @@ func (s *ApprovalServiceImpl) validateWorkflowOverlaps(ctx context.Context, work
 	return nil
 }
 
-func (s *ApprovalServiceImpl) DeleteWorkflow(ctx context.Context, id string) error {
+func (s *ApprovalServiceImpl) DeleteWorkflow(ctx context.Context, id string, userID primitive.ObjectID) error {
+	// Permission Check
+	if !userID.IsZero() {
+		allowed, err := s.RoleService.CheckPermission(ctx, userID, "settings_workflows", "delete")
+		if err != nil || !allowed {
+			return errors.New("access denied")
+		}
+	}
 	return s.Repo.Delete(ctx, id)
 }
 
-func (s *ApprovalServiceImpl) GetWorkflowByModule(ctx context.Context, moduleID string) (*ApprovalWorkflow, error) {
+func (s *ApprovalServiceImpl) GetWorkflowByModule(ctx context.Context, moduleID string, userID primitive.ObjectID) (*ApprovalWorkflow, error) {
 	return s.Repo.GetByModuleID(ctx, moduleID)
 }
 
-func (s *ApprovalServiceImpl) GetWorkflowByID(ctx context.Context, id string) (*ApprovalWorkflow, error) {
+func (s *ApprovalServiceImpl) GetWorkflowByID(ctx context.Context, id string, userID primitive.ObjectID) (*ApprovalWorkflow, error) {
 	return s.Repo.GetByID(ctx, id)
 }
 
-func (s *ApprovalServiceImpl) ListWorkflows(ctx context.Context) ([]ApprovalWorkflow, error) {
+func (s *ApprovalServiceImpl) ListWorkflows(ctx context.Context, userID primitive.ObjectID) ([]ApprovalWorkflow, error) {
+	// Permission Check
+	if !userID.IsZero() {
+		allowed, err := s.RoleService.CheckPermission(ctx, userID, "settings_workflows", "read")
+		if err != nil || !allowed {
+			return nil, errors.New("access denied")
+		}
+	}
 	return s.Repo.List(ctx)
 }
 

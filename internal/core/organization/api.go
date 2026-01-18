@@ -33,7 +33,6 @@ func (h *OrganizationApi) Setup(app *fiber.App) {
 	// Update
 	group.Put("/:id", middleware.RequirePermission(h.roleService, "crm.settings_tenants", "edit"), h.controller.UpdateOrganization)
 	// Delete
-	// Delete
 	group.Delete("/:id", middleware.RequirePermission(h.roleService, "crm.settings_tenants", "delete"), h.controller.DeleteOrganization)
 
 	// Users & Activity (Requires view permission on tenants)

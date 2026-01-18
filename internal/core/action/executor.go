@@ -74,8 +74,8 @@ func (e *ActionExecutorImpl) ExecuteAction(ctx context.Context, action Action, m
 	case ActionWebhook:
 		return e.executeWebhook(ctx, action.Config, moduleName, record)
 
-	case ActionCreateTask:
-		return e.executeCreateTask(ctx, action.Config, record)
+	case ActionCreateRecord:
+		return e.executeCreateRecord(ctx, action.Config, record)
 
 	case ActionRunScript:
 		return e.executeRunScript(ctx, action.Config, moduleName, record)
@@ -240,47 +240,48 @@ func (e *ActionExecutorImpl) executeWebhook(_ context.Context, config map[string
 	return nil
 }
 
-func (e *ActionExecutorImpl) executeCreateTask(ctx context.Context, config map[string]interface{}, rec map[string]interface{}) error {
-	subject, _ := config["subject"].(string)
-	description, _ := config["description"].(string)
-	assignedTo, _ := config["assigned_to"].(string)
-	dueDate, _ := config["due_date"].(string)
-
-	if subject == "" {
-		return fmt.Errorf("task subject is required")
+func (e *ActionExecutorImpl) executeCreateRecord(ctx context.Context, config map[string]interface{}, rec map[string]interface{}) error {
+	targetModuleName, _ := config["module_name"].(string)
+	if targetModuleName == "" {
+		return fmt.Errorf("target module_name is required for create_record action")
 	}
 
-	subject = e.replacePlaceholders(subject, rec)
-	description = e.replacePlaceholders(description, rec)
-
-	taskData := map[string]interface{}{
-		"subject":     subject,
-		"description": description,
-		"status":      "pending",
-		"created_at":  time.Now(),
+	mapping, _ := config["mapping"].(map[string]interface{})
+	if mapping == nil {
+		mapping = make(map[string]interface{})
 	}
 
-	if assignedTo != "" {
-		taskData["assigned_to"] = assignedTo
+	newData := make(map[string]interface{})
+	for targetField, sourceFieldRaw := range mapping {
+		sourceField, ok := sourceFieldRaw.(string)
+		if !ok || sourceField == "" {
+			continue
+		}
+
+		// Get value from source record
+		if val, ok := rec[sourceField]; ok {
+			newData[targetField] = val
+		}
 	}
 
-	if dueDate != "" {
-		taskData["due_date"] = dueDate
+	// Always set common fields if they don't exist
+	if _, ok := newData["created_at"]; !ok {
+		newData["created_at"] = time.Now()
 	}
 
-	// Lookup tasks module to get product
-	taskModule, err := e.moduleRepo.FindByName(ctx, "tasks")
+	// Lookup target module to get product
+	targetModule, err := e.moduleRepo.FindByName(ctx, targetModuleName)
 	var product common_models.App = common_models.AppCRM // Default
 	if err == nil {
-		product = taskModule.App
+		product = targetModule.App
 	}
 
-	_, err = e.recordRepo.Create(ctx, "tasks", product, taskData)
+	_, err = e.recordRepo.Create(ctx, targetModuleName, product, newData)
 	if err != nil {
-		return fmt.Errorf("failed to create task: %w", err)
+		return fmt.Errorf("failed to create record in module %s: %w", targetModuleName, err)
 	}
 
-	log.Printf("Created task: %s", subject)
+	log.Printf("Created record in module %s using mapping", targetModuleName)
 	return nil
 }
 

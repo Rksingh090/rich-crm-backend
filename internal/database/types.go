@@ -9,8 +9,7 @@ import (
 type MongodbDB struct {
 	Client *mongo.Client
 	Config *config.Config
-	// Deprecated: existing code uses this, so we keep it for now but it points to Control Plane
-	DB *mongo.Database
+	DB     *mongo.Database
 }
 
 func (m *MongodbDB) GetControlPlaneDB() *mongo.Database {

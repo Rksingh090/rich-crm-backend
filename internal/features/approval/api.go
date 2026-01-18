@@ -26,12 +26,12 @@ func (h *ApprovalApi) Setup(app *fiber.App) {
 	// Group: /workflows
 	workflows := app.Group("/api/workflows", middleware.AuthMiddleware(h.config.SkipAuth))
 
-	workflows.Post("/", middleware.RequirePermission(h.roleService, "workflows", "create"), h.controller.CreateWorkflow)
-	workflows.Put("/:id", middleware.RequirePermission(h.roleService, "workflows", "update"), h.controller.UpdateWorkflow)
-	workflows.Delete("/:id", middleware.RequirePermission(h.roleService, "workflows", "delete"), h.controller.DeleteWorkflow)
-	workflows.Get("/", middleware.RequirePermission(h.roleService, "workflows", "read"), h.controller.ListWorkflows)
-	workflows.Get("/:id", middleware.RequirePermission(h.roleService, "workflows", "read"), h.controller.GetWorkflowByID)
-	workflows.Get("/module/:moduleId", middleware.RequirePermission(h.roleService, "workflows", "read"), h.controller.GetWorkflowByModule)
+	workflows.Post("/", h.controller.CreateWorkflow)
+	workflows.Put("/:id", h.controller.UpdateWorkflow)
+	workflows.Delete("/:id", h.controller.DeleteWorkflow)
+	workflows.Get("/", h.controller.ListWorkflows)
+	workflows.Get("/:id", h.controller.GetWorkflowByID)
+	workflows.Get("/module/:moduleId", h.controller.GetWorkflowByModule)
 
 	// Group: /approvals
 	approvals := app.Group("/api/approvals", middleware.AuthMiddleware(h.config.SkipAuth))

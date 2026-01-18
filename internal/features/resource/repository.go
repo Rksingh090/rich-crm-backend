@@ -15,21 +15,13 @@ import (
 )
 
 type ResourceRepository interface {
-	FindAll(ctx context.Context) ([]Resource, error)
-	FindByID(ctx context.Context, id string) (*Resource, error)
-	FindByResourceID(ctx context.Context, resourceID string) (*Resource, error)
-	FindByKey(ctx context.Context, key string) (*Resource, error)
-	FindSidebarResources(ctx context.Context, product string, location string) ([]Resource, error)
-	Create(ctx context.Context, resource *Resource) error
-	Update(ctx context.Context, resource *Resource) error
+	Create(ctx context.Context, resource *models.Resource) error
+	Update(ctx context.Context, resource *models.Resource) error
 	Delete(ctx context.Context, id string, userID string) error
-
-	// Global and tenant-specific methods
-	FindGlobalResources(ctx context.Context) ([]Resource, error)
-	FindTenantResources(ctx context.Context) ([]Resource, error)
-	FindTenantOverrides(ctx context.Context) ([]Resource, error)
-	FindMergedResources(ctx context.Context) ([]Resource, error)
-	GetDefaults(ctx context.Context) ([]Resource, error)
+	FindAll(ctx context.Context) ([]models.Resource, error)
+	FindByResourceID(ctx context.Context, resourceID string) (*models.Resource, error)
+	FindSidebarResources(ctx context.Context, app string, location string) ([]models.Resource, error)
+	GetDefaults(ctx context.Context) ([]models.Resource, error)
 	EnsureIndexes(ctx context.Context) error
 	EnsureGlobalIndexes(ctx context.Context) error
 }
@@ -46,10 +38,13 @@ func NewResourceRepository(db *database.MongodbDB) ResourceRepository {
 
 func (r *ResourceRepositoryImpl) getCollection(ctx context.Context) *mongo.Collection {
 	tenantID, _ := ctx.Value(models.TenantIDKey).(string)
-	return r.DB.GetTenantDB(tenantID).Collection("resources")
+	if tenantID != "" {
+		return r.DB.GetTenantDB(tenantID).Collection("resources")
+	}
+	return r.DB.DB.Collection("resources")
 }
 
-func (r *ResourceRepositoryImpl) GetDefaults(ctx context.Context) ([]Resource, error) {
+func (r *ResourceRepositoryImpl) GetDefaults(ctx context.Context) ([]models.Resource, error) {
 	db := r.DB.GetControlPlaneDB()
 	coll := db.Collection("default_resources")
 	cursor, err := coll.Find(ctx, bson.M{})
@@ -57,14 +52,14 @@ func (r *ResourceRepositoryImpl) GetDefaults(ctx context.Context) ([]Resource, e
 		return nil, err
 	}
 	defer cursor.Close(ctx)
-	var resources []Resource
+	var resources []models.Resource
 	if err := cursor.All(ctx, &resources); err != nil {
 		return nil, err
 	}
 	return resources, nil
 }
 
-func (r *ResourceRepositoryImpl) FindAll(ctx context.Context) ([]Resource, error) {
+func (r *ResourceRepositoryImpl) FindAll(ctx context.Context) ([]models.Resource, error) {
 	tenantID, ok := ctx.Value(models.TenantIDKey).(string)
 	if !ok || tenantID == "" {
 		return nil, fmt.Errorf("organization context missing")
@@ -90,7 +85,7 @@ func (r *ResourceRepositoryImpl) FindAll(ctx context.Context) ([]Resource, error
 		return nil, err
 	}
 	defer globalCursor.Close(ctx)
-	var globalResources []Resource
+	var globalResources []models.Resource
 	if err := globalCursor.All(ctx, &globalResources); err != nil {
 		return nil, err
 	}
@@ -113,13 +108,13 @@ func (r *ResourceRepositoryImpl) FindAll(ctx context.Context) ([]Resource, error
 		return nil, err
 	}
 	defer tenantCursor.Close(ctx)
-	var tenantResources []Resource
+	var tenantResources []models.Resource
 	if err := tenantCursor.All(ctx, &tenantResources); err != nil {
 		return nil, err
 	}
 
 	// 3. Merge: Tenant overrides/specifics replace globals
-	resourceMap := make(map[string]Resource)
+	resourceMap := make(map[string]models.Resource)
 
 	// Base: Globals
 	for _, res := range globalResources {
@@ -134,7 +129,7 @@ func (r *ResourceRepositoryImpl) FindAll(ctx context.Context) ([]Resource, error
 	}
 
 	// Convert map back to slice
-	var result []Resource
+	var result []models.Resource
 	for _, res := range resourceMap {
 		result = append(result, res)
 	}
@@ -147,36 +142,7 @@ func (r *ResourceRepositoryImpl) FindAll(ctx context.Context) ([]Resource, error
 	return result, nil
 }
 
-func (r *ResourceRepositoryImpl) FindByID(ctx context.Context, id string) (*Resource, error) {
-	tenantID, ok := ctx.Value(models.TenantIDKey).(string)
-	if !ok || tenantID == "" {
-		return nil, fmt.Errorf("organization context missing")
-	}
-	oid, err := primitive.ObjectIDFromHex(tenantID)
-	if err != nil {
-		return nil, err
-	}
-
-	rid, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
-		return nil, fmt.Errorf("invalid resource id: %v", err)
-	}
-
-	filter := bson.M{
-		"_id":        rid,
-		"tenant_id":  oid,
-		"deleted_at": bson.M{"$exists": false},
-	}
-	var resource Resource
-	coll := r.getCollection(ctx)
-	err = coll.FindOne(ctx, filter).Decode(&resource)
-	if err != nil {
-		return nil, err
-	}
-	return &resource, nil
-}
-
-func (r *ResourceRepositoryImpl) FindByResourceID(ctx context.Context, resourceID string) (*Resource, error) {
+func (r *ResourceRepositoryImpl) FindByResourceID(ctx context.Context, resourceID string) (*models.Resource, error) {
 	tenantID, _ := ctx.Value(models.TenantIDKey).(string)
 	var oid primitive.ObjectID
 	if tenantID != "" {
@@ -191,7 +157,7 @@ func (r *ResourceRepositoryImpl) FindByResourceID(ctx context.Context, resourceI
 			"deleted_at":  bson.M{"$exists": false},
 		}
 		coll := r.getCollection(ctx)
-		var res Resource
+		var res models.Resource
 		err := coll.FindOne(ctx, filter).Decode(&res)
 		if err == nil {
 			return &res, nil
@@ -206,7 +172,7 @@ func (r *ResourceRepositoryImpl) FindByResourceID(ctx context.Context, resourceI
 	}
 	db := r.DB.GetControlPlaneDB()
 	coll := db.Collection("default_resources")
-	var res Resource
+	var res models.Resource
 	err := coll.FindOne(ctx, filter).Decode(&res)
 	if err != nil {
 		return nil, err
@@ -214,21 +180,7 @@ func (r *ResourceRepositoryImpl) FindByResourceID(ctx context.Context, resourceI
 	return &res, nil
 }
 
-func (r *ResourceRepositoryImpl) FindByKey(ctx context.Context, key string) (*Resource, error) {
-	filter := bson.M{
-		"key":        key,
-		"deleted_at": bson.M{"$exists": false},
-	}
-	coll := r.getCollection(ctx)
-	var resource Resource
-	err := coll.FindOne(ctx, filter).Decode(&resource)
-	if err != nil {
-		return nil, err
-	}
-	return &resource, nil
-}
-
-func (r *ResourceRepositoryImpl) Create(ctx context.Context, resource *Resource) error {
+func (r *ResourceRepositoryImpl) Create(ctx context.Context, resource *models.Resource) error {
 	if resource.Scope == "global" {
 		db := r.DB.GetControlPlaneDB()
 		coll := db.Collection("default_resources")
@@ -268,7 +220,7 @@ func (r *ResourceRepositoryImpl) Create(ctx context.Context, resource *Resource)
 	return err
 }
 
-func (r *ResourceRepositoryImpl) Update(ctx context.Context, resource *Resource) error {
+func (r *ResourceRepositoryImpl) Update(ctx context.Context, resource *models.Resource) error {
 	if resource.Scope == "global" {
 		db := r.DB.GetControlPlaneDB()
 		coll := db.Collection("default_resources")
@@ -327,7 +279,7 @@ func (r *ResourceRepositoryImpl) Delete(ctx context.Context, id string, userID s
 	return err
 }
 
-func (r *ResourceRepositoryImpl) FindSidebarResources(ctx context.Context, app string, location string) ([]Resource, error) {
+func (r *ResourceRepositoryImpl) FindSidebarResources(ctx context.Context, app string, location string) ([]models.Resource, error) {
 	tenantID, ok := ctx.Value(models.TenantIDKey).(string)
 	if !ok || tenantID == "" {
 		return nil, fmt.Errorf("tenant context missing")
@@ -355,7 +307,7 @@ func (r *ResourceRepositoryImpl) FindSidebarResources(ctx context.Context, app s
 		return nil, err
 	}
 	defer globalCursor.Close(ctx)
-	var globalResources []Resource
+	var globalResources []models.Resource
 	if err := globalCursor.All(ctx, &globalResources); err != nil {
 		return nil, err
 	}
@@ -382,13 +334,13 @@ func (r *ResourceRepositoryImpl) FindSidebarResources(ctx context.Context, app s
 		return nil, err
 	}
 	defer tenantCursor.Close(ctx)
-	var tenantResources []Resource
+	var tenantResources []models.Resource
 	if err := tenantCursor.All(ctx, &tenantResources); err != nil {
 		return nil, err
 	}
 
 	// 3. Merge: Tenant overrides replace globals
-	resourceMap := make(map[string]Resource)
+	resourceMap := make(map[string]models.Resource)
 
 	// Base: Globals
 	for _, res := range globalResources {
@@ -401,7 +353,7 @@ func (r *ResourceRepositoryImpl) FindSidebarResources(ctx context.Context, app s
 	}
 
 	// Convert to slice
-	var result []Resource
+	var result []models.Resource
 	for _, res := range resourceMap {
 		result = append(result, res)
 	}
@@ -416,140 +368,6 @@ func (r *ResourceRepositoryImpl) FindSidebarResources(ctx context.Context, app s
 		}
 		return result[i].UI.Order < result[j].UI.Order
 	})
-
-	return result, nil
-}
-
-// FindGlobalResources returns all global resources (scope="global")
-func (r *ResourceRepositoryImpl) FindGlobalResources(ctx context.Context) ([]Resource, error) {
-	// Query Control Plane DB
-	db := r.DB.GetControlPlaneDB()
-	coll := db.Collection("default_resources")
-
-	filter := bson.M{
-		"scope":      "global",
-		"deleted_at": bson.M{"$exists": false},
-	}
-
-	cursor, err := coll.Find(ctx, filter)
-	if err != nil {
-		return nil, err
-	}
-	defer cursor.Close(ctx)
-
-	var resources []Resource
-	if err := cursor.All(ctx, &resources); err != nil {
-		return nil, err
-	}
-	return resources, nil
-}
-
-// FindTenantResources returns all tenant-specific resources (scope="tenant", not overrides)
-func (r *ResourceRepositoryImpl) FindTenantResources(ctx context.Context) ([]Resource, error) {
-	tenantID, ok := ctx.Value(models.TenantIDKey).(string)
-	if !ok || tenantID == "" {
-		return nil, fmt.Errorf("tenant context missing")
-	}
-	oid, err := primitive.ObjectIDFromHex(tenantID)
-	if err != nil {
-		return nil, err
-	}
-
-	filter := bson.M{
-		"tenant_id":   oid,
-		"scope":       "tenant",
-		"is_override": false,
-		"deleted_at":  bson.M{"$exists": false},
-	}
-
-	coll := r.getCollection(ctx)
-	cursor, err := coll.Find(ctx, filter)
-	if err != nil {
-		return nil, err
-	}
-	defer cursor.Close(ctx)
-
-	var resources []Resource
-	if err := cursor.All(ctx, &resources); err != nil {
-		return nil, err
-	}
-	return resources, nil
-}
-
-// FindTenantOverrides returns all tenant overrides for global resources
-func (r *ResourceRepositoryImpl) FindTenantOverrides(ctx context.Context) ([]Resource, error) {
-	tenantID, ok := ctx.Value(models.TenantIDKey).(string)
-	if !ok || tenantID == "" {
-		return nil, fmt.Errorf("tenant context missing")
-	}
-	oid, err := primitive.ObjectIDFromHex(tenantID)
-	if err != nil {
-		return nil, err
-	}
-
-	filter := bson.M{
-		"tenant_id":   oid,
-		"is_override": true,
-		"deleted_at":  bson.M{"$exists": false},
-	}
-
-	coll := r.getCollection(ctx)
-	cursor, err := coll.Find(ctx, filter)
-	if err != nil {
-		return nil, err
-	}
-	defer cursor.Close(ctx)
-
-	var resources []Resource
-	if err := cursor.All(ctx, &resources); err != nil {
-		return nil, err
-	}
-	return resources, nil
-}
-
-// FindMergedResources returns global resources merged with tenant overrides and tenant-specific resources
-func (r *ResourceRepositoryImpl) FindMergedResources(ctx context.Context) ([]Resource, error) {
-	// Get global resources
-	globalResources, err := r.FindGlobalResources(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	// Get tenant overrides
-	overrides, err := r.FindTenantOverrides(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	// Get tenant-specific resources
-	tenantResources, err := r.FindTenantResources(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	// Create a map to merge global resources with overrides
-	resourceMap := make(map[string]Resource)
-
-	// Add global resources
-	for _, res := range globalResources {
-		resourceMap[res.ResourceID] = res
-	}
-
-	// Override with tenant overrides
-	for _, override := range overrides {
-		resourceMap[override.ResourceID] = override
-	}
-
-	// Add tenant-specific resources
-	for _, res := range tenantResources {
-		resourceMap[res.ResourceID] = res
-	}
-
-	// Convert map to slice
-	var result []Resource
-	for _, res := range resourceMap {
-		result = append(result, res)
-	}
 
 	return result, nil
 }

@@ -6697,7 +6697,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/internal_features_resource.Resource"
+                                "$ref": "#/definitions/resource.Resource"
                             }
                         }
                     },
@@ -6731,7 +6731,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_core_resource.Resource"
+                            "$ref": "#/definitions/resource.Resource"
                         }
                     }
                 ],
@@ -6739,7 +6739,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/internal_core_resource.Resource"
+                            "$ref": "#/definitions/resource.Resource"
                         }
                     },
                     "400": {
@@ -6797,7 +6797,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/internal_core_resource.Resource"
+                                "$ref": "#/definitions/resource.Resource"
                             }
                         }
                     },
@@ -6861,7 +6861,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/internal_features_resource.Resource"
+                                "$ref": "#/definitions/resource.Resource"
                             }
                         }
                     },
@@ -6904,7 +6904,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_core_resource.Resource"
+                            "$ref": "#/definitions/resource.Resource"
                         }
                     }
                 ],
@@ -6912,7 +6912,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/internal_core_resource.Resource"
+                            "$ref": "#/definitions/resource.Resource"
                         }
                     },
                     "400": {
@@ -7007,7 +7007,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/internal_core_resource.Resource"
+                            "$ref": "#/definitions/resource.Resource"
                         }
                     },
                     "400": {
@@ -8547,7 +8547,7 @@ const docTemplate = `{
             "type": "string",
             "enum": [
                 "send_email",
-                "create_task",
+                "create_record",
                 "update_field",
                 "webhook",
                 "run_script",
@@ -8559,7 +8559,7 @@ const docTemplate = `{
             ],
             "x-enum-varnames": [
                 "ActionSendEmail",
-                "ActionCreateTask",
+                "ActionCreateRecord",
                 "ActionUpdateField",
                 "ActionWebhook",
                 "ActionRunScript",
@@ -9863,206 +9863,6 @@ const docTemplate = `{
                 "ImportStatusFailed"
             ]
         },
-        "internal_core_resource.Resource": {
-            "type": "object",
-            "properties": {
-                "app": {
-                    "$ref": "#/definitions/models.App"
-                },
-                "available_actions": {
-                    "description": "Available actions for this resource",
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "created_at": {
-                    "description": "Lifecycle",
-                    "type": "string"
-                },
-                "deleted_at": {
-                    "type": "string"
-                },
-                "icon": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "is_configurable": {
-                    "description": "Can permissions be configured",
-                    "type": "boolean"
-                },
-                "is_system": {
-                    "description": "System resources cannot be deleted",
-                    "type": "boolean"
-                },
-                "key": {
-                    "description": "Internal key (e.g., \"leads\")",
-                    "type": "string"
-                },
-                "label": {
-                    "description": "Display name (e.g., \"Leads\")",
-                    "type": "string"
-                },
-                "resource_id": {
-                    "description": "e.g., \"crm.leads\", \"erp.inventory\"",
-                    "type": "string"
-                },
-                "route": {
-                    "type": "string"
-                },
-                "scope": {
-                    "description": "Scope determines visibility",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/resource.ResourceScope"
-                        }
-                    ]
-                },
-                "tenant_id": {
-                    "description": "null for global/app-level",
-                    "type": "string"
-                },
-                "type": {
-                    "$ref": "#/definitions/resource.ResourceType"
-                },
-                "ui": {
-                    "description": "UI metadata for rendering in frontend",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/internal_core_resource.ResourceUI"
-                        }
-                    ]
-                },
-                "updated_at": {
-                    "type": "string"
-                }
-            }
-        },
-        "internal_core_resource.ResourceUI": {
-            "type": "object",
-            "properties": {
-                "group": {
-                    "type": "string"
-                },
-                "group_order": {
-                    "type": "integer"
-                },
-                "location": {
-                    "description": "\"main\", \"settings\"",
-                    "type": "string"
-                },
-                "order": {
-                    "type": "integer"
-                },
-                "sidebar": {
-                    "type": "boolean"
-                }
-            }
-        },
-        "internal_features_resource.Resource": {
-            "type": "object",
-            "properties": {
-                "actions": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "app": {
-                    "$ref": "#/definitions/models.App"
-                },
-                "base_resource_id": {
-                    "description": "For overrides, points to global resource",
-                    "type": "string"
-                },
-                "can_override": {
-                    "description": "Can this resource be overridden?",
-                    "type": "boolean"
-                },
-                "configurable": {
-                    "type": "boolean"
-                },
-                "created_at": {
-                    "type": "string"
-                },
-                "deleted_at": {
-                    "type": "string"
-                },
-                "deleted_by": {
-                    "type": "string"
-                },
-                "fields": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/models.ModuleField"
-                    }
-                },
-                "icon": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "is_override": {
-                    "description": "True if this is a tenant override",
-                    "type": "boolean"
-                },
-                "is_system": {
-                    "type": "boolean"
-                },
-                "key": {
-                    "type": "string"
-                },
-                "label": {
-                    "type": "string"
-                },
-                "resource_id": {
-                    "type": "string"
-                },
-                "route": {
-                    "type": "string"
-                },
-                "scope": {
-                    "description": "\"global\" or \"tenant\"",
-                    "type": "string"
-                },
-                "tenant_id": {
-                    "description": "Empty for global resources",
-                    "type": "string"
-                },
-                "type": {
-                    "type": "string"
-                },
-                "ui": {
-                    "$ref": "#/definitions/internal_features_resource.ResourceUI"
-                },
-                "updated_at": {
-                    "type": "string"
-                }
-            }
-        },
-        "internal_features_resource.ResourceUI": {
-            "type": "object",
-            "properties": {
-                "group": {
-                    "type": "string"
-                },
-                "group_order": {
-                    "type": "integer"
-                },
-                "location": {
-                    "type": "string"
-                },
-                "order": {
-                    "type": "integer"
-                },
-                "sidebar": {
-                    "type": "boolean"
-                }
-            }
-        },
         "models.ActionPermission": {
             "type": "object",
             "properties": {
@@ -10736,6 +10536,83 @@ const docTemplate = `{
                 "ReportTypeCrossModule"
             ]
         },
+        "resource.Resource": {
+            "type": "object",
+            "properties": {
+                "app": {
+                    "$ref": "#/definitions/models.App"
+                },
+                "available_actions": {
+                    "description": "Available actions for this resource",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "created_at": {
+                    "description": "Lifecycle",
+                    "type": "string"
+                },
+                "deleted_at": {
+                    "type": "string"
+                },
+                "icon": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_configurable": {
+                    "description": "Can permissions be configured",
+                    "type": "boolean"
+                },
+                "is_system": {
+                    "description": "System resources cannot be deleted",
+                    "type": "boolean"
+                },
+                "key": {
+                    "description": "Internal key (e.g., \"leads\")",
+                    "type": "string"
+                },
+                "label": {
+                    "description": "Display name (e.g., \"Leads\")",
+                    "type": "string"
+                },
+                "resource_id": {
+                    "description": "e.g., \"crm.leads\", \"erp.inventory\"",
+                    "type": "string"
+                },
+                "route": {
+                    "type": "string"
+                },
+                "scope": {
+                    "description": "Scope determines visibility",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/resource.ResourceScope"
+                        }
+                    ]
+                },
+                "tenant_id": {
+                    "description": "null for global/app-level",
+                    "type": "string"
+                },
+                "type": {
+                    "$ref": "#/definitions/resource.ResourceType"
+                },
+                "ui": {
+                    "description": "UI metadata for rendering in frontend",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/resource.ResourceUI"
+                        }
+                    ]
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
         "resource.ResourceScope": {
             "type": "string",
             "enum": [
@@ -10779,6 +10656,27 @@ const docTemplate = `{
                 "ResourceTypeCron",
                 "ResourceTypeWebhook"
             ]
+        },
+        "resource.ResourceUI": {
+            "type": "object",
+            "properties": {
+                "group": {
+                    "type": "string"
+                },
+                "group_order": {
+                    "type": "integer"
+                },
+                "location": {
+                    "description": "\"main\", \"settings\"",
+                    "type": "string"
+                },
+                "order": {
+                    "type": "integer"
+                },
+                "sidebar": {
+                    "type": "boolean"
+                }
+            }
         },
         "role.Role": {
             "type": "object",

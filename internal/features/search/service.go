@@ -71,7 +71,7 @@ func (s *SearchServiceImpl) GlobalSearch(ctx context.Context, query string, user
 		return results, err
 	}
 
-	var permittedModules []resource.Resource
+	var permittedModules []models.Resource
 	queryLower := strings.ToLower(query)
 
 	for _, res := range allResources {

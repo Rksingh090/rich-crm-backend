@@ -5,9 +5,9 @@ import (
 	"testing"
 
 	"go-crm/internal/common/models"
+	"go-crm/internal/core/role"
 	"go-crm/internal/features/module"
 	"go-crm/internal/features/resource"
-	"go-crm/internal/core/role"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -15,10 +15,10 @@ import (
 // MockResourceService
 type mockResourceService struct {
 	resource.ResourceService
-	resources []resource.Resource
+	resources []models.Resource
 }
 
-func (m *mockResourceService) ListResources(ctx context.Context) ([]resource.Resource, error) {
+func (m *mockResourceService) ListResources(ctx context.Context) ([]models.Resource, error) {
 	return m.resources, nil
 }
 
@@ -48,7 +48,7 @@ func (m *mockModuleService) GetModuleByName(ctx context.Context, name string, us
 
 func TestGlobalSearch_ResourceMapping(t *testing.T) {
 	mockRes := &mockResourceService{
-		resources: []resource.Resource{
+		resources: []models.Resource{
 			{
 				ResourceID: "crm.leads",
 				Type:       "module",
@@ -64,7 +64,7 @@ func TestGlobalSearch_ResourceMapping(t *testing.T) {
 				Label:      "General Settings",
 				Route:      "/settings/general",
 				Icon:       "Settings",
-				UI: resource.ResourceUI{
+				UI: models.ResourceUI{
 					Location: "settings",
 				},
 			},
