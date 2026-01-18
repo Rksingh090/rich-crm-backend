@@ -17,7 +17,13 @@ require (
 	go.uber.org/zap v1.26.0
 )
 
-require github.com/tiendc/go-deepcopy v1.7.1 // indirect
+require (
+	github.com/dlclark/regexp2 v1.11.4 // indirect
+	github.com/dop251/goja v0.0.0-20260106131823-651366fbe6e3 // indirect
+	github.com/go-sourcemap/sourcemap v2.1.3+incompatible // indirect
+	github.com/google/pprof v0.0.0-20230207041349-798e818bf904 // indirect
+	github.com/tiendc/go-deepcopy v1.7.1 // indirect
+)
 
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect

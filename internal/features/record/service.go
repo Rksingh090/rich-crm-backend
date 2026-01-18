@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
@@ -598,8 +599,11 @@ func (s *RecordServiceImpl) UpdateRecord(ctx context.Context, moduleName, id str
 			return fmt.Errorf("failed to validate blueprint constraint: %v", err)
 		}
 		if targetField != "" {
-			if _, exists := data[targetField]; exists {
-				return fmt.Errorf("field '%s' is managed by a blueprint and cannot be updated manually", targetField)
+			if newVal, ok := validatedData[targetField]; ok {
+				oldVal := oldRecord[targetField]
+				if !reflect.DeepEqual(oldVal, newVal) {
+					return fmt.Errorf("field '%s' is managed by a blueprint and cannot be updated manually", targetField)
+				}
 			}
 		}
 	}

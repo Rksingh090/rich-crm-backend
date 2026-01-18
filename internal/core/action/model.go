@@ -6,18 +6,14 @@ type ActionType string
 const (
 	ActionSendEmail        ActionType = "send_email"
 	ActionCreateRecord     ActionType = "create_record"
-	ActionUpdateField      ActionType = "update_field"
 	ActionWebhook          ActionType = "webhook"
-	ActionRunScript        ActionType = "run_script"
+	ActionRunFunction      ActionType = "run_function"
 	ActionSendNotification ActionType = "send_notification"
-	ActionSendSMS          ActionType = "send_sms"
-	ActionGeneratePDF      ActionType = "generate_pdf"
 	ActionDataSync         ActionType = "data_sync"
-	ActionSendReport       ActionType = "send_report"
 )
 
 // Action represents a single action to be executed
 type Action struct {
-	Type   ActionType             `json:"type" bson:"type"`
-	Config map[string]interface{} `json:"config" bson:"config"`
+	Type   ActionType     `json:"type" bson:"type"`
+	Config map[string]any `json:"config" bson:"config"`
 }

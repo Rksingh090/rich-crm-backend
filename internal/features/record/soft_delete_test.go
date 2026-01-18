@@ -28,12 +28,16 @@ type MockRecordRepo struct {
 	CapturedDeleteID string
 	CapturedUserID   primitive.ObjectID
 	CapturedFilter   map[string]any
+	Record           map[string]any
 }
 
 func (m *MockRecordRepo) Create(ctx context.Context, moduleName string, product common_models.App, data map[string]any) (any, error) {
 	return primitive.NewObjectID(), nil
 }
 func (m *MockRecordRepo) Get(ctx context.Context, moduleName, id string) (map[string]any, error) {
+	if m.Record != nil {
+		return m.Record, nil
+	}
 	return map[string]any{"_id": id}, nil
 }
 func (m *MockRecordRepo) List(ctx context.Context, moduleName string, filter map[string]any, accessFilter map[string]any, limit, offset int64, sortBy string, sortOrder int) ([]map[string]any, error) {

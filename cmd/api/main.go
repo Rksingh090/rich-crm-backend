@@ -28,6 +28,7 @@ import (
 	"go-crm/internal/features/email_template"
 	"go-crm/internal/features/extension"
 	"go-crm/internal/features/file"
+	"go-crm/internal/features/function"
 	"go-crm/internal/features/group"
 	import_feature "go-crm/internal/features/import"
 	"go-crm/internal/features/inventory"
@@ -234,6 +235,7 @@ func main() {
 			dashboard.NewDashboardRepository,
 			email.NewEmailRepository,
 			email_template.NewEmailTemplateRepository,
+			function.NewFunctionRepository,
 			bulk_operation.NewBulkOperationRepository,
 			saved_filter.NewSavedFilterRepository,
 			cron_feature.NewCronRepository,
@@ -288,6 +290,7 @@ func main() {
 			dashboard.NewDashboardService,
 			email.NewEmailService,
 			email_template.NewEmailTemplateService,
+			function.NewFunctionService,
 			cron_feature.NewCronService,
 			bulk_operation.NewBulkOperationService,
 			import_feature.NewImportService,
@@ -337,6 +340,7 @@ func main() {
 			chart.NewChartController,
 			dashboard.NewDashboardController,
 			email_template.NewEmailTemplateController,
+			function.NewFunctionController,
 			import_feature.NewImportController,
 			bulk_operation.NewBulkOperationController,
 			saved_filter.NewSavedFilterController,
@@ -379,6 +383,7 @@ func main() {
 			AsRoute(saved_filter.NewSavedFilterApi),
 			AsRoute(cron_feature.NewCronApi),
 			AsRoute(email_template.NewEmailTemplateApi),
+			AsRoute(function.NewFunctionApi),
 			AsRoute(system.NewSwaggerApi),
 			AsRoute(analytics.NewAnalyticsApi),
 			AsRoute(analytics.NewDataSourceApi),

@@ -3,7 +3,7 @@ definitions:
   action.Action:
     properties:
       config:
-        additionalProperties: true
+        additionalProperties: {}
         type: object
       type:
         $ref: '#/definitions/action.ActionType'
@@ -12,26 +12,18 @@ definitions:
     enum:
     - send_email
     - create_record
-    - update_field
     - webhook
-    - run_script
+    - run_function
     - send_notification
-    - send_sms
-    - generate_pdf
     - data_sync
-    - send_report
     type: string
     x-enum-varnames:
     - ActionSendEmail
     - ActionCreateRecord
-    - ActionUpdateField
     - ActionWebhook
-    - ActionRunScript
+    - ActionRunFunction
     - ActionSendNotification
-    - ActionSendSMS
-    - ActionGeneratePDF
     - ActionDataSync
-    - ActionSendReport
   analytics.DataSource:
     properties:
       config:
@@ -822,6 +814,64 @@ definitions:
         type: string
       url:
         type: string
+    type: object
+  function.Function:
+    properties:
+      app:
+        type: string
+      code:
+        type: string
+      created_at:
+        type: string
+      created_by:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      is_active:
+        type: boolean
+      language:
+        allOf:
+        - $ref: '#/definitions/function.FunctionLanguage'
+        description: '"tengo" or "javascript"'
+      module_name:
+        description: Empty for global
+        type: string
+      name:
+        type: string
+      parameters:
+        items:
+          $ref: '#/definitions/function.FunctionParameter'
+        type: array
+      tenant_id:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  function.FunctionLanguage:
+    enum:
+    - tengo
+    - javascript
+    type: string
+    x-enum-varnames:
+    - LanguageTengo
+    - LanguageJavaScript
+  function.FunctionParameter:
+    properties:
+      description:
+        type: string
+      name:
+        type: string
+      type:
+        description: string, number, boolean, object, array, any
+        type: string
+    type: object
+  function.TestFunctionRequest:
+    properties:
+      test_data:
+        additionalProperties: true
+        type: object
     type: object
   group.Group:
     properties:
@@ -4237,6 +4287,179 @@ paths:
       summary: Upload file
       tags:
       - files
+  /api/functions:
+    get:
+      description: List all functions, optionally filtered by module
+      parameters:
+      - description: Filter by module
+        in: query
+        name: module
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/function.Function'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: List functions
+      tags:
+      - functions
+    post:
+      consumes:
+      - application/json
+      description: Create a new reusable function
+      parameters:
+      - description: Function
+        in: body
+        name: function
+        required: true
+        schema:
+          $ref: '#/definitions/function.Function'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/function.Function'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create function
+      tags:
+      - functions
+  /api/functions/{id}:
+    delete:
+      description: Delete a function by ID
+      parameters:
+      - description: Function ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Delete function
+      tags:
+      - functions
+    get:
+      description: Get a function by ID
+      parameters:
+      - description: Function ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/function.Function'
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get function
+      tags:
+      - functions
+    put:
+      consumes:
+      - application/json
+      description: Update an existing function
+      parameters:
+      - description: Function ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Function
+        in: body
+        name: function
+        required: true
+        schema:
+          $ref: '#/definitions/function.Function'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/function.Function'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Update function
+      tags:
+      - functions
+  /api/functions/{id}/test:
+    post:
+      consumes:
+      - application/json
+      description: Execute a function with test data and return the result
+      parameters:
+      - description: Function ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Test Data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/function.TestFunctionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Test a function
+      tags:
+      - functions
   /api/groups:
     get:
       description: List all user groups

@@ -3330,6 +3330,263 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/functions": {
+            "get": {
+                "description": "List all functions, optionally filtered by module",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "functions"
+                ],
+                "summary": "List functions",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by module",
+                        "name": "module",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/function.Function"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Create a new reusable function",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "functions"
+                ],
+                "summary": "Create function",
+                "parameters": [
+                    {
+                        "description": "Function",
+                        "name": "function",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/function.Function"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/function.Function"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/functions/{id}": {
+            "get": {
+                "description": "Get a function by ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "functions"
+                ],
+                "summary": "Get function",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Function ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/function.Function"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Update an existing function",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "functions"
+                ],
+                "summary": "Update function",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Function ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Function",
+                        "name": "function",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/function.Function"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/function.Function"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Delete a function by ID",
+                "tags": [
+                    "functions"
+                ],
+                "summary": "Delete function",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Function ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/functions/{id}/test": {
+            "post": {
+                "description": "Execute a function with test data and return the result",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "functions"
+                ],
+                "summary": "Test a function",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Function ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Test Data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/function.TestFunctionRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/api/groups": {
             "get": {
                 "description": "List all user groups",
@@ -8536,7 +8793,7 @@ const docTemplate = `{
             "properties": {
                 "config": {
                     "type": "object",
-                    "additionalProperties": true
+                    "additionalProperties": {}
                 },
                 "type": {
                     "$ref": "#/definitions/action.ActionType"
@@ -8548,26 +8805,18 @@ const docTemplate = `{
             "enum": [
                 "send_email",
                 "create_record",
-                "update_field",
                 "webhook",
-                "run_script",
+                "run_function",
                 "send_notification",
-                "send_sms",
-                "generate_pdf",
-                "data_sync",
-                "send_report"
+                "data_sync"
             ],
             "x-enum-varnames": [
                 "ActionSendEmail",
                 "ActionCreateRecord",
-                "ActionUpdateField",
                 "ActionWebhook",
-                "ActionRunScript",
+                "ActionRunFunction",
                 "ActionSendNotification",
-                "ActionSendSMS",
-                "ActionGeneratePDF",
-                "ActionDataSync",
-                "ActionSendReport"
+                "ActionDataSync"
             ]
         },
         "analytics.DataSource": {
@@ -9718,6 +9967,94 @@ const docTemplate = `{
                 },
                 "url": {
                     "type": "string"
+                }
+            }
+        },
+        "function.Function": {
+            "type": "object",
+            "properties": {
+                "app": {
+                    "type": "string"
+                },
+                "code": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "created_by": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_active": {
+                    "type": "boolean"
+                },
+                "language": {
+                    "description": "\"tengo\" or \"javascript\"",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/function.FunctionLanguage"
+                        }
+                    ]
+                },
+                "module_name": {
+                    "description": "Empty for global",
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "parameters": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/function.FunctionParameter"
+                    }
+                },
+                "tenant_id": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "function.FunctionLanguage": {
+            "type": "string",
+            "enum": [
+                "tengo",
+                "javascript"
+            ],
+            "x-enum-varnames": [
+                "LanguageTengo",
+                "LanguageJavaScript"
+            ]
+        },
+        "function.FunctionParameter": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "type": {
+                    "description": "string, number, boolean, object, array, any",
+                    "type": "string"
+                }
+            }
+        },
+        "function.TestFunctionRequest": {
+            "type": "object",
+            "properties": {
+                "test_data": {
+                    "type": "object",
+                    "additionalProperties": true
                 }
             }
         },

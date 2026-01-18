@@ -110,7 +110,7 @@ func (m *MockWebhookService) DeleteWebhook(ctx context.Context, id string) error
 
 func TestUpdateRecord_BlueprintValidation(t *testing.T) {
 	// Setup Mocks
-	mockRepo := &MockRecordRepo{} // Defined in soft_delete_test.go
+	mockRepo := &MockRecordRepo{}
 	mockModuleRepo := &MockModuleRepo{
 		Entity: &models.Entity{
 			Name: "deals",
@@ -178,6 +178,23 @@ func TestUpdateRecord_BlueprintValidation(t *testing.T) {
 		err := service.UpdateRecord(ctx, "deals", recordID, data, userID)
 		if err != nil {
 			t.Errorf("Expected success, got error: %v", err)
+		}
+	})
+
+	// Case 4: Active Blueprint manages "stage". Update contains "stage" with same value. Should Pass.
+	t.Run("SameValueUpdate", func(t *testing.T) {
+		mockValidator.TargetField = "stage"
+		mockRepo.Record = map[string]any{
+			"_id":   recordID,
+			"stage": "Negotiation",
+		}
+		data := map[string]interface{}{
+			"stage": "Negotiation",
+		}
+
+		err := service.UpdateRecord(ctx, "deals", recordID, data, userID)
+		if err != nil {
+			t.Errorf("Expected success for same value update, got error: %v", err)
 		}
 	})
 }

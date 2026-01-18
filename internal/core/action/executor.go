@@ -8,6 +8,7 @@ import (
 	"go-crm/internal/core/audit"
 	"go-crm/internal/features/email"
 	"go-crm/internal/features/email_template"
+	"go-crm/internal/features/function"
 	"go-crm/internal/features/module"
 	"go-crm/internal/features/record"
 	"go-crm/internal/features/sync"
@@ -32,6 +33,7 @@ type ActionExecutorImpl struct {
 	emailTemplateService email_template.EmailTemplateService
 	auditService         audit.AuditService
 	syncService          sync.SyncService
+	functionService      function.FunctionService
 	httpClient           *http.Client
 }
 
@@ -42,6 +44,7 @@ func NewActionExecutor(
 	emailTemplateService email_template.EmailTemplateService,
 	auditService audit.AuditService,
 	syncService sync.SyncService,
+	functionService function.FunctionService,
 ) ActionExecutor {
 	return &ActionExecutorImpl{
 		moduleRepo:           moduleRepo,
@@ -50,6 +53,7 @@ func NewActionExecutor(
 		emailTemplateService: emailTemplateService,
 		auditService:         auditService,
 		syncService:          syncService,
+		functionService:      functionService,
 		httpClient:           &http.Client{Timeout: 30 * time.Second},
 	}
 }
@@ -68,26 +72,17 @@ func (e *ActionExecutorImpl) ExecuteAction(ctx context.Context, action Action, m
 	case ActionSendEmail:
 		return e.executeSendEmail(ctx, action.Config, record)
 
-	case ActionUpdateField:
-		return e.executeUpdateField(ctx, action.Config, moduleName, record)
-
 	case ActionWebhook:
 		return e.executeWebhook(ctx, action.Config, moduleName, record)
 
 	case ActionCreateRecord:
 		return e.executeCreateRecord(ctx, action.Config, record)
 
-	case ActionRunScript:
+	case ActionRunFunction:
 		return e.executeRunScript(ctx, action.Config, moduleName, record)
 
 	case ActionSendNotification:
 		return e.executeSendNotification(ctx, action.Config, record)
-
-	case ActionSendSMS:
-		return e.executeSendSMS(ctx, action.Config, record)
-
-	case ActionGeneratePDF:
-		return e.executeGeneratePDF(ctx, action.Config, moduleName, record)
 
 	case ActionDataSync:
 		return e.executeDataSync(ctx, action.Config)
@@ -159,33 +154,6 @@ func (e *ActionExecutorImpl) executeSendEmail(ctx context.Context, config map[st
 		return fmt.Errorf("failed to send email: %w", err)
 	}
 
-	return nil
-}
-
-func (e *ActionExecutorImpl) executeUpdateField(ctx context.Context, config map[string]interface{}, moduleName string, rec map[string]interface{}) error {
-	field, _ := config["field"].(string)
-	value := config["value"]
-
-	if field == "" {
-		return fmt.Errorf("field name is required for update_field action")
-	}
-
-	recordID, ok := rec["_id"]
-	if !ok {
-		return fmt.Errorf("record ID not found")
-	}
-
-	recordIDStr := fmt.Sprintf("%v", recordID)
-
-	updateData := map[string]interface{}{
-		field: value,
-	}
-
-	if err := e.recordRepo.Update(ctx, moduleName, recordIDStr, updateData); err != nil {
-		return fmt.Errorf("failed to update field: %w", err)
-	}
-
-	log.Printf("Updated field %s to %v for record %s in module %s", field, value, recordIDStr, moduleName)
 	return nil
 }
 
@@ -285,11 +253,21 @@ func (e *ActionExecutorImpl) executeCreateRecord(ctx context.Context, config map
 	return nil
 }
 
-func (e *ActionExecutorImpl) executeRunScript(_ context.Context, config map[string]interface{}, moduleName string, rec map[string]interface{}) error {
+func (e *ActionExecutorImpl) executeRunScript(ctx context.Context, config map[string]interface{}, moduleName string, rec map[string]interface{}) error {
+	// Check if using stored function
+	if functionID, ok := config["function_id"].(string); ok && functionID != "" && functionID != "none" {
+		if e.functionService != nil {
+			log.Printf("Executing stored function %s for module %s", functionID, moduleName)
+			return e.functionService.ExecuteFunction(ctx, functionID, moduleName, rec)
+		}
+		log.Printf("Warning: function_id specified but functionService not available")
+	}
+
+	// Fall back to inline script (backward compatibility)
 	scriptContent, _ := config["script"].(string)
 
 	if scriptContent == "" {
-		return fmt.Errorf("script content is required")
+		return fmt.Errorf("script content or function_id is required")
 	}
 
 	script := tengo.NewScript([]byte(scriptContent))
@@ -306,7 +284,7 @@ func (e *ActionExecutorImpl) executeRunScript(_ context.Context, config map[stri
 		return fmt.Errorf("failed to run script: %w", err)
 	}
 
-	log.Printf("Executed script for module %s", moduleName)
+	log.Printf("Executed inline script for module %s", moduleName)
 	return nil
 }
 
@@ -347,45 +325,6 @@ func (e *ActionExecutorImpl) executeSendNotification(ctx context.Context, config
 	}
 
 	log.Printf("Created notification for user %s: %s", userID, title)
-	return nil
-}
-
-func (e *ActionExecutorImpl) executeSendSMS(_ context.Context, config map[string]interface{}, rec map[string]interface{}) error {
-	phoneNumber, _ := config["phone_number"].(string)
-	message, _ := config["message"].(string)
-
-	if phoneNumber == "" {
-		return fmt.Errorf("phone_number is required for SMS")
-	}
-
-	if message == "" {
-		return fmt.Errorf("SMS message is required")
-	}
-
-	message = e.replacePlaceholders(message, rec)
-
-	log.Printf("Sending SMS to %s: %s", phoneNumber, message)
-
-	return nil
-}
-
-func (e *ActionExecutorImpl) executeGeneratePDF(ctx context.Context, config map[string]interface{}, moduleName string, rec map[string]interface{}) error {
-	template, _ := config["template"].(string)
-	filename, _ := config["filename"].(string)
-
-	if template == "" {
-		return fmt.Errorf("PDF template is required")
-	}
-
-	if filename == "" {
-		filename = fmt.Sprintf("%s_%v.pdf", moduleName, time.Now().Unix())
-	}
-
-	template = e.replacePlaceholders(template, rec)
-	filename = e.replacePlaceholders(filename, rec)
-
-	log.Printf("Generating PDF: %s for module %s", filename, moduleName)
-
 	return nil
 }
 

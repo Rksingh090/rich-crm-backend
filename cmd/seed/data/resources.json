@@ -378,6 +378,40 @@
     "is_override": false
   },
   {
+    "resource_id": "crm.settings_functions",
+    "app": "crm",
+    "type": "setting",
+    "key": "functions",
+    "label": "Functions",
+    "icon": "Braces",
+    "route": "/settings/functions",
+    "actions": [
+      "read",
+      "create",
+      "update",
+      "delete"
+    ],
+    "fields": null,
+    "configurable": false,
+    "is_system": true,
+    "scope": "global",
+    "is_override": false,
+    "can_override": false,
+    "ui": {
+      "sidebar": true,
+      "order": 6,
+      "group": "Automation",
+      "group_order": 1,
+      "location": "settings"
+    },
+    "created_at": {
+      "$date": "2026-01-18T10:29:49.673Z"
+    },
+    "updated_at": {
+      "$date": "2026-01-18T10:29:49.673Z"
+    }
+  },
+  {
     "resource_id": "crm.settings_workflows",
     "app": "crm",
     "type": "setting",
