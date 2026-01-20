@@ -17,6 +17,7 @@ type Config struct {
 	AppId       string
 	FSPath      string // Physical directory for file uploads
 	FSURL       string // URL path prefix for file access
+	Host        string // Base URL for Swagger docs
 }
 
 // LoadConfig loads configuration from environment variables
@@ -37,6 +38,7 @@ func LoadConfig() (*Config, error) {
 		AppId:       getEnv("APP_ID", "go-crm"),
 		FSPath:      getEnv("FS_PATH", "./uploads"),
 		FSURL:       getEnv("FS_URL", "/fs/uploads"),
+		Host:        getEnv("HOST", ""),
 	}, nil
 }
 

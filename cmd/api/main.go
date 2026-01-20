@@ -49,7 +49,7 @@ import (
 	"log"
 	"time"
 
-	_ "go-crm/docs" // Import swagger docs
+	"go-crm/docs" // Import swagger docs
 
 	"github.com/gofiber/fiber/v2"
 	"go.uber.org/fx"
@@ -182,7 +182,6 @@ func InitializeIndexes(
 // @license.name    Apache 2.0
 // @license.url     http://www.apache.org/licenses/LICENSE-2.0.html
 
-// @host            localhost:8000
 // @BasePath        /
 func main() {
 	app := fx.New(
@@ -411,6 +410,9 @@ func main() {
 				})
 			},
 			InitializeIndexes,
+			func(cfg *config.Config) {
+				docs.SwaggerInfo.Host = cfg.Host
+			},
 		),
 	)
 

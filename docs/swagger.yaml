@@ -2175,7 +2175,6 @@ definitions:
       url:
         type: string
     type: object
-host: localhost:8000
 info:
   contact:
     email: support@swagger.io
@@ -5139,6 +5138,46 @@ paths:
       summary: Login
       tags:
       - auth
+  /api/me/resources/{resource}:
+    get:
+      consumes:
+      - application/json
+      description: Get resource schema and allowed filters based on permissions
+      parameters:
+      - description: Resource ID (e.g., crm.leads)
+        in: path
+        name: resource
+        required: true
+        type: string
+      - description: 'Action to check (default: read)'
+        in: query
+        name: action
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get resource metadata
+      tags:
+      - Resources
   /api/modules:
     get:
       consumes:
@@ -7984,46 +8023,6 @@ paths:
       summary: Update webhook
       tags:
       - webhooks
-  /me/resources/{resource}:
-    get:
-      consumes:
-      - application/json
-      description: Get resource schema and allowed filters based on permissions
-      parameters:
-      - description: Resource ID (e.g., crm.leads)
-        in: path
-        name: resource
-        required: true
-        type: string
-      - description: 'Action to check (default: read)'
-        in: query
-        name: action
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-        "403":
-          description: Forbidden
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "500":
-          description: Internal server error
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Get resource metadata
-      tags:
-      - Resources
   /register:
     post:
       consumes:

@@ -4429,6 +4429,68 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/me/resources/{resource}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get resource schema and allowed filters based on permissions",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Resources"
+                ],
+                "summary": "Get resource metadata",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Resource ID (e.g., crm.leads)",
+                        "name": "resource",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Action to check (default: read)",
+                        "name": "action",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/modules": {
             "get": {
                 "security": [
@@ -8675,68 +8737,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/me/resources/{resource}": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Get resource schema and allowed filters based on permissions",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Resources"
-                ],
-                "summary": "Get resource metadata",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Resource ID (e.g., crm.leads)",
-                        "name": "resource",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Action to check (default: read)",
-                        "name": "action",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
         "/register": {
             "post": {
                 "description": "Register a new user with password and email",
@@ -11956,7 +11956,7 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
-	Host:             "localhost:8000",
+	Host:             "",
 	BasePath:         "/",
 	Schemes:          []string{},
 	Title:            "Microservice Demo API",

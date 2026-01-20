@@ -80,7 +80,7 @@ func (c *ResourceController) ListResources(ctx *fiber.Ctx) error {
 // @Failure 403 {object} map[string]string "Forbidden"
 // @Failure 500 {object} map[string]string "Internal server error"
 // @Security BearerAuth
-// @Router /me/resources/{resource} [get]
+// @Router /api/me/resources/{resource} [get]
 func (c *ResourceController) GetResourceMetadata(ctx *fiber.Ctx) error {
 	resourceName := ctx.Params("resource")
 	action := ctx.Query("action", "read")
