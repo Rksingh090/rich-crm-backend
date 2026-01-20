@@ -139,6 +139,8 @@ func (r *ApprovalRepositoryImpl) Update(ctx context.Context, id string, process 
 			"priority":   process.Priority,
 			"criteria":   process.Criteria,
 			"steps":      process.Steps,
+			"layout":     process.Layout,
+			"edges":      process.Edges,
 			"updated_at": time.Now(),
 		},
 	}

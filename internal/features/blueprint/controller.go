@@ -21,7 +21,7 @@ func NewController(service Service) *Controller {
 // @Produce json
 // @Param blueprint body Blueprint true "Blueprint"
 // @Success 201 {object} Blueprint
-// @Router /blueprints [post]
+// @Router /api/blueprints [post]
 func (c *Controller) Create(ctx *fiber.Ctx) error {
 	var blueprint Blueprint
 	if err := ctx.BodyParser(&blueprint); err != nil {
@@ -43,7 +43,7 @@ func (c *Controller) Create(ctx *fiber.Ctx) error {
 // @Param id path string true "Blueprint ID"
 // @Param blueprint body Blueprint true "Blueprint"
 // @Success 200 {object} Blueprint
-// @Router /blueprints/{id} [put]
+// @Router /api/blueprints/{id} [put]
 func (c *Controller) Update(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 	var blueprint Blueprint
@@ -64,7 +64,7 @@ func (c *Controller) Update(ctx *fiber.Ctx) error {
 // @Produce json
 // @Param id path string true "Blueprint ID"
 // @Success 200 {object} Blueprint
-// @Router /blueprints/{id} [get]
+// @Router /api/blueprints/{id} [get]
 func (c *Controller) Get(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 	blueprint, err := c.service.GetByID(ctx.UserContext(), id)
@@ -81,7 +81,7 @@ func (c *Controller) Get(ctx *fiber.Ctx) error {
 // @Param module query string false "Module Name"
 // @Param search query string false "Search Term"
 // @Success 200 {array} Blueprint
-// @Router /blueprints [get]
+// @Router /api/blueprints [get]
 func (c *Controller) List(ctx *fiber.Ctx) error {
 	filter := BlueprintFilter{
 		Module: ctx.Query("module"),
@@ -100,7 +100,7 @@ func (c *Controller) List(ctx *fiber.Ctx) error {
 // @Tags Blueprint
 // @Param id path string true "Blueprint ID"
 // @Success 204
-// @Router /blueprints/{id} [delete]
+// @Router /api/blueprints/{id} [delete]
 func (c *Controller) Delete(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 	if err := c.service.Delete(ctx.UserContext(), id); err != nil {
@@ -123,7 +123,7 @@ type ExecuteTransitionRequest struct {
 // @Param id path string true "Record ID"
 // @Param request body ExecuteTransitionRequest true "Transition Request"
 // @Success 200 {object} map[string]any
-// @Router /modules/{module}/records/{id}/transition [post]
+// @Router /api/blueprints/execute/{module}/{id} [post]
 func (c *Controller) ExecuteTransition(ctx *fiber.Ctx) error {
 	moduleName := ctx.Params("module")
 	recordID := ctx.Params("id")
@@ -153,7 +153,7 @@ func (c *Controller) ExecuteTransition(ctx *fiber.Ctx) error {
 // @Param module path string true "Module Name"
 // @Param id path string true "Record ID"
 // @Success 200 {array} Transition
-// @Router /modules/{module}/records/{id}/transitions [get]
+// @Router /api/blueprints/transitions/{module}/{id} [get]
 func (c *Controller) GetTransitions(ctx *fiber.Ctx) error {
 	moduleName := ctx.Params("module")
 	recordID := ctx.Params("id")

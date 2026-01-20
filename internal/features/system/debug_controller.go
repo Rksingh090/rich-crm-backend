@@ -16,7 +16,7 @@ func NewDebugController() *DebugController {
 // @Tags         debug
 // @Produce      json
 // @Success      200  {object}  map[string]any
-// @Router       /debug/user [get]
+// @Router       /api/debug/me [get]
 func (c *DebugController) GetCurrentUser(ctx *fiber.Ctx) error {
 	userID := ctx.Locals("user_id")
 	roles := ctx.Locals("roles")

@@ -97,7 +97,7 @@ func (rc *ResourceController) GetResourceByID(c *fiber.Ctx) error {
 // RegisterResource godoc
 // @Summary Register a new resource
 // @Description Creates a new tenant-specific resource (typically called by Module Builder)
-// @Tags resources
+// @Tags Resources
 // @Accept json
 // @Produce json
 // @Param resource body Resource true "Resource to register"
@@ -141,7 +141,7 @@ func (rc *ResourceController) RegisterResource(c *fiber.Ctx) error {
 // UpdateResource godoc
 // @Summary Update a resource
 // @Description Updates an existing resource (only non-system resources can be updated)
-// @Tags resources
+// @Tags Resources
 // @Accept json
 // @Produce json
 // @Param id path string true "Resource ID"
@@ -184,7 +184,7 @@ func (rc *ResourceController) UpdateResource(c *fiber.Ctx) error {
 // DeleteResource godoc
 // @Summary Delete a resource
 // @Description Soft deletes a tenant-specific resource (system resources cannot be deleted)
-// @Tags resources
+// @Tags Resources
 // @Accept json
 // @Produce json
 // @Param id path string true "Resource ID"
@@ -233,7 +233,7 @@ func (rc *ResourceController) DeleteResource(c *fiber.Ctx) error {
 // DiscoverResourcesByType godoc
 // @Summary Discover resources by type
 // @Description Retrieves all resources of a specific type for the authenticated tenant
-// @Tags resources
+// @Tags Resources
 // @Accept json
 // @Produce json
 // @Param app query string false "App filter (crm, erp, analytics)"

@@ -284,10 +284,14 @@ const (
 )
 
 type ApprovalRecordState struct {
-	Status      ApprovalStatus    `bson:"status" json:"status"`
-	CurrentStep int               `bson:"current_step" json:"current_step"`
-	ProcessID   string            `bson:"process_id" json:"process_id"`
-	History     []ApprovalHistory `bson:"history" json:"history"`
+	Status         ApprovalStatus    `bson:"status" json:"status"`
+	CurrentStepID  string            `bson:"current_step_id" json:"current_step_id"`       // New: Step ID for graph traversal
+	ProcessID      string            `bson:"process_id" json:"process_id"`
+	History        []ApprovalHistory `bson:"history" json:"history"`
+	CompletedSteps []string          `bson:"completed_steps,omitempty" json:"completed_steps,omitempty"` // New: Track completed steps
+	
+	// Deprecated: Use CurrentStepID instead. Kept for backward compatibility
+	CurrentStep    int               `bson:"current_step,omitempty" json:"current_step,omitempty"`
 }
 
 type ApprovalHistory struct {

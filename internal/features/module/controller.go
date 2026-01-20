@@ -28,7 +28,7 @@ func NewModuleController(service ModuleService) *ModuleController {
 // @Param module body models.Entity true "Module data"
 // @Success 201 {object} map[string]string "Module created successfully"
 // @Failure 400 {object} map[string]string "Invalid request body or missing product header"
-// @Router /modules [post]
+// @Router /api/modules [post]
 // @Security BearerAuth
 func (ctrl *ModuleController) CreateModule(c *fiber.Ctx) error {
 	var m models.Entity
@@ -73,7 +73,7 @@ func (ctrl *ModuleController) CreateModule(c *fiber.Ctx) error {
 // @Param X-Rich-App header string false "Application identifier (defaults to 'crm')"
 // @Success 200 {array} models.Entity "List of modules"
 // @Failure 500 {object} map[string]string "Failed to fetch modules"
-// @Router /modules [get]
+// @Router /api/modules [get]
 // @Security BearerAuth
 func (ctrl *ModuleController) ListModules(c *fiber.Ctx) error {
 	var userID primitive.ObjectID
@@ -107,7 +107,7 @@ func (ctrl *ModuleController) ListModules(c *fiber.Ctx) error {
 // @Param name path string true "Module name"
 // @Success 200 {object} models.Entity "Module details"
 // @Failure 404 {object} map[string]string "Module not found"
-// @Router /modules/{name} [get]
+// @Router /api/modules/{name} [get]
 // @Security BearerAuth
 func (ctrl *ModuleController) GetModule(c *fiber.Ctx) error {
 	name := c.Params("name")
@@ -157,7 +157,7 @@ func (ctrl *ModuleController) GetModule(c *fiber.Ctx) error {
 // @Success 200 {object} map[string]string "Module updated successfully"
 // @Failure 400 {object} map[string]string "Invalid request body"
 // @Failure 500 {object} map[string]string "Failed to update module"
-// @Router /modules/{name} [put]
+// @Router /api/modules/{name} [put]
 // @Security BearerAuth
 func (ctrl *ModuleController) UpdateModule(c *fiber.Ctx) error {
 	name := c.Params("name")
@@ -194,7 +194,7 @@ func (ctrl *ModuleController) UpdateModule(c *fiber.Ctx) error {
 // @Param name path string true "Module name"
 // @Success 200 {object} map[string]string "Module deleted successfully"
 // @Failure 500 {object} map[string]string "Failed to delete module"
-// @Router /modules/{name} [delete]
+// @Router /api/modules/{name} [delete]
 // @Security BearerAuth
 func (ctrl *ModuleController) DeleteModule(c *fiber.Ctx) error {
 	name := c.Params("name")

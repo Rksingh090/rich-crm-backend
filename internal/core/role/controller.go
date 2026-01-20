@@ -19,7 +19,7 @@ func NewRoleController(service RoleService) *RoleController {
 // @Produce      json
 // @Success      200  {array}   Role
 // @Failure      500  {string}  string
-// @Router       /roles [get]
+// @Router       /api/roles [get]
 func (c *RoleController) ListRoles(ctx *fiber.Ctx) error {
 	roles, err := c.Service.ListRoles(ctx.UserContext())
 	if err != nil {
@@ -39,7 +39,7 @@ func (c *RoleController) ListRoles(ctx *fiber.Ctx) error {
 // @Success      200  {object}  Role
 // @Failure      404  {string}  string
 // @Failure      500  {string}  string
-// @Router       /roles/{id} [get]
+// @Router       /api/roles/{id} [get]
 func (c *RoleController) GetRole(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 	role, err := c.Service.GetRoleByID(ctx.UserContext(), id)
@@ -61,7 +61,7 @@ func (c *RoleController) GetRole(ctx *fiber.Ctx) error {
 // @Success      201   {object}  Role
 // @Failure      400   {string}  string
 // @Failure      500   {string}  string
-// @Router       /roles [post]
+// @Router       /api/roles [post]
 func (c *RoleController) CreateRole(ctx *fiber.Ctx) error {
 	var role Role
 	if err := ctx.BodyParser(&role); err != nil {
@@ -92,7 +92,7 @@ func (c *RoleController) CreateRole(ctx *fiber.Ctx) error {
 // @Failure      400   {string}  string
 // @Failure      404   {string}  string
 // @Failure      500   {string}  string
-// @Router       /roles/{id} [put]
+// @Router       /api/roles/{id} [put]
 func (c *RoleController) UpdateRole(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 
@@ -122,7 +122,7 @@ func (c *RoleController) UpdateRole(ctx *fiber.Ctx) error {
 // @Success      200  {string}  string
 // @Failure      400  {string}  string
 // @Failure      500  {string}  string
-// @Router       /roles/{id} [delete]
+// @Router       /api/roles/{id} [delete]
 func (c *RoleController) DeleteRole(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 

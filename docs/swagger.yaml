@@ -132,8 +132,18 @@ definitions:
         items:
           $ref: '#/definitions/approval.RuleCondition'
         type: array
+      edges:
+        description: Custom edge connections
+        items:
+          $ref: '#/definitions/approval.FlowEdge'
+        type: array
       id:
         type: string
+      layout:
+        additionalProperties:
+          $ref: '#/definitions/approval.Position'
+        description: Node positions for visual layout
+        type: object
       module_id:
         description: The module this process applies to
         type: string
@@ -182,6 +192,27 @@ definitions:
       order:
         description: Sequence number
         type: integer
+    type: object
+  approval.FlowEdge:
+    properties:
+      id:
+        type: string
+      source:
+        description: Source node ID
+        type: string
+      target:
+        description: Target node ID
+        type: string
+      type:
+        description: Edge type (e.g., "smoothstep", "straight")
+        type: string
+    type: object
+  approval.Position:
+    properties:
+      x:
+        type: number
+      "y":
+        type: number
     type: object
   approval.RuleCondition:
     properties:
@@ -863,6 +894,8 @@ definitions:
     - ExtensionStatusPending
   file.File:
     properties:
+      app:
+        type: string
       created_at:
         type: string
       description:
@@ -885,6 +918,8 @@ definitions:
         type: integer
       storage_type:
         description: local, s3, etc.
+        type: string
+      tenant_id:
         type: string
       uploaded_by:
         type: string
@@ -1885,6 +1920,8 @@ definitions:
     type: object
   ticket.Ticket:
     properties:
+      app:
+        type: string
       assigned_group:
         type: string
       assigned_to:
@@ -1953,6 +1990,8 @@ definitions:
         items:
           type: string
         type: array
+      tenant_id:
+        type: string
       ticket_number:
         type: string
       updated_at:
@@ -1972,6 +2011,8 @@ definitions:
     - TicketChannelPhone
   ticket.TicketComment:
     properties:
+      app:
+        type: string
       attachments:
         description: Attachments
         items:
@@ -1989,6 +2030,8 @@ definitions:
         type: string
       is_internal:
         type: boolean
+      tenant_id:
+        type: string
       ticket_id:
         type: string
       updated_at:
@@ -2863,6 +2906,162 @@ paths:
       summary: Update automation rule
       tags:
       - automation
+  /api/blueprints:
+    get:
+      parameters:
+      - description: Module Name
+        in: query
+        name: module
+        type: string
+      - description: Search Term
+        in: query
+        name: search
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/blueprint.Blueprint'
+            type: array
+      summary: List blueprints by module
+      tags:
+      - Blueprint
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Blueprint
+        in: body
+        name: blueprint
+        required: true
+        schema:
+          $ref: '#/definitions/blueprint.Blueprint'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/blueprint.Blueprint'
+      summary: Create a new blueprint
+      tags:
+      - Blueprint
+  /api/blueprints/{id}:
+    delete:
+      parameters:
+      - description: Blueprint ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+      summary: Delete a blueprint
+      tags:
+      - Blueprint
+    get:
+      parameters:
+      - description: Blueprint ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/blueprint.Blueprint'
+      summary: Get a blueprint by ID
+      tags:
+      - Blueprint
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Blueprint ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Blueprint
+        in: body
+        name: blueprint
+        required: true
+        schema:
+          $ref: '#/definitions/blueprint.Blueprint'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/blueprint.Blueprint'
+      summary: Update an existing blueprint
+      tags:
+      - Blueprint
+  /api/blueprints/execute/{module}/{id}:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Module Name
+        in: path
+        name: module
+        required: true
+        type: string
+      - description: Record ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Transition Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/blueprint.ExecuteTransitionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Execute a transition on a record
+      tags:
+      - Blueprint
+  /api/blueprints/transitions/{module}/{id}:
+    get:
+      parameters:
+      - description: Module Name
+        in: path
+        name: module
+        required: true
+        type: string
+      - description: Record ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/blueprint.Transition'
+            type: array
+      summary: Get available transitions for a record
+      tags:
+      - Blueprint
   /api/bulk/operations:
     get:
       description: List all bulk operations for the current user
@@ -3751,6 +3950,20 @@ paths:
       summary: Query multiple data sources
       tags:
       - data-sources
+  /api/debug/me:
+    get:
+      description: Get the current user's info from JWT
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get current user info
+      tags:
+      - debug
   /api/email-templates:
     get:
       description: List all email templates, optionally filtered by module
@@ -4727,6 +4940,19 @@ paths:
       summary: Remove group member
       tags:
       - groups
+  /api/health:
+    get:
+      description: Check if the server is up
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+      summary: Health Check
+      tags:
+      - health
   /api/import/jobs:
     get:
       description: List all import jobs for the current user
@@ -4913,6 +5139,173 @@ paths:
       summary: Login
       tags:
       - auth
+  /api/modules:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves all modules for the current user and application
+      parameters:
+      - description: Application identifier (defaults to 'crm')
+        in: header
+        name: X-Rich-App
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of modules
+          schema:
+            items:
+              $ref: '#/definitions/models.Entity'
+            type: array
+        "500":
+          description: Failed to fetch modules
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List all modules
+      tags:
+      - Modules
+    post:
+      consumes:
+      - application/json
+      description: Creates a new module/entity for the specified application
+      parameters:
+      - description: Application identifier (e.g., crm, erp)
+        in: header
+        name: X-Rich-App
+        required: true
+        type: string
+      - description: Module data
+        in: body
+        name: module
+        required: true
+        schema:
+          $ref: '#/definitions/models.Entity'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Module created successfully
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid request body or missing product header
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create a new module
+      tags:
+      - Modules
+  /api/modules/{name}:
+    delete:
+      consumes:
+      - application/json
+      description: Deletes a module by name
+      parameters:
+      - description: Module name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Module deleted successfully
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Failed to delete module
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete a module
+      tags:
+      - Modules
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a specific module by its name
+      parameters:
+      - description: Module name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Module details
+          schema:
+            $ref: '#/definitions/models.Entity'
+        "404":
+          description: Module not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get a module by name
+      tags:
+      - Modules
+    put:
+      consumes:
+      - application/json
+      description: Updates an existing module by name
+      parameters:
+      - description: Module name
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: Updated module data
+        in: body
+        name: module
+        required: true
+        schema:
+          $ref: '#/definitions/models.Entity'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Module updated successfully
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid request body
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Failed to update module
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update a module
+      tags:
+      - Modules
   /api/notifications:
     get:
       description: List user notifications with pagination
@@ -5755,6 +6148,145 @@ paths:
       summary: Run pivot report
       tags:
       - reports
+  /api/roles:
+    get:
+      description: Get all roles with their permissions
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/role.Role'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: List all roles
+      tags:
+      - roles
+    post:
+      consumes:
+      - application/json
+      description: Create a new role with module permissions
+      parameters:
+      - description: Role data
+        in: body
+        name: role
+        required: true
+        schema:
+          $ref: '#/definitions/role.Role'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/role.Role'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Create a new role
+      tags:
+      - roles
+  /api/roles/{id}:
+    delete:
+      description: Delete a role (cannot delete system roles)
+      parameters:
+      - description: Role ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Delete a role
+      tags:
+      - roles
+    get:
+      description: Get a specific role with its permissions
+      parameters:
+      - description: Role ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/role.Role'
+        "404":
+          description: Not Found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Get role by ID
+      tags:
+      - roles
+    put:
+      consumes:
+      - application/json
+      description: Update role permissions
+      parameters:
+      - description: Role ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Role data
+        in: body
+        name: role
+        required: true
+        schema:
+          $ref: '#/definitions/role.Role'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/role.Role'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Update a role
+      tags:
+      - roles
   /api/saved-filters:
     post:
       consumes:
@@ -6783,6 +7315,297 @@ paths:
       summary: Get my tickets
       tags:
       - tickets
+  /api/users:
+    get:
+      consumes:
+      - application/json
+      description: Get a paginated list of users
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Items per page
+        in: query
+        name: limit
+        type: integer
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Failed to fetch users
+          schema:
+            type: string
+      summary: List all users
+      tags:
+      - users
+    post:
+      consumes:
+      - application/json
+      description: Create a new user
+      parameters:
+      - description: Create User Input
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/user.CreateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid request body
+          schema:
+            type: string
+        "500":
+          description: Failed to create user
+          schema:
+            type: string
+      summary: Create user
+      tags:
+      - users
+  /api/users/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a user by ID
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Failed to delete user
+          schema:
+            type: string
+      summary: Delete user
+      tags:
+      - users
+    get:
+      consumes:
+      - application/json
+      description: Get detailed information about a specific user
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.User'
+        "404":
+          description: User not found
+          schema:
+            type: string
+      summary: Get user by ID
+      tags:
+      - users
+    put:
+      consumes:
+      - application/json
+      description: Update user information
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update User Input
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/user.UpdateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid request body
+          schema:
+            type: string
+        "500":
+          description: Failed to update user
+          schema:
+            type: string
+      summary: Update user
+      tags:
+      - users
+  /api/users/{id}/roles:
+    put:
+      consumes:
+      - application/json
+      description: Update the roles assigned to a user
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update User Roles Input
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/user.UpdateUserRolesRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid request body
+          schema:
+            type: string
+        "500":
+          description: Failed to update user roles
+          schema:
+            type: string
+      summary: Update user roles
+      tags:
+      - users
+  /api/users/{id}/status:
+    put:
+      consumes:
+      - application/json
+      description: Update the status of a user (active, inactive, suspended)
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update User Status Input
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/user.UpdateUserStatusRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid request body
+          schema:
+            type: string
+        "500":
+          description: Failed to update user status
+          schema:
+            type: string
+      summary: Update user status
+      tags:
+      - users
+  /api/users/accept-invite:
+    post:
+      consumes:
+      - application/json
+      description: Complete user signup via invite token
+      parameters:
+      - description: Accept Invite Input
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/user.AcceptInviteRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid request body
+          schema:
+            type: string
+        "500":
+          description: Failed to accept invite
+          schema:
+            type: string
+      summary: Accept user invite
+      tags:
+      - users
+  /api/users/invite:
+    post:
+      consumes:
+      - application/json
+      description: Invite a new user to the tenant
+      parameters:
+      - description: Invite User Input
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/user.InviteUserRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid request body
+          schema:
+            type: string
+        "500":
+          description: Failed to invite user
+          schema:
+            type: string
+      summary: Invite a new user
+      tags:
+      - users
   /api/v1/resources:
     get:
       consumes:
@@ -6848,7 +7671,7 @@ paths:
             type: object
       summary: Register a new resource
       tags:
-      - resources
+      - Resources
   /api/v1/resources/{id}:
     delete:
       consumes:
@@ -6880,7 +7703,7 @@ paths:
             type: object
       summary: Delete a resource
       tags:
-      - resources
+      - Resources
     put:
       consumes:
       - application/json
@@ -6919,7 +7742,7 @@ paths:
             type: object
       summary: Update a resource
       tags:
-      - resources
+      - Resources
   /api/v1/resources/{resource_id}:
     get:
       consumes:
@@ -6998,7 +7821,7 @@ paths:
             type: object
       summary: Discover resources by type
       tags:
-      - resources
+      - Resources
   /api/v1/resources/sidebar:
     get:
       consumes:
@@ -7161,132 +7984,6 @@ paths:
       summary: Update webhook
       tags:
       - webhooks
-  /blueprints:
-    get:
-      parameters:
-      - description: Module Name
-        in: query
-        name: module
-        type: string
-      - description: Search Term
-        in: query
-        name: search
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/blueprint.Blueprint'
-            type: array
-      summary: List blueprints by module
-      tags:
-      - Blueprint
-    post:
-      consumes:
-      - application/json
-      parameters:
-      - description: Blueprint
-        in: body
-        name: blueprint
-        required: true
-        schema:
-          $ref: '#/definitions/blueprint.Blueprint'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/blueprint.Blueprint'
-      summary: Create a new blueprint
-      tags:
-      - Blueprint
-  /blueprints/{id}:
-    delete:
-      parameters:
-      - description: Blueprint ID
-        in: path
-        name: id
-        required: true
-        type: string
-      responses:
-        "204":
-          description: No Content
-      summary: Delete a blueprint
-      tags:
-      - Blueprint
-    get:
-      parameters:
-      - description: Blueprint ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/blueprint.Blueprint'
-      summary: Get a blueprint by ID
-      tags:
-      - Blueprint
-    put:
-      consumes:
-      - application/json
-      parameters:
-      - description: Blueprint ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Blueprint
-        in: body
-        name: blueprint
-        required: true
-        schema:
-          $ref: '#/definitions/blueprint.Blueprint'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/blueprint.Blueprint'
-      summary: Update an existing blueprint
-      tags:
-      - Blueprint
-  /debug/user:
-    get:
-      description: Get the current user's info from JWT
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Get current user info
-      tags:
-      - debug
-  /health:
-    get:
-      description: Check if the server is up
-      produces:
-      - text/plain
-      responses:
-        "200":
-          description: OK
-          schema:
-            type: string
-      summary: Health Check
-      tags:
-      - health
   /me/resources/{resource}:
     get:
       consumes:
@@ -7327,230 +8024,6 @@ paths:
       summary: Get resource metadata
       tags:
       - Resources
-  /modules:
-    get:
-      consumes:
-      - application/json
-      description: Retrieves all modules for the current user and application
-      parameters:
-      - description: Application identifier (defaults to 'crm')
-        in: header
-        name: X-Rich-App
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: List of modules
-          schema:
-            items:
-              $ref: '#/definitions/models.Entity'
-            type: array
-        "500":
-          description: Failed to fetch modules
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      security:
-      - BearerAuth: []
-      summary: List all modules
-      tags:
-      - Modules
-    post:
-      consumes:
-      - application/json
-      description: Creates a new module/entity for the specified application
-      parameters:
-      - description: Application identifier (e.g., crm, erp)
-        in: header
-        name: X-Rich-App
-        required: true
-        type: string
-      - description: Module data
-        in: body
-        name: module
-        required: true
-        schema:
-          $ref: '#/definitions/models.Entity'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Module created successfully
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "400":
-          description: Invalid request body or missing product header
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Create a new module
-      tags:
-      - Modules
-  /modules/{module}/records/{id}/transition:
-    post:
-      consumes:
-      - application/json
-      parameters:
-      - description: Module Name
-        in: path
-        name: module
-        required: true
-        type: string
-      - description: Record ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Transition Request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/blueprint.ExecuteTransitionRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Execute a transition on a record
-      tags:
-      - Blueprint
-  /modules/{module}/records/{id}/transitions:
-    get:
-      parameters:
-      - description: Module Name
-        in: path
-        name: module
-        required: true
-        type: string
-      - description: Record ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/blueprint.Transition'
-            type: array
-      summary: Get available transitions for a record
-      tags:
-      - Blueprint
-  /modules/{name}:
-    delete:
-      consumes:
-      - application/json
-      description: Deletes a module by name
-      parameters:
-      - description: Module name
-        in: path
-        name: name
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Module deleted successfully
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "500":
-          description: Failed to delete module
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Delete a module
-      tags:
-      - Modules
-    get:
-      consumes:
-      - application/json
-      description: Retrieves a specific module by its name
-      parameters:
-      - description: Module name
-        in: path
-        name: name
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Module details
-          schema:
-            $ref: '#/definitions/models.Entity'
-        "404":
-          description: Module not found
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Get a module by name
-      tags:
-      - Modules
-    put:
-      consumes:
-      - application/json
-      description: Updates an existing module by name
-      parameters:
-      - description: Module name
-        in: path
-        name: name
-        required: true
-        type: string
-      - description: Updated module data
-        in: body
-        name: module
-        required: true
-        schema:
-          $ref: '#/definitions/models.Entity'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Module updated successfully
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "400":
-          description: Invalid request body
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "500":
-          description: Failed to update module
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Update a module
-      tags:
-      - Modules
   /register:
     post:
       consumes:
@@ -7583,434 +8056,4 @@ paths:
       summary: Register a new user
       tags:
       - auth
-  /roles:
-    get:
-      description: Get all roles with their permissions
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/role.Role'
-            type: array
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      summary: List all roles
-      tags:
-      - roles
-    post:
-      consumes:
-      - application/json
-      description: Create a new role with module permissions
-      parameters:
-      - description: Role data
-        in: body
-        name: role
-        required: true
-        schema:
-          $ref: '#/definitions/role.Role'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/role.Role'
-        "400":
-          description: Bad Request
-          schema:
-            type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      summary: Create a new role
-      tags:
-      - roles
-  /roles/{id}:
-    delete:
-      description: Delete a role (cannot delete system roles)
-      parameters:
-      - description: Role ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            type: string
-        "400":
-          description: Bad Request
-          schema:
-            type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      summary: Delete a role
-      tags:
-      - roles
-    get:
-      description: Get a specific role with its permissions
-      parameters:
-      - description: Role ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/role.Role'
-        "404":
-          description: Not Found
-          schema:
-            type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      summary: Get role by ID
-      tags:
-      - roles
-    put:
-      consumes:
-      - application/json
-      description: Update role permissions
-      parameters:
-      - description: Role ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Role data
-        in: body
-        name: role
-        required: true
-        schema:
-          $ref: '#/definitions/role.Role'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/role.Role'
-        "400":
-          description: Bad Request
-          schema:
-            type: string
-        "404":
-          description: Not Found
-          schema:
-            type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      summary: Update a role
-      tags:
-      - roles
-  /users:
-    get:
-      consumes:
-      - application/json
-      description: Get a paginated list of users
-      parameters:
-      - default: 1
-        description: Page number
-        in: query
-        name: page
-        type: integer
-      - default: 10
-        description: Items per page
-        in: query
-        name: limit
-        type: integer
-      - description: Filter by status
-        in: query
-        name: status
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Failed to fetch users
-          schema:
-            type: string
-      summary: List all users
-      tags:
-      - users
-    post:
-      consumes:
-      - application/json
-      description: Create a new user
-      parameters:
-      - description: Create User Input
-        in: body
-        name: input
-        required: true
-        schema:
-          $ref: '#/definitions/user.CreateUserRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "400":
-          description: Invalid request body
-          schema:
-            type: string
-        "500":
-          description: Failed to create user
-          schema:
-            type: string
-      summary: Create user
-      tags:
-      - users
-  /users/{id}:
-    delete:
-      consumes:
-      - application/json
-      description: Delete a user by ID
-      parameters:
-      - description: User ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "500":
-          description: Failed to delete user
-          schema:
-            type: string
-      summary: Delete user
-      tags:
-      - users
-    get:
-      consumes:
-      - application/json
-      description: Get detailed information about a specific user
-      parameters:
-      - description: User ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/models.User'
-        "404":
-          description: User not found
-          schema:
-            type: string
-      summary: Get user by ID
-      tags:
-      - users
-    put:
-      consumes:
-      - application/json
-      description: Update user information
-      parameters:
-      - description: User ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Update User Input
-        in: body
-        name: input
-        required: true
-        schema:
-          $ref: '#/definitions/user.UpdateUserRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "400":
-          description: Invalid request body
-          schema:
-            type: string
-        "500":
-          description: Failed to update user
-          schema:
-            type: string
-      summary: Update user
-      tags:
-      - users
-  /users/{id}/roles:
-    put:
-      consumes:
-      - application/json
-      description: Update the roles assigned to a user
-      parameters:
-      - description: User ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Update User Roles Input
-        in: body
-        name: input
-        required: true
-        schema:
-          $ref: '#/definitions/user.UpdateUserRolesRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "400":
-          description: Invalid request body
-          schema:
-            type: string
-        "500":
-          description: Failed to update user roles
-          schema:
-            type: string
-      summary: Update user roles
-      tags:
-      - users
-  /users/{id}/status:
-    put:
-      consumes:
-      - application/json
-      description: Update the status of a user (active, inactive, suspended)
-      parameters:
-      - description: User ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Update User Status Input
-        in: body
-        name: input
-        required: true
-        schema:
-          $ref: '#/definitions/user.UpdateUserStatusRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "400":
-          description: Invalid request body
-          schema:
-            type: string
-        "500":
-          description: Failed to update user status
-          schema:
-            type: string
-      summary: Update user status
-      tags:
-      - users
-  /users/accept-invite:
-    post:
-      consumes:
-      - application/json
-      description: Complete user signup via invite token
-      parameters:
-      - description: Accept Invite Input
-        in: body
-        name: input
-        required: true
-        schema:
-          $ref: '#/definitions/user.AcceptInviteRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "400":
-          description: Invalid request body
-          schema:
-            type: string
-        "500":
-          description: Failed to accept invite
-          schema:
-            type: string
-      summary: Accept user invite
-      tags:
-      - users
-  /users/invite:
-    post:
-      consumes:
-      - application/json
-      description: Invite a new user to the tenant
-      parameters:
-      - description: Invite User Input
-        in: body
-        name: input
-        required: true
-        schema:
-          $ref: '#/definitions/user.InviteUserRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "400":
-          description: Invalid request body
-          schema:
-            type: string
-        "500":
-          description: Failed to invite user
-          schema:
-            type: string
-      summary: Invite a new user
-      tags:
-      - users
 swagger: "2.0"

@@ -21,7 +21,7 @@ func (h *HealthApi) Setup(app *fiber.App) {
 // @Tags         health
 // @Produce      plain
 // @Success      200  {string}  string  "OK"
-// @Router       /health [get]
+// @Router       /api/health [get]
 func (h *HealthApi) HealthCheck(c *fiber.Ctx) error {
 	return c.SendString("OK")
 }

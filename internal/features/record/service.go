@@ -635,6 +635,9 @@ func (s *RecordServiceImpl) UpdateRecord(ctx context.Context, moduleName, id str
 	if len(changes) > 0 {
 		_ = s.AuditService.LogChange(ctx, common_models.AuditActionUpdate, moduleName, id, changes)
 
+		// Create detached context to preserve values (e.g. TenantID) but ignore cancellation
+		detachedCtx := context.WithoutCancel(ctx)
+
 		go func() {
 			mergedRecord := make(map[string]any)
 			for k, v := range oldRecord {
@@ -644,14 +647,14 @@ func (s *RecordServiceImpl) UpdateRecord(ctx context.Context, moduleName, id str
 				mergedRecord[k] = v
 			}
 
-			_ = s.AutomationService.ExecuteFromTrigger(context.Background(), moduleName, mergedRecord, "update")
+			_ = s.AutomationService.ExecuteFromTrigger(detachedCtx, moduleName, mergedRecord, "update")
 
 			// Inventory Trigger
 			if s.InventoryService != nil {
-				_ = s.InventoryService.HandleStockUpdate(context.Background(), moduleName, mergedRecord)
+				_ = s.InventoryService.HandleStockUpdate(detachedCtx, moduleName, mergedRecord)
 			}
 
-			s.WebhookService.Trigger(context.Background(), "record.updated", common_models.WebhookPayload{
+			s.WebhookService.Trigger(detachedCtx, "record.updated", common_models.WebhookPayload{
 				Event:     "record.updated",
 				Module:    moduleName,
 				RecordID:  id,

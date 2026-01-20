@@ -63,7 +63,7 @@ type UpdateUserStatusRequest struct {
 // @Param        status query string false "Filter by status"
 // @Success      200  {object} map[string]any
 // @Failure      500  {string} string "Failed to fetch users"
-// @Router       /users [get]
+// @Router       /api/users [get]
 func (ctrl *UserController) ListUsers(c *fiber.Ctx) error {
 	page, _ := strconv.ParseInt(c.Query("page", "1"), 10, 64)
 	limit, _ := strconv.ParseInt(c.Query("limit", "10"), 10, 64)
@@ -97,7 +97,7 @@ func (ctrl *UserController) ListUsers(c *fiber.Ctx) error {
 // @Param        id path string true "User ID"
 // @Success      200  {object} models.User
 // @Failure      404  {string} string "User not found"
-// @Router       /users/{id} [get]
+// @Router       /api/users/{id} [get]
 func (ctrl *UserController) GetUser(c *fiber.Ctx) error {
 	id := c.Params("id")
 
@@ -150,7 +150,7 @@ func (ctrl *UserController) GetUser(c *fiber.Ctx) error {
 // @Success      201  {object} map[string]string
 // @Failure      400  {string} string "Invalid request body"
 // @Failure      500  {string} string "Failed to create user"
-// @Router       /users [post]
+// @Router       /api/users [post]
 func (ctrl *UserController) CreateUser(c *fiber.Ctx) error {
 	var req CreateUserRequest
 	if err := c.BodyParser(&req); err != nil {
@@ -207,7 +207,7 @@ func (ctrl *UserController) CreateUser(c *fiber.Ctx) error {
 // @Success      200  {object} map[string]string
 // @Failure      400  {string} string "Invalid request body"
 // @Failure      500  {string} string "Failed to update user"
-// @Router       /users/{id} [put]
+// @Router       /api/users/{id} [put]
 func (ctrl *UserController) UpdateUser(c *fiber.Ctx) error {
 	id := c.Params("id")
 
@@ -267,7 +267,7 @@ func (ctrl *UserController) UpdateUser(c *fiber.Ctx) error {
 // @Success      200  {object} map[string]string
 // @Failure      400  {string} string "Invalid request body"
 // @Failure      500  {string} string "Failed to update user roles"
-// @Router       /users/{id}/roles [put]
+// @Router       /api/users/{id}/roles [put]
 func (ctrl *UserController) UpdateUserRoles(c *fiber.Ctx) error {
 	id := c.Params("id")
 
@@ -300,7 +300,7 @@ func (ctrl *UserController) UpdateUserRoles(c *fiber.Ctx) error {
 // @Success      200  {object} map[string]string
 // @Failure      400  {string} string "Invalid request body"
 // @Failure      500  {string} string "Failed to update user status"
-// @Router       /users/{id}/status [put]
+// @Router       /api/users/{id}/status [put]
 func (ctrl *UserController) UpdateUserStatus(c *fiber.Ctx) error {
 	id := c.Params("id")
 
@@ -331,7 +331,7 @@ func (ctrl *UserController) UpdateUserStatus(c *fiber.Ctx) error {
 // @Param        id path string true "User ID"
 // @Success      200  {object} map[string]string
 // @Failure      500  {string} string "Failed to delete user"
-// @Router       /users/{id} [delete]
+// @Router       /api/users/{id} [delete]
 func (ctrl *UserController) DeleteUser(c *fiber.Ctx) error {
 	id := c.Params("id")
 
@@ -369,7 +369,7 @@ type AcceptInviteRequest struct {
 // @Success      201  {object} map[string]string
 // @Failure      400  {string} string "Invalid request body"
 // @Failure      500  {string} string "Failed to invite user"
-// @Router       /users/invite [post]
+// @Router       /api/users/invite [post]
 func (ctrl *UserController) InviteUser(c *fiber.Ctx) error {
 	var req InviteUserRequest
 	if err := c.BodyParser(&req); err != nil {
@@ -406,7 +406,7 @@ func (ctrl *UserController) InviteUser(c *fiber.Ctx) error {
 // @Success      200  {object} map[string]string
 // @Failure      400  {string} string "Invalid request body"
 // @Failure      500  {string} string "Failed to accept invite"
-// @Router       /users/accept-invite [post]
+// @Router       /api/users/accept-invite [post]
 func (ctrl *UserController) AcceptInvite(c *fiber.Ctx) error {
 	var req AcceptInviteRequest
 	if err := c.BodyParser(&req); err != nil {
