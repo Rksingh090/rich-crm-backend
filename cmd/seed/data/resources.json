@@ -412,13 +412,13 @@
     }
   },
   {
-    "resource_id": "crm.settings_workflows",
+    "resource_id": "crm.settings_approval_process",
     "app": "crm",
     "type": "setting",
-    "key": "workflows",
-    "label": "Workflows",
+    "key": "approval_process",
+    "label": "Approval Process",
     "icon": "Workflow",
-    "route": "/settings/workflows",
+    "route": "/settings/approval-process",
     "actions": [
       "read",
       "create",

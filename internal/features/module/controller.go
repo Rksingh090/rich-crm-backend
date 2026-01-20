@@ -117,7 +117,26 @@ func (ctrl *ModuleController) GetModule(c *fiber.Ctx) error {
 		userID, _ = primitive.ObjectIDFromHex(idStr)
 	}
 
-	m, err := ctrl.Service.GetModuleByName(c.UserContext(), name, userID)
+	var m *models.Entity
+	var err error
+
+	if primitive.IsValidObjectID(name) {
+		m, err = ctrl.Service.GetModuleByID(c.UserContext(), name, userID)
+		// If found by ID, return it. If not found, fall through to Name check?
+		// Actually typical use case: if it looks like ID, treat as ID. If fails, return error.
+		// But "valid object id" might also be a valid name (unlikely but possible).
+		// Let's assume if it looks like ID, we try ID. If it fails (not found), we COULD try Name but that might mask errors.
+		// Given the Frontend explicitly sends ID, if we find it, great.
+		if err == nil {
+			return c.JSON(m)
+		}
+		// If error is NOT "not found", return error
+		// If "not found", maybe fallthrough to name?
+		// For now, let's keep it simple: Try ID. If invalid/not found, ALSO Try Name.
+	}
+
+	// Fallback or Primary: GetByName
+	m, err = ctrl.Service.GetModuleByName(c.UserContext(), name, userID)
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"error": err.Error(),

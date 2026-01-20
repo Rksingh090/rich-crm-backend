@@ -13,12 +13,12 @@ import (
 )
 
 type ApprovalRepository interface {
-	Create(ctx context.Context, workflow *ApprovalWorkflow) error
-	GetByModuleID(ctx context.Context, moduleID string) (*ApprovalWorkflow, error)
-	ListActiveByModuleID(ctx context.Context, moduleID string) ([]ApprovalWorkflow, error)
-	GetByID(ctx context.Context, id string) (*ApprovalWorkflow, error)
-	List(ctx context.Context) ([]ApprovalWorkflow, error)
-	Update(ctx context.Context, id string, workflow ApprovalWorkflow) error
+	Create(ctx context.Context, process *ApprovalProcess) error
+	GetByModuleID(ctx context.Context, moduleID string) (*ApprovalProcess, error)
+	ListActiveByModuleID(ctx context.Context, moduleID string) ([]ApprovalProcess, error)
+	GetByID(ctx context.Context, id string) (*ApprovalProcess, error)
+	List(ctx context.Context) ([]ApprovalProcess, error)
+	Update(ctx context.Context, id string, process ApprovalProcess) error
 	Delete(ctx context.Context, id string) error
 }
 
@@ -37,39 +37,39 @@ func (r *ApprovalRepositoryImpl) getCollection(ctx context.Context) (*mongo.Coll
 	if !ok || tenantID == "" {
 		return nil, fmt.Errorf("tenant context missing")
 	}
-	return r.DB.GetTenantDB(tenantID).Collection("approval_workflows"), nil
+	return r.DB.GetTenantDB(tenantID).Collection("approval_processes"), nil
 }
 
-func (r *ApprovalRepositoryImpl) Create(ctx context.Context, workflow *ApprovalWorkflow) error {
+func (r *ApprovalRepositoryImpl) Create(ctx context.Context, process *ApprovalProcess) error {
 	coll, err := r.getCollection(ctx)
 	if err != nil {
 		return err
 	}
-	result, err := coll.InsertOne(ctx, workflow)
+	result, err := coll.InsertOne(ctx, process)
 	if err != nil {
 		return err
 	}
-	workflow.ID = result.InsertedID.(primitive.ObjectID)
+	process.ID = result.InsertedID.(primitive.ObjectID)
 	return nil
 }
 
-func (r *ApprovalRepositoryImpl) GetByModuleID(ctx context.Context, moduleID string) (*ApprovalWorkflow, error) {
+func (r *ApprovalRepositoryImpl) GetByModuleID(ctx context.Context, moduleID string) (*ApprovalProcess, error) {
 	coll, err := r.getCollection(ctx)
 	if err != nil {
 		return nil, err
 	}
-	var workflow ApprovalWorkflow
-	err = coll.FindOne(ctx, bson.M{"module_id": moduleID, "active": true}).Decode(&workflow)
+	var process ApprovalProcess
+	err = coll.FindOne(ctx, bson.M{"module_id": moduleID, "active": true}).Decode(&process)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
-			return nil, nil // No active workflow found for this module
+			return nil, nil // No active process found for this module
 		}
 		return nil, err
 	}
-	return &workflow, nil
+	return &process, nil
 }
 
-func (r *ApprovalRepositoryImpl) ListActiveByModuleID(ctx context.Context, moduleID string) ([]ApprovalWorkflow, error) {
+func (r *ApprovalRepositoryImpl) ListActiveByModuleID(ctx context.Context, moduleID string) ([]ApprovalProcess, error) {
 	coll, err := r.getCollection(ctx)
 	if err != nil {
 		return nil, err
@@ -79,14 +79,14 @@ func (r *ApprovalRepositoryImpl) ListActiveByModuleID(ctx context.Context, modul
 		return nil, err
 	}
 	defer cursor.Close(ctx)
-	var workflows []ApprovalWorkflow
-	if err = cursor.All(ctx, &workflows); err != nil {
+	var processes []ApprovalProcess
+	if err = cursor.All(ctx, &processes); err != nil {
 		return nil, err
 	}
-	return workflows, nil
+	return processes, nil
 }
 
-func (r *ApprovalRepositoryImpl) GetByID(ctx context.Context, id string) (*ApprovalWorkflow, error) {
+func (r *ApprovalRepositoryImpl) GetByID(ctx context.Context, id string) (*ApprovalProcess, error) {
 	coll, err := r.getCollection(ctx)
 	if err != nil {
 		return nil, err
@@ -95,18 +95,18 @@ func (r *ApprovalRepositoryImpl) GetByID(ctx context.Context, id string) (*Appro
 	if err != nil {
 		return nil, err
 	}
-	var workflow ApprovalWorkflow
-	err = coll.FindOne(ctx, bson.M{"_id": oid}).Decode(&workflow)
+	var process ApprovalProcess
+	err = coll.FindOne(ctx, bson.M{"_id": oid}).Decode(&process)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			return nil, nil
 		}
 		return nil, err
 	}
-	return &workflow, nil
+	return &process, nil
 }
 
-func (r *ApprovalRepositoryImpl) List(ctx context.Context) ([]ApprovalWorkflow, error) {
+func (r *ApprovalRepositoryImpl) List(ctx context.Context) ([]ApprovalProcess, error) {
 	coll, err := r.getCollection(ctx)
 	if err != nil {
 		return nil, err
@@ -115,14 +115,14 @@ func (r *ApprovalRepositoryImpl) List(ctx context.Context) ([]ApprovalWorkflow, 
 	if err != nil {
 		return nil, err
 	}
-	var workflows []ApprovalWorkflow
-	if err = cursor.All(ctx, &workflows); err != nil {
+	var processes []ApprovalProcess
+	if err = cursor.All(ctx, &processes); err != nil {
 		return nil, err
 	}
-	return workflows, nil
+	return processes, nil
 }
 
-func (r *ApprovalRepositoryImpl) Update(ctx context.Context, id string, workflow ApprovalWorkflow) error {
+func (r *ApprovalRepositoryImpl) Update(ctx context.Context, id string, process ApprovalProcess) error {
 	coll, err := r.getCollection(ctx)
 	if err != nil {
 		return err
@@ -133,10 +133,12 @@ func (r *ApprovalRepositoryImpl) Update(ctx context.Context, id string, workflow
 	}
 	update := bson.M{
 		"$set": bson.M{
-			"name":       workflow.Name,
-			"active":     workflow.Active,
-			"criteria":   workflow.Criteria,
-			"steps":      workflow.Steps,
+			"name":       process.Name,
+			"module_id":  process.ModuleID,
+			"active":     process.Active,
+			"priority":   process.Priority,
+			"criteria":   process.Criteria,
+			"steps":      process.Steps,
 			"updated_at": time.Now(),
 		},
 	}

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"go-crm/internal/common/models"
 	"go-crm/internal/database"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -30,22 +31,40 @@ type TicketRepository interface {
 
 // TicketRepositoryImpl implements TicketRepository
 type TicketRepositoryImpl struct {
-	collection *mongo.Collection
+	db *database.MongodbDB
 }
 
 // NewTicketRepository creates a new ticket repository
 func NewTicketRepository(db *database.MongodbDB) TicketRepository {
 	return &TicketRepositoryImpl{
-		collection: db.DB.Collection("tickets"),
+		db: db,
 	}
+}
+
+func (r *TicketRepositoryImpl) getCollection(ctx context.Context) (*mongo.Collection, error) {
+	tenantID, ok := ctx.Value(models.TenantIDKey).(string)
+	if !ok || tenantID == "" {
+		return nil, fmt.Errorf("tenant context missing")
+	}
+	return r.db.GetTenantDB(tenantID).Collection("tickets"), nil
 }
 
 // Create inserts a new ticket
 func (r *TicketRepositoryImpl) Create(ctx context.Context, ticket *Ticket) error {
+	coll, err := r.getCollection(ctx)
+	if err != nil {
+		return err
+	}
+
 	ticket.CreatedAt = time.Now()
 	ticket.UpdatedAt = time.Now()
 
-	result, err := r.collection.InsertOne(ctx, ticket)
+	// Ensure tenant ID is set if available in context
+	if tenantID, ok := ctx.Value(models.TenantIDKey).(string); ok && tenantID != "" {
+		ticket.TenantID, _ = primitive.ObjectIDFromHex(tenantID)
+	}
+
+	result, err := coll.InsertOne(ctx, ticket)
 	if err != nil {
 		return err
 	}
@@ -56,8 +75,13 @@ func (r *TicketRepositoryImpl) Create(ctx context.Context, ticket *Ticket) error
 
 // FindByID retrieves a ticket by ID
 func (r *TicketRepositoryImpl) FindByID(ctx context.Context, id primitive.ObjectID) (*Ticket, error) {
+	coll, err := r.getCollection(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	var ticket Ticket
-	err := r.collection.FindOne(ctx, bson.M{"_id": id}).Decode(&ticket)
+	err = coll.FindOne(ctx, bson.M{"_id": id}).Decode(&ticket)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return nil, errors.New("ticket not found")
@@ -69,8 +93,13 @@ func (r *TicketRepositoryImpl) FindByID(ctx context.Context, id primitive.Object
 
 // FindAll retrieves tickets with filtering, pagination, and sorting
 func (r *TicketRepositoryImpl) FindAll(ctx context.Context, filter bson.M, page, limit int64, sortBy string, sortOrder string) ([]Ticket, int64, error) {
+	coll, err := r.getCollection(ctx)
+	if err != nil {
+		return nil, 0, err
+	}
+
 	// Count total documents
-	total, err := r.collection.CountDocuments(ctx, filter)
+	total, err := coll.CountDocuments(ctx, filter)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -90,7 +119,7 @@ func (r *TicketRepositoryImpl) FindAll(ctx context.Context, filter bson.M, page,
 		SetLimit(limit).
 		SetSort(bson.D{{Key: sortBy, Value: sortValue}})
 
-	cursor, err := r.collection.Find(ctx, filter, findOptions)
+	cursor, err := coll.Find(ctx, filter, findOptions)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -106,9 +135,14 @@ func (r *TicketRepositoryImpl) FindAll(ctx context.Context, filter bson.M, page,
 
 // Update updates a ticket
 func (r *TicketRepositoryImpl) Update(ctx context.Context, id primitive.ObjectID, updates bson.M) error {
+	coll, err := r.getCollection(ctx)
+	if err != nil {
+		return err
+	}
+
 	updates["updated_at"] = time.Now()
 
-	result, err := r.collection.UpdateOne(
+	result, err := coll.UpdateOne(
 		ctx,
 		bson.M{"_id": id},
 		bson.M{"$set": updates},
@@ -126,7 +160,12 @@ func (r *TicketRepositoryImpl) Update(ctx context.Context, id primitive.ObjectID
 
 // Delete removes a ticket
 func (r *TicketRepositoryImpl) Delete(ctx context.Context, id primitive.ObjectID) error {
-	result, err := r.collection.DeleteOne(ctx, bson.M{"_id": id})
+	coll, err := r.getCollection(ctx)
+	if err != nil {
+		return err
+	}
+
+	result, err := coll.DeleteOne(ctx, bson.M{"_id": id})
 	if err != nil {
 		return err
 	}
@@ -152,6 +191,11 @@ func (r *TicketRepositoryImpl) FindByAssignee(ctx context.Context, userID primit
 
 // FindOverdueSLA finds tickets that have breached their SLA
 func (r *TicketRepositoryImpl) FindOverdueSLA(ctx context.Context) ([]Ticket, error) {
+	coll, err := r.getCollection(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	now := time.Now()
 	filter := bson.M{
 		"$or": []bson.M{
@@ -166,7 +210,7 @@ func (r *TicketRepositoryImpl) FindOverdueSLA(ctx context.Context) ([]Ticket, er
 		},
 	}
 
-	cursor, err := r.collection.Find(ctx, filter)
+	cursor, err := coll.Find(ctx, filter)
 	if err != nil {
 		return nil, err
 	}
@@ -182,6 +226,11 @@ func (r *TicketRepositoryImpl) FindOverdueSLA(ctx context.Context) ([]Ticket, er
 
 // UpdateStatus updates the ticket status and adds to history
 func (r *TicketRepositoryImpl) UpdateStatus(ctx context.Context, id primitive.ObjectID, status TicketStatus, historyEntry StatusHistoryEntry) error {
+	coll, err := r.getCollection(ctx)
+	if err != nil {
+		return err
+	}
+
 	updates := bson.M{
 		"status":     status,
 		"updated_at": time.Now(),
@@ -194,7 +243,7 @@ func (r *TicketRepositoryImpl) UpdateStatus(ctx context.Context, id primitive.Ob
 		updates["closed_at"] = time.Now()
 	}
 
-	result, err := r.collection.UpdateOne(
+	result, err := coll.UpdateOne(
 		ctx,
 		bson.M{"_id": id},
 		bson.M{
@@ -215,10 +264,15 @@ func (r *TicketRepositoryImpl) UpdateStatus(ctx context.Context, id primitive.Ob
 
 // GetNextTicketNumber generates the next ticket number
 func (r *TicketRepositoryImpl) GetNextTicketNumber(ctx context.Context) (string, error) {
+	coll, err := r.getCollection(ctx)
+	if err != nil {
+		return "", err
+	}
+
 	// Find the latest ticket
 	opts := options.FindOne().SetSort(bson.D{{Key: "created_at", Value: -1}})
 	var lastTicket Ticket
-	err := r.collection.FindOne(ctx, bson.M{}, opts).Decode(&lastTicket)
+	err = coll.FindOne(ctx, bson.M{}, opts).Decode(&lastTicket)
 
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {

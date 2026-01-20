@@ -92,7 +92,7 @@ This document outlines the comprehensive feature set of the Go-CRM Backend API, 
 - **Endpoints**: `/api/approvals`
 - **Description**: Process governance.
 - **Key Features**:
-    - Define approval workflows for records (e.g., Discount Approval).
+    - Define approval process for records (e.g., Discount Approval).
     - Approve/Reject actions with history.
 
 ### 12. Automation

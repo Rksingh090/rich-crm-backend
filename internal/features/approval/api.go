@@ -23,15 +23,15 @@ func NewApprovalApi(controller *ApprovalController, roleService role.RoleService
 }
 
 func (h *ApprovalApi) Setup(app *fiber.App) {
-	// Group: /workflows
-	workflows := app.Group("/api/workflows", middleware.AuthMiddleware(h.config.SkipAuth))
+	// Group: /approval-processes
+	processes := app.Group("/api/approval-processes", middleware.AuthMiddleware(h.config.SkipAuth))
 
-	workflows.Post("/", h.controller.CreateWorkflow)
-	workflows.Put("/:id", h.controller.UpdateWorkflow)
-	workflows.Delete("/:id", h.controller.DeleteWorkflow)
-	workflows.Get("/", h.controller.ListWorkflows)
-	workflows.Get("/:id", h.controller.GetWorkflowByID)
-	workflows.Get("/module/:moduleId", h.controller.GetWorkflowByModule)
+	processes.Post("/", h.controller.CreateApprovalProcess)
+	processes.Put("/:id", h.controller.UpdateApprovalProcess)
+	processes.Delete("/:id", h.controller.DeleteApprovalProcess)
+	processes.Get("/", h.controller.ListApprovalProcesses)
+	processes.Get("/:id", h.controller.GetApprovalProcessByID)
+	processes.Get("/module/:moduleId", h.controller.GetApprovalProcessByModule)
 
 	// Group: /approvals
 	approvals := app.Group("/api/approvals", middleware.AuthMiddleware(h.config.SkipAuth))

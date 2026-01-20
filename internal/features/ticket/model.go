@@ -58,6 +58,8 @@ type EscalationHistoryEntry struct {
 // Ticket represents a customer support ticket
 type Ticket struct {
 	ID           primitive.ObjectID `json:"id" bson:"_id,omitempty"`
+	TenantID     primitive.ObjectID `json:"tenant_id" bson:"tenant_id"`
+	App          string             `json:"app" bson:"app"`
 	TicketNumber string             `json:"ticket_number" bson:"ticket_number"`
 	Subject      string             `json:"subject" bson:"subject"`
 	Description  string             `json:"description" bson:"description"`
@@ -128,6 +130,8 @@ type SLAPolicy struct {
 // TicketComment represents a comment or note on a ticket
 type TicketComment struct {
 	ID         primitive.ObjectID `json:"id" bson:"_id,omitempty"`
+	TenantID   primitive.ObjectID `json:"tenant_id" bson:"tenant_id"`
+	App        string             `json:"app" bson:"app"`
 	TicketID   primitive.ObjectID `json:"ticket_id" bson:"ticket_id"`
 	Content    string             `json:"content" bson:"content"`
 	IsInternal bool               `json:"is_internal" bson:"is_internal"`

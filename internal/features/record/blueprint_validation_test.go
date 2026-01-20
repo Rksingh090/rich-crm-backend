@@ -37,8 +37,14 @@ func (m *MockModuleRepo) FindByName(ctx context.Context, name string) (*models.E
 func (m *MockModuleRepo) Create(ctx context.Context, module *models.Entity) error      { return nil }
 func (m *MockModuleRepo) Update(ctx context.Context, module *models.Entity) error      { return nil }
 func (m *MockModuleRepo) Delete(ctx context.Context, name string, userID string) error { return nil }
-func (m *MockModuleRepo) List(ctx context.Context) ([]models.Entity, error)            { return nil, nil }
-func (m *MockModuleRepo) EnsureGlobalIndexes(ctx context.Context) error                { return nil }
+func (m *MockModuleRepo) FindByID(ctx context.Context, id string) (*models.Entity, error) {
+	if m.Entity != nil {
+		return m.Entity, nil
+	}
+	return nil, fmt.Errorf("module not found")
+}
+func (m *MockModuleRepo) List(ctx context.Context) ([]models.Entity, error) { return nil, nil }
+func (m *MockModuleRepo) EnsureGlobalIndexes(ctx context.Context) error     { return nil }
 func (m *MockModuleRepo) FindUsingLookup(ctx context.Context, targetModule string) ([]models.Entity, error) {
 	return nil, nil
 }

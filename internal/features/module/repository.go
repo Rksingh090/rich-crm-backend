@@ -17,6 +17,7 @@ import (
 type ModuleRepository interface {
 	Create(ctx context.Context, module *models.Entity) error
 	FindByName(ctx context.Context, name string) (*models.Entity, error)
+	FindByID(ctx context.Context, id string) (*models.Entity, error)
 	List(ctx context.Context) ([]models.Entity, error)
 	Update(ctx context.Context, module *models.Entity) error
 	Delete(ctx context.Context, name string, userID string) error
@@ -118,6 +119,40 @@ func (r *ModuleRepositoryImpl) FindByName(ctx context.Context, name string) (*mo
 	}
 
 	// Ensure we preserve the scope as global so UI/Backend knows it's a default
+	return &module, nil
+}
+
+func (r *ModuleRepositoryImpl) FindByID(ctx context.Context, id string) (*models.Entity, error) {
+	coll, err := r.getCollection(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	oid, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return nil, err
+	}
+
+	var module models.Entity
+	err = coll.FindOne(ctx, bson.M{"_id": oid, "deleted_at": bson.M{"$exists": false}}).Decode(&module)
+	if err == nil {
+		return &module, nil
+	}
+	if err != mongo.ErrNoDocuments {
+		return nil, err
+	}
+
+	// Fallback to Global?
+	// Global modules don't exist in tenant DB with ID usually?
+	// Actually Global modules live in ControlPlane DB. Their IDs might be referenced?
+	// Let's check Global too.
+
+	db := r.DB.GetControlPlaneDB()
+	defaultColl := db.Collection("default_modules")
+	if err := defaultColl.FindOne(ctx, bson.M{"_id": oid, "deleted_at": bson.M{"$exists": false}}).Decode(&module); err != nil {
+		return nil, err
+	}
+
 	return &module, nil
 }
 

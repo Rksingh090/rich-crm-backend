@@ -286,7 +286,7 @@ const (
 type ApprovalRecordState struct {
 	Status      ApprovalStatus    `bson:"status" json:"status"`
 	CurrentStep int               `bson:"current_step" json:"current_step"`
-	WorkflowID  string            `bson:"workflow_id" json:"workflow_id"`
+	ProcessID   string            `bson:"process_id" json:"process_id"`
 	History     []ApprovalHistory `bson:"history" json:"history"`
 }
 

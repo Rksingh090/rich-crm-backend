@@ -8,6 +8,8 @@ import (
 
 type File struct {
 	ID               primitive.ObjectID `json:"id" bson:"_id,omitempty"`
+	TenantID         primitive.ObjectID `json:"tenant_id" bson:"tenant_id"`
+	App              string             `json:"app" bson:"app"`
 	OriginalFilename string             `json:"original_filename" bson:"original_filename"`
 	URL              string             `json:"url" bson:"url"`
 	Path             string             `json:"path" bson:"path"`

@@ -391,23 +391,23 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/approvals/workflows": {
+        "/api/approval-processes": {
             "get": {
-                "description": "List all approval workflows",
+                "description": "List all approval processes",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "approvals"
                 ],
-                "summary": "List all workflows",
+                "summary": "List all approval processes",
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/approval.ApprovalWorkflow"
+                                "$ref": "#/definitions/approval.ApprovalProcess"
                             }
                         }
                     },
@@ -423,7 +423,7 @@ const docTemplate = `{
                 }
             },
             "post": {
-                "description": "Create a new approval workflow configuration",
+                "description": "Create a new approval process configuration",
                 "consumes": [
                     "application/json"
                 ],
@@ -433,21 +433,21 @@ const docTemplate = `{
                 "tags": [
                     "approvals"
                 ],
-                "summary": "Create a new approval workflow",
+                "summary": "Create a new approval process",
                 "parameters": [
                     {
-                        "description": "Workflow Configuration",
-                        "name": "workflow",
+                        "description": "Approval Process Configuration",
+                        "name": "process",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/approval.ApprovalWorkflow"
+                            "$ref": "#/definitions/approval.ApprovalProcess"
                         }
                     }
                 ],
                 "responses": {
                     "201": {
-                        "description": "Workflow created successfully",
+                        "description": "Approval process created successfully",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -476,16 +476,16 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/approvals/workflows/module/{moduleId}": {
+        "/api/approval-processes/module/{moduleId}": {
             "get": {
-                "description": "Get the active approval workflow for a specific module",
+                "description": "Get the active approval process for a specific module",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "approvals"
                 ],
-                "summary": "Get workflow by module",
+                "summary": "Get approval process by module",
                 "parameters": [
                     {
                         "type": "string",
@@ -499,11 +499,11 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/approval.ApprovalWorkflow"
+                            "$ref": "#/definitions/approval.ApprovalProcess"
                         }
                     },
                     "404": {
-                        "description": "No active workflow found",
+                        "description": "No active process found",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -523,20 +523,20 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/approvals/workflows/{id}": {
+        "/api/approval-processes/{id}": {
             "get": {
-                "description": "Get a specific approval workflow by its ID",
+                "description": "Get a specific approval process by its ID",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "approvals"
                 ],
-                "summary": "Get workflow by ID",
+                "summary": "Get approval process by ID",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Workflow ID",
+                        "description": "Approval Process ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -546,11 +546,11 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/approval.ApprovalWorkflow"
+                            "$ref": "#/definitions/approval.ApprovalProcess"
                         }
                     },
                     "404": {
-                        "description": "Workflow not found",
+                        "description": "Approval process not found",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -570,7 +570,7 @@ const docTemplate = `{
                 }
             },
             "put": {
-                "description": "Update an existing approval workflow configuration",
+                "description": "Update an existing approval process configuration",
                 "consumes": [
                     "application/json"
                 ],
@@ -580,28 +580,28 @@ const docTemplate = `{
                 "tags": [
                     "approvals"
                 ],
-                "summary": "Update an approval workflow",
+                "summary": "Update an approval process",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Workflow ID",
+                        "description": "Approval Process ID",
                         "name": "id",
                         "in": "path",
                         "required": true
                     },
                     {
-                        "description": "Workflow Configuration",
-                        "name": "workflow",
+                        "description": "Approval Process Configuration",
+                        "name": "process",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/approval.ApprovalWorkflow"
+                            "$ref": "#/definitions/approval.ApprovalProcess"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Workflow updated successfully",
+                        "description": "Approval process updated successfully",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -630,15 +630,15 @@ const docTemplate = `{
                 }
             },
             "delete": {
-                "description": "Delete an approval workflow configuration",
+                "description": "Delete an approval process configuration",
                 "tags": [
                     "approvals"
                 ],
-                "summary": "Delete an approval workflow",
+                "summary": "Delete an approval process",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Workflow ID",
+                        "description": "Approval Process ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -662,7 +662,7 @@ const docTemplate = `{
         },
         "/api/approvals/{module}/{id}/approve": {
             "post": {
-                "description": "Approve a record for the current step in the workflow",
+                "description": "Approve a record for the current step in the approval process",
                 "consumes": [
                     "application/json"
                 ],
@@ -734,7 +734,7 @@ const docTemplate = `{
         },
         "/api/approvals/{module}/{id}/reject": {
             "post": {
-                "description": "Reject a record for the current step in the workflow",
+                "description": "Reject a record for the current step in the approval process",
                 "consumes": [
                     "application/json"
                 ],
@@ -8938,38 +8938,29 @@ const docTemplate = `{
                 }
             }
         },
-        "approval.ApprovalStep": {
+        "approval.ApprovalAction": {
             "type": "object",
             "properties": {
-                "approver_roles": {
-                    "description": "Role IDs allowed to approve",
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "approver_users": {
-                    "description": "User IDs allowed to approve",
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
+                "config": {
+                    "description": "Action specific config",
+                    "type": "object",
+                    "additionalProperties": {}
                 },
                 "id": {
-                    "description": "Unique ID for the step (e.g., uuid)",
-                    "type": "string"
-                },
-                "name": {
-                    "description": "Display name (e.g., \"Manager Approval\")",
+                    "description": "Unique ID",
                     "type": "string"
                 },
                 "order": {
-                    "description": "Sequence number",
+                    "description": "Execution order",
                     "type": "integer"
+                },
+                "type": {
+                    "description": "e.g. \"send_email\", \"webhook\", \"update_record\"",
+                    "type": "string"
                 }
             }
         },
-        "approval.ApprovalWorkflow": {
+        "approval.ApprovalProcess": {
             "type": "object",
             "properties": {
                 "active": {
@@ -8988,7 +8979,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "module_id": {
-                    "description": "The module this workflow applies to",
+                    "description": "The module this process applies to",
                     "type": "string"
                 },
                 "name": {
@@ -9009,6 +9000,51 @@ const docTemplate = `{
                 },
                 "updated_at": {
                     "type": "string"
+                }
+            }
+        },
+        "approval.ApprovalStep": {
+            "type": "object",
+            "properties": {
+                "after_actions": {
+                    "description": "Actions to run after this step is approved",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/approval.ApprovalAction"
+                    }
+                },
+                "approver_roles": {
+                    "description": "Role IDs allowed to approve",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "approver_users": {
+                    "description": "User IDs allowed to approve",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "before_actions": {
+                    "description": "Actions to run before this step becomes active",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/approval.ApprovalAction"
+                    }
+                },
+                "id": {
+                    "description": "Unique ID for the step (e.g., uuid)",
+                    "type": "string"
+                },
+                "name": {
+                    "description": "Display name (e.g., \"Manager Approval\")",
+                    "type": "string"
+                },
+                "order": {
+                    "description": "Sequence number",
+                    "type": "integer"
                 }
             }
         },

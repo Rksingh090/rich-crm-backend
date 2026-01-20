@@ -20,19 +20,19 @@ func NewApprovalController(service ApprovalService, authService auth.AuthService
 	}
 }
 
-// CreateWorkflow godoc
-// @Summary Create a new approval workflow
-// @Description Create a new approval workflow configuration
+// CreateApprovalProcess godoc
+// @Summary Create a new approval process
+// @Description Create a new approval process configuration
 // @Tags approvals
 // @Accept json
 // @Produce json
-// @Param workflow body ApprovalWorkflow true "Workflow Configuration"
-// @Success 201 {object} map[string]string "Workflow created successfully"
+// @Param process body ApprovalProcess true "Approval Process Configuration"
+// @Success 201 {object} map[string]string "Approval process created successfully"
 // @Failure 400 {object} map[string]string "Invalid request body"
 // @Failure 500 {object} map[string]string "Internal server error"
-// @Router /api/approvals/workflows [post]
-func (c *ApprovalController) CreateWorkflow(ctx *fiber.Ctx) error {
-	var input ApprovalWorkflow
+// @Router /api/approval-processes [post]
+func (c *ApprovalController) CreateApprovalProcess(ctx *fiber.Ctx) error {
+	var input ApprovalProcess
 	if err := ctx.BodyParser(&input); err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request body"})
 	}
@@ -42,28 +42,29 @@ func (c *ApprovalController) CreateWorkflow(ctx *fiber.Ctx) error {
 		userID, _ = primitive.ObjectIDFromHex(idStr)
 	}
 
-	if err := c.Service.CreateWorkflow(ctx.UserContext(), input, userID); err != nil {
+	createdProcess, err := c.Service.CreateApprovalProcess(ctx.UserContext(), input, userID)
+	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
-	return ctx.Status(fiber.StatusCreated).JSON(fiber.Map{"message": "Workflow created successfully"})
+	return ctx.Status(fiber.StatusCreated).JSON(createdProcess)
 }
 
-// UpdateWorkflow godoc
-// @Summary Update an approval workflow
-// @Description Update an existing approval workflow configuration
+// UpdateApprovalProcess godoc
+// @Summary Update an approval process
+// @Description Update an existing approval process configuration
 // @Tags approvals
 // @Accept json
 // @Produce json
-// @Param id path string true "Workflow ID"
-// @Param workflow body ApprovalWorkflow true "Workflow Configuration"
-// @Success 200 {object} map[string]string "Workflow updated successfully"
+// @Param id path string true "Approval Process ID"
+// @Param process body ApprovalProcess true "Approval Process Configuration"
+// @Success 200 {object} map[string]string "Approval process updated successfully"
 // @Failure 400 {object} map[string]string "Invalid request body"
 // @Failure 500 {object} map[string]string "Internal server error"
-// @Router /api/approvals/workflows/{id} [put]
-func (c *ApprovalController) UpdateWorkflow(ctx *fiber.Ctx) error {
+// @Router /api/approval-processes/{id} [put]
+func (c *ApprovalController) UpdateApprovalProcess(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
-	var input ApprovalWorkflow
+	var input ApprovalProcess
 	if err := ctx.BodyParser(&input); err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request body"})
 	}
@@ -73,112 +74,112 @@ func (c *ApprovalController) UpdateWorkflow(ctx *fiber.Ctx) error {
 		userID, _ = primitive.ObjectIDFromHex(idStr)
 	}
 
-	if err := c.Service.UpdateWorkflow(ctx.UserContext(), id, input, userID); err != nil {
+	if err := c.Service.UpdateApprovalProcess(ctx.UserContext(), id, input, userID); err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
-	return ctx.JSON(fiber.Map{"message": "Workflow updated successfully"})
+	return ctx.JSON(fiber.Map{"message": "Approval process updated successfully"})
 }
 
-// DeleteWorkflow godoc
-// @Summary Delete an approval workflow
-// @Description Delete an approval workflow configuration
+// DeleteApprovalProcess godoc
+// @Summary Delete an approval process
+// @Description Delete an approval process configuration
 // @Tags approvals
-// @Param id path string true "Workflow ID"
+// @Param id path string true "Approval Process ID"
 // @Success 204 {object} nil "No Content"
 // @Failure 500 {object} map[string]string "Internal server error"
-// @Router /api/approvals/workflows/{id} [delete]
-func (c *ApprovalController) DeleteWorkflow(ctx *fiber.Ctx) error {
+// @Router /api/approval-processes/{id} [delete]
+func (c *ApprovalController) DeleteApprovalProcess(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 	var userID primitive.ObjectID
 	if idStr, ok := ctx.Locals("user_id").(string); ok && idStr != "" {
 		userID, _ = primitive.ObjectIDFromHex(idStr)
 	}
 
-	if err := c.Service.DeleteWorkflow(ctx.UserContext(), id, userID); err != nil {
+	if err := c.Service.DeleteApprovalProcess(ctx.UserContext(), id, userID); err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 	return ctx.SendStatus(fiber.StatusNoContent)
 }
 
-// GetWorkflowByModule godoc
-// @Summary Get workflow by module
-// @Description Get the active approval workflow for a specific module
+// GetApprovalProcessByModule godoc
+// @Summary Get approval process by module
+// @Description Get the active approval process for a specific module
 // @Tags approvals
 // @Produce json
 // @Param moduleId path string true "Module ID"
-// @Success 200 {object} ApprovalWorkflow
-// @Failure 404 {object} map[string]string "No active workflow found"
+// @Success 200 {object} ApprovalProcess
+// @Failure 404 {object} map[string]string "No active process found"
 // @Failure 500 {object} map[string]string "Internal server error"
-// @Router /api/approvals/workflows/module/{moduleId} [get]
-func (c *ApprovalController) GetWorkflowByModule(ctx *fiber.Ctx) error {
+// @Router /api/approval-processes/module/{moduleId} [get]
+func (c *ApprovalController) GetApprovalProcessByModule(ctx *fiber.Ctx) error {
 	moduleID := ctx.Params("moduleId")
 	var userID primitive.ObjectID
 	if idStr, ok := ctx.Locals("user_id").(string); ok && idStr != "" {
 		userID, _ = primitive.ObjectIDFromHex(idStr)
 	}
 
-	workflow, err := c.Service.GetWorkflowByModule(ctx.UserContext(), moduleID, userID)
+	process, err := c.Service.GetApprovalProcessByModule(ctx.UserContext(), moduleID, userID)
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
-	if workflow == nil {
-		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "No active workflow found for this module"})
+	if process == nil {
+		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "No active approval process found for this module"})
 	}
-	return ctx.JSON(workflow)
+	return ctx.JSON(process)
 }
 
-// GetWorkflowByID godoc
-// @Summary Get workflow by ID
-// @Description Get a specific approval workflow by its ID
+// GetApprovalProcessByID godoc
+// @Summary Get approval process by ID
+// @Description Get a specific approval process by its ID
 // @Tags approvals
 // @Produce json
-// @Param id path string true "Workflow ID"
-// @Success 200 {object} ApprovalWorkflow
-// @Failure 404 {object} map[string]string "Workflow not found"
+// @Param id path string true "Approval Process ID"
+// @Success 200 {object} ApprovalProcess
+// @Failure 404 {object} map[string]string "Approval process not found"
 // @Failure 500 {object} map[string]string "Internal server error"
-// @Router /api/approvals/workflows/{id} [get]
-func (c *ApprovalController) GetWorkflowByID(ctx *fiber.Ctx) error {
+// @Router /api/approval-processes/{id} [get]
+func (c *ApprovalController) GetApprovalProcessByID(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 	var userID primitive.ObjectID
 	if idStr, ok := ctx.Locals("user_id").(string); ok && idStr != "" {
 		userID, _ = primitive.ObjectIDFromHex(idStr)
 	}
 
-	workflow, err := c.Service.GetWorkflowByID(ctx.UserContext(), id, userID)
+	process, err := c.Service.GetApprovalProcessByID(ctx.UserContext(), id, userID)
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
-	if workflow == nil {
-		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Workflow not found"})
+	if process == nil {
+		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Approval process not found"})
 	}
-	return ctx.JSON(workflow)
+	return ctx.JSON(process)
 }
 
-// ListWorkflows godoc
-// @Summary List all workflows
-// @Description List all approval workflows
+// ListApprovalProcesses godoc
+// @Summary List all approval processes
+// @Description List all approval processes
 // @Tags approvals
 // @Produce json
-// @Success 200 {array} ApprovalWorkflow
+// @Success 200 {array} ApprovalProcess
 // @Failure 500 {object} map[string]string "Internal server error"
-// @Router /api/approvals/workflows [get]
-func (c *ApprovalController) ListWorkflows(ctx *fiber.Ctx) error {
+// @Router /api/approval-processes [get]
+func (c *ApprovalController) ListApprovalProcesses(ctx *fiber.Ctx) error {
 	var userID primitive.ObjectID
 	if idStr, ok := ctx.Locals("user_id").(string); ok && idStr != "" {
 		userID, _ = primitive.ObjectIDFromHex(idStr)
 	}
 
-	workflows, err := c.Service.ListWorkflows(ctx.UserContext(), userID)
+	processes, err := c.Service.ListApprovalProcesses(ctx.UserContext(), userID)
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
-	return ctx.JSON(workflows)
+	return ctx.JSON(processes)
 }
 
 // ApproveRecord godoc
 // @Summary Approve a record
-// @Description Approve a record for the current step in the workflow
+// @Description Approve a record for the current step in the approval process
 // @Tags approvals
 // @Accept json
 // @Produce json
@@ -217,7 +218,7 @@ func (c *ApprovalController) ApproveRecord(ctx *fiber.Ctx) error {
 
 // RejectRecord godoc
 // @Summary Reject a record
-// @Description Reject a record for the current step in the workflow
+// @Description Reject a record for the current step in the approval process
 // @Tags approvals
 // @Accept json
 // @Produce json

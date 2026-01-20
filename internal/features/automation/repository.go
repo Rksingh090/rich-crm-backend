@@ -2,6 +2,8 @@ package automation
 
 import (
 	"context"
+	"fmt"
+	"go-crm/internal/common/models"
 	"go-crm/internal/database"
 	"time"
 
@@ -21,30 +23,46 @@ type AutomationRepository interface {
 }
 
 type AutomationRepositoryImpl struct {
-	Collection *mongo.Collection
+	DB *database.MongodbDB
 }
 
 func NewAutomationRepository(mongodb *database.MongodbDB) AutomationRepository {
 	return &AutomationRepositoryImpl{
-		Collection: mongodb.DB.Collection("automation_rules"),
+		DB: mongodb,
 	}
 }
 
+func (r *AutomationRepositoryImpl) getCollection(ctx context.Context) (*mongo.Collection, error) {
+	tenantID, ok := ctx.Value(models.TenantIDKey).(string)
+	if !ok || tenantID == "" {
+		return nil, fmt.Errorf("tenant context missing")
+	}
+	return r.DB.GetTenantDB(tenantID).Collection("automation_rules"), nil
+}
+
 func (r *AutomationRepositoryImpl) Create(ctx context.Context, rule *AutomationRule) error {
+	coll, err := r.getCollection(ctx)
+	if err != nil {
+		return err
+	}
 	rule.ID = primitive.NewObjectID()
 	rule.CreatedAt = time.Now()
 	rule.UpdatedAt = time.Now()
-	_, err := r.Collection.InsertOne(ctx, rule)
+	_, err = coll.InsertOne(ctx, rule)
 	return err
 }
 
 func (r *AutomationRepositoryImpl) GetByID(ctx context.Context, id string) (*AutomationRule, error) {
+	coll, err := r.getCollection(ctx)
+	if err != nil {
+		return nil, err
+	}
 	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return nil, err
 	}
 	var rule AutomationRule
-	err = r.Collection.FindOne(ctx, bson.M{"_id": oid}).Decode(&rule)
+	err = coll.FindOne(ctx, bson.M{"_id": oid}).Decode(&rule)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			return nil, nil
@@ -55,7 +73,11 @@ func (r *AutomationRepositoryImpl) GetByID(ctx context.Context, id string) (*Aut
 }
 
 func (r *AutomationRepositoryImpl) GetByModule(ctx context.Context, moduleID string) ([]AutomationRule, error) {
-	cursor, err := r.Collection.Find(ctx, bson.M{"module_id": moduleID})
+	coll, err := r.getCollection(ctx)
+	if err != nil {
+		return nil, err
+	}
+	cursor, err := coll.Find(ctx, bson.M{"module_id": moduleID})
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +90,11 @@ func (r *AutomationRepositoryImpl) GetByModule(ctx context.Context, moduleID str
 }
 
 func (r *AutomationRepositoryImpl) List(ctx context.Context) ([]AutomationRule, error) {
-	cursor, err := r.Collection.Find(ctx, bson.M{})
+	coll, err := r.getCollection(ctx)
+	if err != nil {
+		return nil, err
+	}
+	cursor, err := coll.Find(ctx, bson.M{})
 	if err != nil {
 		return nil, err
 	}
@@ -81,25 +107,37 @@ func (r *AutomationRepositoryImpl) List(ctx context.Context) ([]AutomationRule, 
 }
 
 func (r *AutomationRepositoryImpl) Update(ctx context.Context, rule *AutomationRule) error {
+	coll, err := r.getCollection(ctx)
+	if err != nil {
+		return err
+	}
 	rule.UpdatedAt = time.Now()
-	_, err := r.Collection.UpdateOne(ctx, bson.M{"_id": rule.ID}, bson.M{"$set": rule})
+	_, err = coll.UpdateOne(ctx, bson.M{"_id": rule.ID}, bson.M{"$set": rule})
 	return err
 }
 
 func (r *AutomationRepositoryImpl) Delete(ctx context.Context, id string) error {
+	coll, err := r.getCollection(ctx)
+	if err != nil {
+		return err
+	}
 	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return err
 	}
-	_, err = r.Collection.DeleteOne(ctx, bson.M{"_id": oid})
+	_, err = coll.DeleteOne(ctx, bson.M{"_id": oid})
 	return err
 }
 
 func (r *AutomationRepositoryImpl) Enable(ctx context.Context, id string, active bool) error {
+	coll, err := r.getCollection(ctx)
+	if err != nil {
+		return err
+	}
 	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return err
 	}
-	_, err = r.Collection.UpdateOne(ctx, bson.M{"_id": oid}, bson.M{"$set": bson.M{"active": active, "updated_at": time.Now()}})
+	_, err = coll.UpdateOne(ctx, bson.M{"_id": oid}, bson.M{"$set": bson.M{"active": active, "updated_at": time.Now()}})
 	return err
 }

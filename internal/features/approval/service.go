@@ -18,12 +18,12 @@ import (
 )
 
 type ApprovalService interface {
-	CreateWorkflow(ctx context.Context, workflow ApprovalWorkflow, userID primitive.ObjectID) error
-	GetWorkflowByModule(ctx context.Context, moduleID string, userID primitive.ObjectID) (*ApprovalWorkflow, error)
-	GetWorkflowByID(ctx context.Context, id string, userID primitive.ObjectID) (*ApprovalWorkflow, error)
-	ListWorkflows(ctx context.Context, userID primitive.ObjectID) ([]ApprovalWorkflow, error)
-	UpdateWorkflow(ctx context.Context, id string, workflow ApprovalWorkflow, userID primitive.ObjectID) error
-	DeleteWorkflow(ctx context.Context, id string, userID primitive.ObjectID) error
+	CreateApprovalProcess(ctx context.Context, process ApprovalProcess, userID primitive.ObjectID) (*ApprovalProcess, error)
+	GetApprovalProcessByModule(ctx context.Context, moduleID string, userID primitive.ObjectID) (*ApprovalProcess, error)
+	GetApprovalProcessByID(ctx context.Context, id string, userID primitive.ObjectID) (*ApprovalProcess, error)
+	ListApprovalProcesses(ctx context.Context, userID primitive.ObjectID) ([]ApprovalProcess, error)
+	UpdateApprovalProcess(ctx context.Context, id string, process ApprovalProcess, userID primitive.ObjectID) error
+	DeleteApprovalProcess(ctx context.Context, id string, userID primitive.ObjectID) error
 
 	// Approval Actions
 	ApproveRecord(ctx context.Context, moduleName string, recordID string, actorID string, comment string) error
@@ -63,69 +63,73 @@ func NewApprovalService(
 	}
 }
 
-func (s *ApprovalServiceImpl) CreateWorkflow(ctx context.Context, workflow ApprovalWorkflow, userID primitive.ObjectID) error {
+func (s *ApprovalServiceImpl) CreateApprovalProcess(ctx context.Context, process ApprovalProcess, userID primitive.ObjectID) (*ApprovalProcess, error) {
 	// Permission Check
 	if !userID.IsZero() {
-		allowed, err := s.RoleService.CheckPermission(ctx, userID, "settings_workflows", "create")
+		allowed, err := s.RoleService.CheckPermission(ctx, userID, "settings_approval_processes", "create")
+		if err != nil || !allowed {
+			return nil, errors.New("access denied")
+		}
+	}
+
+	if err := s.validateApprovalProcessOverlaps(ctx, process); err != nil {
+		return nil, err
+	}
+
+	if process.ID.IsZero() {
+		process.ID = primitive.NewObjectID()
+	}
+	process.CreatedAt = time.Now()
+	process.UpdatedAt = time.Now()
+
+	if err := s.Repo.Create(ctx, &process); err != nil {
+		return nil, err
+	}
+
+	return &process, nil
+}
+
+func (s *ApprovalServiceImpl) UpdateApprovalProcess(ctx context.Context, id string, process ApprovalProcess, userID primitive.ObjectID) error {
+	// Permission Check
+	if !userID.IsZero() {
+		allowed, err := s.RoleService.CheckPermission(ctx, userID, "settings_approval_processes", "update")
 		if err != nil || !allowed {
 			return errors.New("access denied")
 		}
 	}
 
-	if err := s.validateWorkflowOverlaps(ctx, workflow); err != nil {
+	process.ID, _ = primitive.ObjectIDFromHex(id)
+
+	if err := s.validateApprovalProcessOverlaps(ctx, process); err != nil {
 		return err
 	}
 
-	if workflow.ID.IsZero() {
-		workflow.ID = primitive.NewObjectID()
-	}
-	workflow.CreatedAt = time.Now()
-	workflow.UpdatedAt = time.Now()
-
-	return s.Repo.Create(ctx, &workflow)
+	process.UpdatedAt = time.Now()
+	return s.Repo.Update(ctx, id, process)
 }
 
-func (s *ApprovalServiceImpl) UpdateWorkflow(ctx context.Context, id string, workflow ApprovalWorkflow, userID primitive.ObjectID) error {
-	// Permission Check
-	if !userID.IsZero() {
-		allowed, err := s.RoleService.CheckPermission(ctx, userID, "settings_workflows", "update")
-		if err != nil || !allowed {
-			return errors.New("access denied")
-		}
-	}
-
-	workflow.ID, _ = primitive.ObjectIDFromHex(id)
-
-	if err := s.validateWorkflowOverlaps(ctx, workflow); err != nil {
-		return err
-	}
-
-	workflow.UpdatedAt = time.Now()
-	return s.Repo.Update(ctx, id, workflow)
-}
-
-func (s *ApprovalServiceImpl) validateWorkflowOverlaps(ctx context.Context, workflow ApprovalWorkflow) error {
-	if !workflow.Active {
+func (s *ApprovalServiceImpl) validateApprovalProcessOverlaps(ctx context.Context, process ApprovalProcess) error {
+	if !process.Active {
 		return nil
 	}
 
-	existingWorkflows, err := s.Repo.ListActiveByModuleID(ctx, workflow.ModuleID)
+	existingProcesses, err := s.Repo.ListActiveByModuleID(ctx, process.ModuleID)
 	if err != nil {
 		return err
 	}
 
-	for _, ef := range existingWorkflows {
-		if ef.ID == workflow.ID {
+	for _, ef := range existingProcesses {
+		if ef.ID == process.ID {
 			continue
 		}
 
-		if len(workflow.Criteria) == 0 && len(ef.Criteria) == 0 {
-			return errors.New("a default workflow (no criteria) already exists for this module")
+		if len(process.Criteria) == 0 && len(ef.Criteria) == 0 {
+			return errors.New("a default approval process (no criteria) already exists for this module")
 		}
 
-		if len(workflow.Criteria) > 0 && len(ef.Criteria) == len(workflow.Criteria) {
+		if len(process.Criteria) > 0 && len(ef.Criteria) == len(process.Criteria) {
 			matchCount := 0
-			for _, c1 := range workflow.Criteria {
+			for _, c1 := range process.Criteria {
 				for _, c2 := range ef.Criteria {
 					if c1.Field == c2.Field && c1.Operator == c2.Operator && c1.Value == c2.Value {
 						matchCount++
@@ -133,18 +137,18 @@ func (s *ApprovalServiceImpl) validateWorkflowOverlaps(ctx context.Context, work
 					}
 				}
 			}
-			if matchCount == len(workflow.Criteria) {
-				return errors.New("a workflow with identical criteria already exists")
+			if matchCount == len(process.Criteria) {
+				return errors.New("an approval process with identical criteria already exists")
 			}
 		}
 	}
 	return nil
 }
 
-func (s *ApprovalServiceImpl) DeleteWorkflow(ctx context.Context, id string, userID primitive.ObjectID) error {
+func (s *ApprovalServiceImpl) DeleteApprovalProcess(ctx context.Context, id string, userID primitive.ObjectID) error {
 	// Permission Check
 	if !userID.IsZero() {
-		allowed, err := s.RoleService.CheckPermission(ctx, userID, "settings_workflows", "delete")
+		allowed, err := s.RoleService.CheckPermission(ctx, userID, "settings_approval_processes", "delete")
 		if err != nil || !allowed {
 			return errors.New("access denied")
 		}
@@ -152,18 +156,18 @@ func (s *ApprovalServiceImpl) DeleteWorkflow(ctx context.Context, id string, use
 	return s.Repo.Delete(ctx, id)
 }
 
-func (s *ApprovalServiceImpl) GetWorkflowByModule(ctx context.Context, moduleID string, userID primitive.ObjectID) (*ApprovalWorkflow, error) {
+func (s *ApprovalServiceImpl) GetApprovalProcessByModule(ctx context.Context, moduleID string, userID primitive.ObjectID) (*ApprovalProcess, error) {
 	return s.Repo.GetByModuleID(ctx, moduleID)
 }
 
-func (s *ApprovalServiceImpl) GetWorkflowByID(ctx context.Context, id string, userID primitive.ObjectID) (*ApprovalWorkflow, error) {
+func (s *ApprovalServiceImpl) GetApprovalProcessByID(ctx context.Context, id string, userID primitive.ObjectID) (*ApprovalProcess, error) {
 	return s.Repo.GetByID(ctx, id)
 }
 
-func (s *ApprovalServiceImpl) ListWorkflows(ctx context.Context, userID primitive.ObjectID) ([]ApprovalWorkflow, error) {
+func (s *ApprovalServiceImpl) ListApprovalProcesses(ctx context.Context, userID primitive.ObjectID) ([]ApprovalProcess, error) {
 	// Permission Check
 	if !userID.IsZero() {
-		allowed, err := s.RoleService.CheckPermission(ctx, userID, "settings_workflows", "read")
+		allowed, err := s.RoleService.CheckPermission(ctx, userID, "settings_approval_processes", "read")
 		if err != nil || !allowed {
 			return nil, errors.New("access denied")
 		}
@@ -177,12 +181,12 @@ func (s *ApprovalServiceImpl) InitializeApproval(ctx context.Context, moduleName
 		return nil, err
 	}
 
-	workflows, err := s.Repo.ListActiveByModuleID(ctx, mod.ID.Hex())
-	if err != nil || len(workflows) == 0 {
+	processes, err := s.Repo.ListActiveByModuleID(ctx, mod.ID.Hex())
+	if err != nil || len(processes) == 0 {
 		return nil, nil
 	}
 
-	slices.SortFunc(workflows, func(a, b ApprovalWorkflow) int {
+	slices.SortFunc(processes, func(a, b ApprovalProcess) int {
 		if a.Priority != b.Priority {
 			return a.Priority - b.Priority
 		}
@@ -192,11 +196,11 @@ func (s *ApprovalServiceImpl) InitializeApproval(ctx context.Context, moduleName
 		return 1
 	})
 
-	var matchedWorkflow *ApprovalWorkflow
+	var matchedProcess *ApprovalProcess
 
-	for _, wf := range workflows {
+	for _, wf := range processes {
 		if len(wf.Criteria) == 0 {
-			matchedWorkflow = &wf
+			matchedProcess = &wf
 			break
 		}
 
@@ -217,19 +221,19 @@ func (s *ApprovalServiceImpl) InitializeApproval(ctx context.Context, moduleName
 			}
 		}
 		if match {
-			matchedWorkflow = &wf
+			matchedProcess = &wf
 			break
 		}
 	}
 
-	if matchedWorkflow == nil {
+	if matchedProcess == nil {
 		return nil, nil
 	}
 
 	return &common_models.ApprovalRecordState{
 		Status:      common_models.ApprovalStatusPending,
 		CurrentStep: 0,
-		WorkflowID:  matchedWorkflow.ID.Hex(),
+		ProcessID:   matchedProcess.ID.Hex(),
 		History:     []common_models.ApprovalHistory{},
 	}, nil
 }
@@ -245,16 +249,16 @@ func (s *ApprovalServiceImpl) ApproveRecord(ctx context.Context, moduleName stri
 		return errors.New("record is not pending approval")
 	}
 
-	workflow, err := s.Repo.GetByID(ctx, state.WorkflowID)
+	process, err := s.Repo.GetByID(ctx, state.ProcessID)
 	if err != nil {
 		return err
 	}
 
-	if state.CurrentStep >= len(workflow.Steps) {
+	if state.CurrentStep >= len(process.Steps) {
 		return errors.New("invalid approval step")
 	}
 
-	currentStep := workflow.Steps[state.CurrentStep]
+	currentStep := process.Steps[state.CurrentStep]
 
 	history := common_models.ApprovalHistory{
 		StepName:  currentStep.Name,
@@ -265,7 +269,7 @@ func (s *ApprovalServiceImpl) ApproveRecord(ctx context.Context, moduleName stri
 	}
 	state.History = append(state.History, history)
 
-	if state.CurrentStep < len(workflow.Steps)-1 {
+	if state.CurrentStep < len(process.Steps)-1 {
 		state.CurrentStep++
 	} else {
 		state.Status = common_models.ApprovalStatusApproved
@@ -306,12 +310,12 @@ func (s *ApprovalServiceImpl) RejectRecord(ctx context.Context, moduleName strin
 		return errors.New("record is not pending approval")
 	}
 
-	workflow, err := s.Repo.GetByID(ctx, state.WorkflowID)
+	process, err := s.Repo.GetByID(ctx, state.ProcessID)
 	if err != nil {
 		return err
 	}
 
-	currentStep := workflow.Steps[state.CurrentStep]
+	currentStep := process.Steps[state.CurrentStep]
 
 	history := common_models.ApprovalHistory{
 		StepName:  currentStep.Name,
@@ -358,16 +362,16 @@ func (s *ApprovalServiceImpl) CanApprove(ctx context.Context, moduleName string,
 		return false, nil
 	}
 
-	workflow, err := s.Repo.GetByID(ctx, state.WorkflowID)
+	process, err := s.Repo.GetByID(ctx, state.ProcessID)
 	if err != nil {
 		return false, err
 	}
 
-	if state.CurrentStep >= len(workflow.Steps) {
+	if state.CurrentStep >= len(process.Steps) {
 		return false, nil
 	}
 
-	step := workflow.Steps[state.CurrentStep]
+	step := process.Steps[state.CurrentStep]
 
 	if slices.Contains(step.ApproverUsers, userID) {
 		return true, nil

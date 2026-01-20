@@ -17,6 +17,7 @@ import (
 type ModuleService interface {
 	CreateModule(ctx context.Context, module *common_models.Entity, userID primitive.ObjectID) error
 	GetModuleByName(ctx context.Context, name string, userID primitive.ObjectID) (*common_models.Entity, error)
+	GetModuleByID(ctx context.Context, id string, userID primitive.ObjectID) (*common_models.Entity, error)
 	ListModules(ctx context.Context, userID primitive.ObjectID) ([]common_models.Entity, error)
 	UpdateModule(ctx context.Context, module *common_models.Entity, userID primitive.ObjectID) error
 	DeleteModule(ctx context.Context, name string, userID primitive.ObjectID) error
@@ -156,6 +157,56 @@ func (s *ModuleServiceImpl) GetModuleByName(ctx context.Context, name string, us
 	}
 
 	// Dynamic ReadOnly for Blueprint Fields
+	if s.BlueprintValidator != nil {
+		targetField, _ := s.BlueprintValidator.GetActiveBlueprintTargetField(ctx, m.Name)
+		if targetField != "" {
+			for i := range m.Fields {
+				if m.Fields[i].Name == targetField {
+					m.Fields[i].ReadOnly = true
+				}
+			}
+		}
+	}
+
+	return m, nil
+}
+
+func (s *ModuleServiceImpl) GetModuleByID(ctx context.Context, id string, userID primitive.ObjectID) (*common_models.Entity, error) {
+	m, err := s.Repo.FindByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	s.appendSystemFields(m)
+
+	// Reuse name-based permission checks since permission system uses module name/resource key
+	// Permission Check
+	if !userID.IsZero() {
+		allowedGlobal, err := s.RoleService.CheckPermission(ctx, userID, "modules", "read")
+		if err != nil || !allowedGlobal {
+			resourceID := fmt.Sprintf("%s.%s", string(m.App), m.Name)
+			allowedSpecific, errSpec := s.RoleService.CheckPermission(ctx, userID, resourceID, "read")
+			if errSpec != nil || !allowedSpecific {
+				return nil, errors.New("access denied")
+			}
+		}
+
+		// FLS handling (same as GetByName)
+		perms, _ := s.RoleService.GetFieldPermissions(ctx, userID, m.Name)
+		if perms != nil {
+			visibleFields := []common_models.ModuleField{}
+			for _, f := range m.Fields {
+				if p, ok := perms[f.Name]; ok {
+					if p == role.FieldPermNone {
+						continue
+					}
+				}
+				visibleFields = append(visibleFields, f)
+			}
+			m.Fields = visibleFields
+		}
+	}
+
+	// ReadOnly for Blueprint
 	if s.BlueprintValidator != nil {
 		targetField, _ := s.BlueprintValidator.GetActiveBlueprintTargetField(ctx, m.Name)
 		if targetField != "" {

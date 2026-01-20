@@ -106,29 +106,23 @@ definitions:
       value:
         description: Single value or array depending on grouping
     type: object
-  approval.ApprovalStep:
+  approval.ApprovalAction:
     properties:
-      approver_roles:
-        description: Role IDs allowed to approve
-        items:
-          type: string
-        type: array
-      approver_users:
-        description: User IDs allowed to approve
-        items:
-          type: string
-        type: array
+      config:
+        additionalProperties: {}
+        description: Action specific config
+        type: object
       id:
-        description: Unique ID for the step (e.g., uuid)
-        type: string
-      name:
-        description: Display name (e.g., "Manager Approval")
+        description: Unique ID
         type: string
       order:
-        description: Sequence number
+        description: Execution order
         type: integer
+      type:
+        description: e.g. "send_email", "webhook", "update_record"
+        type: string
     type: object
-  approval.ApprovalWorkflow:
+  approval.ApprovalProcess:
     properties:
       active:
         type: boolean
@@ -141,7 +135,7 @@ definitions:
       id:
         type: string
       module_id:
-        description: The module this workflow applies to
+        description: The module this process applies to
         type: string
       name:
         type: string
@@ -156,6 +150,38 @@ definitions:
         type: string
       updated_at:
         type: string
+    type: object
+  approval.ApprovalStep:
+    properties:
+      after_actions:
+        description: Actions to run after this step is approved
+        items:
+          $ref: '#/definitions/approval.ApprovalAction'
+        type: array
+      approver_roles:
+        description: Role IDs allowed to approve
+        items:
+          type: string
+        type: array
+      approver_users:
+        description: User IDs allowed to approve
+        items:
+          type: string
+        type: array
+      before_actions:
+        description: Actions to run before this step becomes active
+        items:
+          $ref: '#/definitions/approval.ApprovalAction'
+        type: array
+      id:
+        description: Unique ID for the step (e.g., uuid)
+        type: string
+      name:
+        description: Display name (e.g., "Manager Approval")
+        type: string
+      order:
+        description: Sequence number
+        type: integer
     type: object
   approval.RuleCondition:
     properties:
@@ -2362,11 +2388,189 @@ paths:
       summary: Get metric history
       tags:
       - analytics
+  /api/approval-processes:
+    get:
+      description: List all approval processes
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/approval.ApprovalProcess'
+            type: array
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List all approval processes
+      tags:
+      - approvals
+    post:
+      consumes:
+      - application/json
+      description: Create a new approval process configuration
+      parameters:
+      - description: Approval Process Configuration
+        in: body
+        name: process
+        required: true
+        schema:
+          $ref: '#/definitions/approval.ApprovalProcess'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Approval process created successfully
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid request body
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create a new approval process
+      tags:
+      - approvals
+  /api/approval-processes/{id}:
+    delete:
+      description: Delete an approval process configuration
+      parameters:
+      - description: Approval Process ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete an approval process
+      tags:
+      - approvals
+    get:
+      description: Get a specific approval process by its ID
+      parameters:
+      - description: Approval Process ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/approval.ApprovalProcess'
+        "404":
+          description: Approval process not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get approval process by ID
+      tags:
+      - approvals
+    put:
+      consumes:
+      - application/json
+      description: Update an existing approval process configuration
+      parameters:
+      - description: Approval Process ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Approval Process Configuration
+        in: body
+        name: process
+        required: true
+        schema:
+          $ref: '#/definitions/approval.ApprovalProcess'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Approval process updated successfully
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid request body
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Update an approval process
+      tags:
+      - approvals
+  /api/approval-processes/module/{moduleId}:
+    get:
+      description: Get the active approval process for a specific module
+      parameters:
+      - description: Module ID
+        in: path
+        name: moduleId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/approval.ApprovalProcess'
+        "404":
+          description: No active process found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get approval process by module
+      tags:
+      - approvals
   /api/approvals/{module}/{id}/approve:
     post:
       consumes:
       - application/json
-      description: Approve a record for the current step in the workflow
+      description: Approve a record for the current step in the approval process
       parameters:
       - description: Module Name
         in: path
@@ -2414,7 +2618,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: Reject a record for the current step in the workflow
+      description: Reject a record for the current step in the approval process
       parameters:
       - description: Module Name
         in: path
@@ -2456,184 +2660,6 @@ paths:
               type: string
             type: object
       summary: Reject a record
-      tags:
-      - approvals
-  /api/approvals/workflows:
-    get:
-      description: List all approval workflows
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/approval.ApprovalWorkflow'
-            type: array
-        "500":
-          description: Internal server error
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: List all workflows
-      tags:
-      - approvals
-    post:
-      consumes:
-      - application/json
-      description: Create a new approval workflow configuration
-      parameters:
-      - description: Workflow Configuration
-        in: body
-        name: workflow
-        required: true
-        schema:
-          $ref: '#/definitions/approval.ApprovalWorkflow'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Workflow created successfully
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "400":
-          description: Invalid request body
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "500":
-          description: Internal server error
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Create a new approval workflow
-      tags:
-      - approvals
-  /api/approvals/workflows/{id}:
-    delete:
-      description: Delete an approval workflow configuration
-      parameters:
-      - description: Workflow ID
-        in: path
-        name: id
-        required: true
-        type: string
-      responses:
-        "204":
-          description: No Content
-        "500":
-          description: Internal server error
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Delete an approval workflow
-      tags:
-      - approvals
-    get:
-      description: Get a specific approval workflow by its ID
-      parameters:
-      - description: Workflow ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/approval.ApprovalWorkflow'
-        "404":
-          description: Workflow not found
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "500":
-          description: Internal server error
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Get workflow by ID
-      tags:
-      - approvals
-    put:
-      consumes:
-      - application/json
-      description: Update an existing approval workflow configuration
-      parameters:
-      - description: Workflow ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Workflow Configuration
-        in: body
-        name: workflow
-        required: true
-        schema:
-          $ref: '#/definitions/approval.ApprovalWorkflow'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Workflow updated successfully
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "400":
-          description: Invalid request body
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "500":
-          description: Internal server error
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Update an approval workflow
-      tags:
-      - approvals
-  /api/approvals/workflows/module/{moduleId}:
-    get:
-      description: Get the active approval workflow for a specific module
-      parameters:
-      - description: Module ID
-        in: path
-        name: moduleId
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/approval.ApprovalWorkflow'
-        "404":
-          description: No active workflow found
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "500":
-          description: Internal server error
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Get workflow by module
       tags:
       - approvals
   /api/audit/logs:
