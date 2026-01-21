@@ -35,7 +35,6 @@ import (
 	"go-crm/internal/features/module"
 	"go-crm/internal/features/notification"
 	"go-crm/internal/features/record"
-	"go-crm/internal/features/report"
 	"go-crm/internal/features/resource"
 	"go-crm/internal/features/saved_filter"
 	"go-crm/internal/features/search"
@@ -216,7 +215,6 @@ func main() {
 			),
 			role.NewRoleRepository,
 			approval.NewApprovalRepository,
-			report.NewReportRepository,
 			automation.NewAutomationRepository,
 			settings.NewSettingsRepository,
 			ticket.NewTicketRepository,
@@ -268,7 +266,6 @@ func main() {
 				fx.As(new(record.ApprovalTrigger)),
 			),
 			settings.NewSettingsService,
-			report.NewReportService,
 			// Create centralized action executor
 			action.NewActionExecutor,
 			fx.Annotate(
@@ -324,7 +321,6 @@ func main() {
 			system.NewDebugController,
 			system.NewWebSocketController,
 			approval.NewApprovalController,
-			report.NewReportController,
 			automation.NewAutomationController,
 			settings.NewSettingsController,
 			ticket.NewTicketController,
@@ -364,7 +360,6 @@ func main() {
 			AsRoute(system.NewDebugApi),
 			AsRoute(system.NewHealthApi),
 			AsRoute(approval.NewApprovalApi),
-			AsRoute(report.NewReportApi),
 			AsRoute(automation.NewAutomationApi),
 			AsRoute(settings.NewSettingsApi),
 			AsRoute(ticket.NewTicketApi),

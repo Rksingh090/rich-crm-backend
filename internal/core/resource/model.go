@@ -23,7 +23,6 @@ const (
 	ResourceTypePage    ResourceType = "page"
 	ResourceTypeSetting ResourceType = "setting"
 	ResourceTypeSystem  ResourceType = "system"
-	ResourceTypeReport  ResourceType = "report"
 	ResourceTypeCron    ResourceType = "cron"
 	ResourceTypeWebhook ResourceType = "webhook"
 )

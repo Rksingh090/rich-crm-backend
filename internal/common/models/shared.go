@@ -28,7 +28,7 @@ const (
 	AuditActionTemplate   AuditAction = "TEMPLATE"
 	AuditActionWebhook    AuditAction = "WEBHOOK"
 	AuditActionGroup      AuditAction = "GROUP"
-	AuditActionReport     AuditAction = "REPORT"
+	AuditActionExport     AuditAction = "EXPORT"
 	AuditActionChart      AuditAction = "CHART"
 	AuditActionDashboard  AuditAction = "DASHBOARD"
 )
@@ -285,13 +285,13 @@ const (
 
 type ApprovalRecordState struct {
 	Status         ApprovalStatus    `bson:"status" json:"status"`
-	CurrentStepID  string            `bson:"current_step_id" json:"current_step_id"`       // New: Step ID for graph traversal
+	CurrentStepID  string            `bson:"current_step_id" json:"current_step_id"` // New: Step ID for graph traversal
 	ProcessID      string            `bson:"process_id" json:"process_id"`
 	History        []ApprovalHistory `bson:"history" json:"history"`
 	CompletedSteps []string          `bson:"completed_steps,omitempty" json:"completed_steps,omitempty"` // New: Track completed steps
-	
+
 	// Deprecated: Use CurrentStepID instead. Kept for backward compatibility
-	CurrentStep    int               `bson:"current_step,omitempty" json:"current_step,omitempty"`
+	CurrentStep int `bson:"current_step,omitempty" json:"current_step,omitempty"`
 }
 
 type ApprovalHistory struct {
