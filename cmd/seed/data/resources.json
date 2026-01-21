@@ -403,12 +403,6 @@
       "group": "Automation",
       "group_order": 1,
       "location": "settings"
-    },
-    "created_at": {
-      "$date": "2026-01-18T10:29:49.673Z"
-    },
-    "updated_at": {
-      "$date": "2026-01-18T10:29:49.673Z"
     }
   },
   {
