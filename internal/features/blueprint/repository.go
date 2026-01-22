@@ -181,6 +181,9 @@ func (r *RepositoryImpl) FindActiveByModule(ctx context.Context, module string) 
 		},
 	}).Decode(&blueprint)
 	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, nil
+		}
 		return nil, err
 	}
 	return &blueprint, nil

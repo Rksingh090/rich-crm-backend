@@ -1,6 +1,8 @@
 package blueprint
 
 import (
+	"strings"
+
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -160,6 +162,9 @@ func (c *Controller) GetTransitions(ctx *fiber.Ctx) error {
 
 	transitions, err := c.service.GetAvailableTransitions(ctx.UserContext(), moduleName, recordID)
 	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": err.Error()})
+		}
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 

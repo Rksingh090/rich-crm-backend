@@ -12,6 +12,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type Service interface {
@@ -240,6 +241,9 @@ func (s *ServiceImpl) GetAvailableTransitions(ctx context.Context, module string
 	// 2. Fetch Record
 	rec, err := s.recordRepo.Get(ctx, module, recordID)
 	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, fmt.Errorf("record not found")
+		}
 		return nil, err
 	}
 	if rec == nil {

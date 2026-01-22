@@ -20,11 +20,16 @@ func NewFileApi(controller *FileController, config *config.Config) *FileApi {
 }
 
 func (h *FileApi) Setup(app *fiber.App) {
-	app.Post("/api/upload", middleware.AuthMiddleware(h.config.SkipAuth), h.controller.UploadFile)
-	app.Get("/api/files/:module/:recordId", middleware.AuthMiddleware(h.config.SkipAuth), h.controller.GetFilesByRecord)
-	app.Get("/api/files/shared", middleware.AuthMiddleware(h.config.SkipAuth), h.controller.GetSharedFiles)
-	app.Get("/api/files/:id/download", middleware.AuthMiddleware(h.config.SkipAuth), h.controller.DownloadFile)
-	app.Delete("/api/files/:id", middleware.AuthMiddleware(h.config.SkipAuth), h.controller.DeleteFile)
-
+	// Register more specific routes first to avoid conflicts
+	// Public static file access (from .env FS_URL)
 	app.Static(h.config.FSURL, h.config.FSPath)
+
+	// Download route (also public)
+	app.Get("/api/files/download/:id", h.controller.DownloadFile)
+
+	// Authenticated routes
+	app.Post("/api/files/upload", middleware.AuthMiddleware(h.config.SkipAuth), h.controller.UploadFile)
+	app.Get("/api/files/shared", middleware.AuthMiddleware(h.config.SkipAuth), h.controller.GetSharedFiles)
+	app.Get("/api/files/:module/:recordId", middleware.AuthMiddleware(h.config.SkipAuth), h.controller.GetFilesByRecord)
+	app.Delete("/api/files/:id", middleware.AuthMiddleware(h.config.SkipAuth), h.controller.DeleteFile)
 }

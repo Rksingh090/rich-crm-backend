@@ -87,7 +87,7 @@ func (ctrl *FileController) UploadFile(c *fiber.Ctx) error {
 	fileRecord := &File{
 		OriginalFilename: originalName,
 		Path:             dstPath,
-		URL:              "/api/files/download/" + uniqueName, // Basic URL, should ideally be configurable
+		URL:              ctrl.Config.FSURL + "/" + uniqueName,
 		Size:             file.Size,
 		MimeType:         file.Header.Get("Content-Type"),
 		ModuleName:       moduleName,
@@ -153,23 +153,41 @@ func (ctrl *FileController) GetSharedFiles(c *fiber.Ctx) error {
 
 // DownloadFile godoc
 // @Summary Download file
-// @Description Download a file by ID
+// @Description Download a file by ID or unique filename (public access)
 // @Tags files
-// @Param id path string true "File ID"
+// @Param id path string true "File ID or unique name"
 // @Success 200 {file} file "File content"
 // @Failure 404 {object} map[string]any
 // @Router /api/files/download/{id} [get]
 func (ctrl *FileController) DownloadFile(c *fiber.Ctx) error {
 	fileID := c.Params("id")
 
-	file, err := ctrl.FileService.GetFile(c.UserContext(), fileID)
-	if err != nil {
-		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-			"error": "File not found",
-		})
+	// Try to serve directly from disk first if it matches the pattern (unique name)
+	// This allows public access without tenant context/auth
+	filePath := filepath.Join(ctrl.UploadDir, fileID)
+	if _, err := os.Stat(filePath); err == nil {
+		// Extract original filename from unique name if possible
+		// Unique name format: timestamp_originalName
+		originalName := fileID
+		if parts := strings.SplitN(fileID, "_", 2); len(parts) > 1 {
+			originalName = parts[1]
+		}
+		return c.Download(filePath, originalName)
 	}
 
-	return c.Download(file.Path, file.OriginalFilename)
+	// Fallback to DB lookup if fileID is an ObjectID
+	// Note: This will only work if tenant context is present (from Auth)
+	// We wrap in a check to avoid panics if context is missing
+	if ctx := c.UserContext(); ctx != nil {
+		file, err := ctrl.FileService.GetFile(ctx, fileID)
+		if err == nil {
+			return c.Download(file.Path, file.OriginalFilename)
+		}
+	}
+
+	return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+		"error": "File not found",
+	})
 }
 
 // DeleteFile godoc

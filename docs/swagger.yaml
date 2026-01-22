@@ -4405,9 +4405,9 @@ paths:
       - files
   /api/files/download/{id}:
     get:
-      description: Download a file by ID
+      description: Download a file by ID or unique filename (public access)
       parameters:
-      - description: File ID
+      - description: File ID or unique name
         in: path
         name: id
         required: true

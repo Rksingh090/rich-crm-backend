@@ -715,6 +715,26 @@ func (s *RecordServiceImpl) DeleteRecord(ctx context.Context, moduleName, id str
 
 func (s *RecordServiceImpl) populateFiles(ctx context.Context, fields []models.ModuleField, record map[string]any) error {
 	for _, field := range fields {
+		if field.Type == models.FieldTypeSubform {
+			if val, ok := record[field.Name]; ok {
+				var items []any
+				if a, ok := val.(primitive.A); ok {
+					items = a
+				} else if a, ok := val.([]any); ok {
+					items = a
+				}
+
+				for _, item := range items {
+					if row, ok := item.(map[string]any); ok {
+						_ = s.populateFiles(ctx, field.SubFields, row)
+					} else if row, ok := item.(primitive.M); ok {
+						_ = s.populateFiles(ctx, field.SubFields, row)
+					}
+				}
+			}
+			continue
+		}
+
 		if field.Type == models.FieldTypeFile || field.Type == models.FieldTypeImage {
 			if val, ok := record[field.Name]; ok {
 				var idStr string
@@ -742,6 +762,26 @@ func (s *RecordServiceImpl) populateFiles(ctx context.Context, fields []models.M
 
 func (s *RecordServiceImpl) populateLookups(ctx context.Context, fields []models.ModuleField, record map[string]any) error {
 	for _, field := range fields {
+		if field.Type == models.FieldTypeSubform {
+			if val, ok := record[field.Name]; ok {
+				var items []any
+				if a, ok := val.(primitive.A); ok {
+					items = a
+				} else if a, ok := val.([]any); ok {
+					items = a
+				}
+
+				for _, item := range items {
+					if row, ok := item.(map[string]any); ok {
+						_ = s.populateLookups(ctx, field.SubFields, row)
+					} else if row, ok := item.(primitive.M); ok {
+						_ = s.populateLookups(ctx, field.SubFields, row)
+					}
+				}
+			}
+			continue
+		}
+
 		if field.Type == models.FieldTypeLookup && field.Lookup != nil {
 			if val, ok := record[field.Name]; ok {
 				var idStr string
@@ -1201,6 +1241,26 @@ func toFloat(val any) float64 {
 }
 func (s *RecordServiceImpl) populateUsers(ctx context.Context, fields []models.ModuleField, record map[string]any) error {
 	for _, field := range fields {
+		if field.Type == models.FieldTypeSubform {
+			if val, ok := record[field.Name]; ok {
+				var items []any
+				if a, ok := val.(primitive.A); ok {
+					items = a
+				} else if a, ok := val.([]any); ok {
+					items = a
+				}
+
+				for _, item := range items {
+					if row, ok := item.(map[string]any); ok {
+						_ = s.populateUsers(ctx, field.SubFields, row)
+					} else if row, ok := item.(primitive.M); ok {
+						_ = s.populateUsers(ctx, field.SubFields, row)
+					}
+				}
+			}
+			continue
+		}
+
 		if field.Type == models.FieldTypeUser {
 			if val, ok := record[field.Name]; ok {
 				var idStr string

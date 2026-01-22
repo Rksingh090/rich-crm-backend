@@ -3363,7 +3363,7 @@ const docTemplate = `{
         },
         "/api/files/download/{id}": {
             "get": {
-                "description": "Download a file by ID",
+                "description": "Download a file by ID or unique filename (public access)",
                 "tags": [
                     "files"
                 ],
@@ -3371,7 +3371,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "File ID",
+                        "description": "File ID or unique name",
                         "name": "id",
                         "in": "path",
                         "required": true
