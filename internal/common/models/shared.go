@@ -98,8 +98,9 @@ const (
 	FieldTypeCurrency    FieldType = "currency"
 	FieldTypeImage       FieldType = "image"
 	FieldTypeUser        FieldType = "user"
-	FieldTypeRadio       FieldType = "radio"   // New: Radio buttons
-	FieldTypeSubform     FieldType = "subform" // New: Nested Table/Array
+	FieldTypeRadio       FieldType = "radio"    // New: Radio buttons
+	FieldTypeSubform     FieldType = "subform"  // New: Nested Table/Array
+	FieldTypeFunction    FieldType = "function" // New: Calculated/Aggregate field
 )
 
 type SelectOptions struct {
@@ -113,6 +114,13 @@ type LookupDef struct {
 	ValueField   string `json:"value_field" bson:"value_field"`     // Target Field to store
 }
 
+type FunctionDef struct {
+	Operation string   `json:"operation" bson:"operation"` // sum, avg, min, max, multiply, script
+	Target    string   `json:"target" bson:"target"`       // format: "subform_name.field_name" for aggregates
+	Targets   []string `json:"targets" bson:"targets"`     // for simple math like multiply (e.g. ["price", "quantity"])
+	Script    string   `json:"script" bson:"script"`       // Custom JS script
+}
+
 type ModuleField struct {
 	Name          string          `json:"name" bson:"name"`
 	Label         string          `json:"label" bson:"label"`
@@ -120,7 +128,8 @@ type ModuleField struct {
 	Required      bool            `json:"required" bson:"required"`
 	Options       []SelectOptions `json:"options,omitempty" bson:"options,omitempty"`
 	Lookup        *LookupDef      `json:"lookup,omitempty" bson:"lookup,omitempty"`
-	SubFields     []ModuleField   `json:"sub_fields" bson:"sub_fields"` // New: Schema for subform rows - Removed omitempty to ensure persistence
+	Function      *FunctionDef    `json:"function,omitempty" bson:"function,omitempty"` // New: Function definition
+	SubFields     []ModuleField   `json:"sub_fields" bson:"sub_fields"`                 // New: Schema for subform rows - Removed omitempty to ensure persistence
 	IsSystem      bool            `json:"is_system" bson:"is_system"`
 	Filterable    bool            `json:"filterable" bson:"filterable"`
 	Sortable      bool            `json:"sortable" bson:"sortable"`

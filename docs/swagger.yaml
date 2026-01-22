@@ -1174,8 +1174,10 @@ definitions:
     - user
     - radio
     - subform
+    - function
     type: string
     x-enum-comments:
+      FieldTypeFunction: 'New: Calculated/Aggregate field'
       FieldTypeRadio: 'New: Radio buttons'
       FieldTypeSubform: 'New: Nested Table/Array'
     x-enum-descriptions:
@@ -1196,6 +1198,7 @@ definitions:
     - ""
     - 'New: Radio buttons'
     - 'New: Nested Table/Array'
+    - 'New: Calculated/Aggregate field'
     x-enum-varnames:
     - FieldTypeText
     - FieldTypeNumber
@@ -1214,6 +1217,7 @@ definitions:
     - FieldTypeUser
     - FieldTypeRadio
     - FieldTypeSubform
+    - FieldTypeFunction
   models.Filter:
     properties:
       field:
@@ -1223,6 +1227,23 @@ definitions:
           ends_with
         type: string
       value: {}
+    type: object
+  models.FunctionDef:
+    properties:
+      operation:
+        description: sum, avg, min, max, multiply, script
+        type: string
+      script:
+        description: Custom JS script
+        type: string
+      target:
+        description: 'format: "subform_name.field_name" for aggregates'
+        type: string
+      targets:
+        description: for simple math like multiply (e.g. ["price", "quantity"])
+        items:
+          type: string
+        type: array
     type: object
   models.LookupDef:
     properties:
@@ -1245,6 +1266,10 @@ definitions:
         type: string
       filterable:
         type: boolean
+      function:
+        allOf:
+        - $ref: '#/definitions/models.FunctionDef'
+        description: 'New: Function definition'
       help_text:
         type: string
       hidden:

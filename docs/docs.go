@@ -10060,9 +10060,11 @@ const docTemplate = `{
                 "image",
                 "user",
                 "radio",
-                "subform"
+                "subform",
+                "function"
             ],
             "x-enum-comments": {
+                "FieldTypeFunction": "New: Calculated/Aggregate field",
                 "FieldTypeRadio": "New: Radio buttons",
                 "FieldTypeSubform": "New: Nested Table/Array"
             },
@@ -10083,7 +10085,8 @@ const docTemplate = `{
                 "",
                 "",
                 "New: Radio buttons",
-                "New: Nested Table/Array"
+                "New: Nested Table/Array",
+                "New: Calculated/Aggregate field"
             ],
             "x-enum-varnames": [
                 "FieldTypeText",
@@ -10102,7 +10105,8 @@ const docTemplate = `{
                 "FieldTypeImage",
                 "FieldTypeUser",
                 "FieldTypeRadio",
-                "FieldTypeSubform"
+                "FieldTypeSubform",
+                "FieldTypeFunction"
             ]
         },
         "models.Filter": {
@@ -10116,6 +10120,30 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "value": {}
+            }
+        },
+        "models.FunctionDef": {
+            "type": "object",
+            "properties": {
+                "operation": {
+                    "description": "sum, avg, min, max, multiply, script",
+                    "type": "string"
+                },
+                "script": {
+                    "description": "Custom JS script",
+                    "type": "string"
+                },
+                "target": {
+                    "description": "format: \"subform_name.field_name\" for aggregates",
+                    "type": "string"
+                },
+                "targets": {
+                    "description": "for simple math like multiply (e.g. [\"price\", \"quantity\"])",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
             }
         },
         "models.LookupDef": {
@@ -10147,6 +10175,14 @@ const docTemplate = `{
                 },
                 "filterable": {
                     "type": "boolean"
+                },
+                "function": {
+                    "description": "New: Function definition",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.FunctionDef"
+                        }
+                    ]
                 },
                 "help_text": {
                     "type": "string"

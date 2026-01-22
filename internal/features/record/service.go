@@ -17,12 +17,12 @@ import (
 	"go-crm/internal/core/role"
 	"go-crm/internal/core/user"
 	"go-crm/internal/features/file"
+	"go-crm/internal/features/inventory"
 	"go-crm/internal/features/module"
 	"go-crm/internal/features/webhook"
 	"go-crm/pkg/condition"
 
-	"go-crm/internal/features/inventory"
-
+	"github.com/dop251/goja"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -159,6 +159,9 @@ func (s *RecordServiceImpl) CreateRecord(ctx context.Context, moduleName string,
 			validatedData[field.Name] = float64(seq) // Store as float64 because Number type expects it (or should we store INT? MongoDB numbers are double by default in JSON unmarshal usually)
 		}
 	}
+
+	// Calculate Computed Fields
+	s.calculateComputedFields(ctx, validatedData, m.Fields)
 
 	// 3. Initialize Approval Workflow
 	approvalState, err := s.ApprovalService.InitializeApproval(ctx, moduleName, validatedData)
@@ -593,10 +596,11 @@ func (s *RecordServiceImpl) UpdateRecord(ctx context.Context, moduleName, id str
 	if s.BlueprintValidator != nil {
 		targetField, err := s.BlueprintValidator.GetActiveBlueprintTargetField(ctx, moduleName)
 		if err != nil {
-			// Log error but maybe don't block? Or strict?
-			// Let's assume strict for safety or log.
-			// fmt.Printf("failed to check blueprint target field: %v\n", err)
-			return fmt.Errorf("failed to validate blueprint constraint: %v", err)
+			if err == mongo.ErrNoDocuments {
+				targetField = ""
+			} else {
+				return fmt.Errorf("failed to validate blueprint constraint: %v", err)
+			}
 		}
 		if targetField != "" {
 			if newVal, ok := validatedData[targetField]; ok {
@@ -616,6 +620,24 @@ func (s *RecordServiceImpl) UpdateRecord(ctx context.Context, moduleName, id str
 		} else if stateMap, ok := val.(primitive.M); ok {
 			if status, ok := stateMap["status"].(string); ok && status == "pending" {
 				return errors.New("record is locked for approval and cannot be edited")
+			}
+		}
+	}
+
+	// Calculate Computed Fields (using merged state)
+	projectedRecord := make(map[string]any)
+	for k, v := range oldRecord {
+		projectedRecord[k] = v
+	}
+	for k, v := range validatedData {
+		projectedRecord[k] = v
+	}
+	s.calculateComputedFields(ctx, projectedRecord, m.Fields)
+	// Update validatedData with calculated values
+	for _, field := range m.Fields {
+		if field.Type == common_models.FieldTypeFunction {
+			if val, ok := projectedRecord[field.Name]; ok {
+				validatedData[field.Name] = val
 			}
 		}
 	}
@@ -972,11 +994,211 @@ func (s *RecordServiceImpl) validateAndConvert(ctx context.Context, field models
 			return nil, errors.New("referenced user not found")
 		}
 		return oid, nil
+
+	case models.FieldTypeFunction:
+		// Function fields are calculated, not input directly.
+		// However, we might want to allow override? Usually no.
+		// For now, ignore input for function fields as they are read-only/computed.
+		return nil, nil
 	default:
 		return val, nil
 	}
 }
 
+func (s *RecordServiceImpl) calculateComputedFields(ctx context.Context, record map[string]any, fields []common_models.ModuleField) {
+	for _, field := range fields {
+		if field.Type == common_models.FieldTypeFunction && field.Function != nil {
+			val, err := s.evaluateFunction(record, field.Function)
+			if err == nil {
+				record[field.Name] = val
+			} else {
+				// Default to 0 if calculation fails
+				record[field.Name] = 0.0
+			}
+		}
+	}
+}
+
+func (s *RecordServiceImpl) evaluateFunction(record map[string]any, fn *common_models.FunctionDef) (any, error) {
+	if fn == nil {
+		return nil, errors.New("no function definition")
+	}
+
+	switch fn.Operation {
+	case "sum", "avg", "min", "max":
+		// Target format: "subformName.subfieldName"
+		parts := strings.Split(fn.Target, ".")
+		if len(parts) != 2 {
+			return 0.0, fmt.Errorf("invalid target format: %s", fn.Target)
+		}
+		subformName, subFieldName := parts[0], parts[1]
+
+		rawList, ok := record[subformName]
+		if !ok || rawList == nil {
+			return 0.0, nil
+		}
+
+		var values []float64
+
+		// Helper to extract value from row
+		extract := func(row map[string]any) {
+			if val, exists := row[subFieldName]; exists {
+				values = append(values, toFloat(val))
+			}
+		}
+
+		// Iterate generic list
+		switch list := rawList.(type) {
+		case []any:
+			for _, item := range list {
+				if row, ok := item.(map[string]any); ok {
+					extract(row)
+				} else if row, ok := item.(primitive.M); ok {
+					extract(map[string]any(row))
+				}
+			}
+		case []map[string]any:
+			for _, row := range list {
+				extract(row)
+			}
+		case primitive.A: // Mongo driver array
+			for _, item := range list {
+				if row, ok := item.(map[string]any); ok {
+					extract(row)
+				} else if row, ok := item.(primitive.M); ok {
+					extract(map[string]any(row))
+				}
+			}
+		}
+
+		if len(values) == 0 {
+			return 0.0, nil
+		}
+
+		switch fn.Operation {
+		case "sum":
+			sum := 0.0
+			for _, v := range values {
+				sum += v
+			}
+			return sum, nil
+		case "avg":
+			sum := 0.0
+			for _, v := range values {
+				sum += v
+			}
+			return sum / float64(len(values)), nil
+		case "min":
+			min := values[0]
+			for _, v := range values {
+				if v < min {
+					min = v
+				}
+			}
+			return min, nil
+		case "max":
+			max := values[0]
+			for _, v := range values {
+				if v > max {
+					max = v
+				}
+			}
+			return max, nil
+		}
+
+	case "script":
+		if fn.Script == "" {
+			return 0.0, nil
+		}
+		vm := goja.New()
+
+		// Inject Record
+		_ = vm.Set("record", record)
+
+		// Inject Helpers
+		_ = vm.Set("Sum", func(call goja.FunctionCall) goja.Value {
+			sum := 0.0
+			for _, arg := range call.Arguments {
+				if val, ok := arg.Export().(float64); ok {
+					sum += val
+				} else if val, ok := arg.Export().(int64); ok {
+					sum += float64(val)
+				}
+			}
+			return vm.ToValue(sum)
+		})
+
+		_ = vm.Set("Max", func(call goja.FunctionCall) goja.Value {
+			if len(call.Arguments) == 0 {
+				return vm.ToValue(0)
+			}
+			max := -1e9 // reasonably small
+			first := true
+			for _, arg := range call.Arguments {
+				val := 0.0
+				if v, ok := arg.Export().(float64); ok {
+					val = v
+				} else if v, ok := arg.Export().(int64); ok {
+					val = float64(v)
+				} else {
+					continue
+				}
+
+				if first {
+					max = val
+					first = false
+				} else if val > max {
+					max = val
+				}
+			}
+			return vm.ToValue(max)
+		})
+
+		// Wrap in function to allow return
+		script := fmt.Sprintf("(function() { %s })()", fn.Script)
+		val, err := vm.RunString(script)
+		if err != nil {
+			return nil, fmt.Errorf("script execution failed: %v", err)
+		}
+		return val.Export(), nil
+
+	case "multiply":
+		result := 1.0
+		if len(fn.Targets) == 0 {
+			return 0.0, nil
+		}
+		for _, target := range fn.Targets {
+			val, ok := record[target]
+			if !ok {
+				val = 0.0
+			}
+			result *= toFloat(val)
+		}
+		return result, nil
+	}
+
+	return nil, fmt.Errorf("unknown operation: %s", fn.Operation)
+}
+
+func toFloat(val any) float64 {
+	switch v := val.(type) {
+	case float64:
+		return v
+	case int:
+		return float64(v)
+	case int64:
+		return float64(v)
+	case int32:
+		return float64(v)
+	case string:
+		if f, err := strconv.ParseFloat(v, 64); err == nil {
+			return f
+		}
+	case nil:
+		return 0.0
+	}
+	return 0.0
+}
 func (s *RecordServiceImpl) populateUsers(ctx context.Context, fields []models.ModuleField, record map[string]any) error {
 	for _, field := range fields {
 		if field.Type == models.FieldTypeUser {
