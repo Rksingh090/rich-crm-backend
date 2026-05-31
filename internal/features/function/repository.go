@@ -55,6 +55,15 @@ func (r *FunctionRepositoryImpl) Create(ctx context.Context, function *Function)
 		function.ID = primitive.NewObjectID()
 	}
 
+	// Set TenantID from context if not already set or to ensure it matches
+	if tenantID, ok := ctx.Value(models.TenantIDKey).(string); ok && tenantID != "" {
+		if oid, err := primitive.ObjectIDFromHex(tenantID); err == nil {
+			function.TenantID = oid
+		}
+	} else if oid, ok := ctx.Value(models.TenantIDKey).(primitive.ObjectID); ok {
+		function.TenantID = oid
+	}
+
 	col, err := r.getCollection(ctx)
 	if err != nil {
 		return err
@@ -147,6 +156,17 @@ func (r *FunctionRepositoryImpl) List(ctx context.Context, moduleName string) ([
 
 func (r *FunctionRepositoryImpl) Update(ctx context.Context, function *Function) error {
 	function.UpdatedAt = time.Now()
+
+	// Set TenantID from context if missing
+	if function.TenantID.IsZero() {
+		if tenantID, ok := ctx.Value(models.TenantIDKey).(string); ok && tenantID != "" {
+			if oid, err := primitive.ObjectIDFromHex(tenantID); err == nil {
+				function.TenantID = oid
+			}
+		} else if oid, ok := ctx.Value(models.TenantIDKey).(primitive.ObjectID); ok {
+			function.TenantID = oid
+		}
+	}
 
 	col, err := r.getCollection(ctx)
 	if err != nil {

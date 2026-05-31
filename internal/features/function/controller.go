@@ -1,6 +1,9 @@
 package function
 
 import (
+	"context"
+	"go-crm/internal/common/models"
+
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -73,7 +76,11 @@ func (c *FunctionController) Get(ctx *fiber.Ctx) error {
 func (c *FunctionController) List(ctx *fiber.Ctx) error {
 	moduleName := ctx.Query("module")
 
-	functions, err := c.Service.ListFunctions(ctx.UserContext(), moduleName, true)
+	// Set App context from header
+	app := ctx.Get("X-Rich-App", "crm")
+	userCtx := context.WithValue(ctx.UserContext(), models.AppIDKey, app)
+
+	functions, err := c.Service.ListFunctions(userCtx, moduleName, true)
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
